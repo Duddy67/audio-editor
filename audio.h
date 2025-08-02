@@ -51,6 +51,7 @@ class Audio {
 
         ma_context context;
         ma_decoder decoder;
+        ma_uint64 frameCount;
         Application* pApplication;
         AudioCallbackData callbackData;
         std::vector<float> leftSamples;

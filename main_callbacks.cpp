@@ -21,15 +21,15 @@ void Application::quit_cb(Fl_Widget* w, void* data)
 
 void Application::play_cb(Fl_Widget* w, void* data)
 {
-    Application* app = (Application*) data;
+    //Application* app = (Application*) data;
 }
 
 void Application::stop_cb(Fl_Widget* w, void* data)
 {
-    Application* app = (Application*) data;
+    //Application* app = (Application*) data;
 }
 
 void Application::pause_cb(Fl_Widget* w, void* data)
 {
-    Application* app = (Application*) data;
+    //Application* app = (Application*) data;
 }

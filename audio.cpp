@@ -283,6 +283,45 @@ void Audio::loadFile(const char *filename)
         std::cerr << "Failed to initialize output device." << std::endl;
         return;
     }
+
+    frameCount = 0;
+
+    if (ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount) != MA_SUCCESS) {
+        std::cerr << "Failed to get length" << std::endl;
+        ma_decoder_uninit(&decoder);
+        return;
+    }
+
+    // Create a array/buffer to hold the total number of samples (not frames!):
+    // nb frames * nb channels = total nb samples
+    std::vector<float> tempData(static_cast<size_t>(frameCount * decoder.outputChannels));
+
+    ma_uint64 framesRead = 0;
+    if (ma_decoder_read_pcm_frames(&decoder, tempData.data(), frameCount, &framesRead) != MA_SUCCESS) {
+        std::cerr << "Failed to read PCM frames" << std::endl;
+        ma_decoder_uninit(&decoder);
+        return;
+    }
+
+    if (decoder.outputChannels == 1) {
+        // Mono data
+        leftSamples = std::vector<float>(tempData);
+        // Mirror for playback
+        rightSamples = leftSamples;
+        stereo = false;
+    }
+    else {
+        // Split into left/right channels
+        leftSamples.clear();  rightSamples.clear();
+        for (size_t i = 0; i < framesRead; ++i) {
+            leftSamples.push_back(tempData[i * decoder.outputChannels]);
+            rightSamples.push_back(tempData[i * decoder.outputChannels + 1]);
+        }
+
+        stereo = true;
+    }
+
+    ma_decoder_uninit(&decoder);
 }
 
 /*
