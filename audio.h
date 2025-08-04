@@ -16,13 +16,10 @@ class Application;
 
 // Structure used to manipulate some Audio class members through the data_callback function.
 struct AudioCallbackData {
-    ma_decoder *pDecoder;
     std::vector<float> *pLeftSamples;
     std::vector<float> *pRightSamples;
     std::atomic<int> *pPlaybackSampleIndex;
     int *pTotalSamples;
-    //std::atomic<ma_uint64> *pCursor;
-    //std::atomic<bool> *pIsPlaying;
     // Pointer to the owning class.
     class Audio* pInstance;
     Application* pApplication;
@@ -62,6 +59,8 @@ class Audio {
         bool decoderInit = false;
         bool outputDeviceInit = false;
         bool stereo = true;
+        bool playing = false;
+        bool paused = false;
         const ma_format defaultOutputFormat = ma_format_f32;
         const ma_uint32 defaultOutputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
@@ -74,6 +73,7 @@ class Audio {
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
         bool initializeOutputDevice();
+        bool decodeFile();
 
 
     public:
@@ -85,6 +85,8 @@ class Audio {
       std::vector<DeviceInfo> getInputDevices();
       void printAllDevices();
       void loadFile(const char *fileName);
+      void start() { ma_device_start(&outputDevice); }
+      void stop() { ma_device_stop(&outputDevice); }
 
       // Getters.
 
@@ -92,6 +94,7 @@ class Audio {
       std::vector<std::string> getSupportedFormats() { return supportedFormats; }
       bool isContextInit() { return contextInit; }
       bool isStereo() { return stereo; }
+      bool isPlaying() { return playing; }
 
       // Setters.
 

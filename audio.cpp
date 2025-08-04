@@ -18,7 +18,6 @@ Audio::Audio(Application* app) : pApplication(app), contextInit(false) {
     // Set the callbackData parameters used in the MiniAudio callback function (ie: data_callback).
     callbackData.pApplication = app;
     // Set pointers to the private members needed in the data_callback function.
-    callbackData.pDecoder = &decoder;
     callbackData.pLeftSamples = &leftSamples;
     callbackData.pRightSamples = &rightSamples;
     callbackData.pPlaybackSampleIndex = &playbackSampleIndex;
@@ -56,7 +55,7 @@ void Audio::uninit()
 void data_callback(ma_device* pDevice, void* output, const void*, ma_uint32 frameCount) {
     AudioCallbackData* self = (AudioCallbackData*)pDevice->pUserData;
 
-    if (self == nullptr || self->pDecoder == nullptr) {
+    if (self == nullptr) {
         return;
     }
 
@@ -80,16 +79,14 @@ void data_callback(ma_device* pDevice, void* output, const void*, ma_uint32 fram
         out[i * 2] = 0.0f;
         out[i * 2 + 1] = 0.0f;
     }
+//std::cout << "data_callback: " << std::endl;
 }
 
 /*
- * Initializes and starts the output device selected by the user.
+ * Initializes the output device selected by the user.
  */
 bool Audio::initializeOutputDevice()
 {
-    // Reset the cursor position.
-    //cursor.store(0, std::memory_order_relaxed);
-
     // Configure device parameters.
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
     deviceConfig.playback.pDeviceID = &outputDeviceID;
@@ -99,18 +96,10 @@ bool Audio::initializeOutputDevice()
     deviceConfig.dataCallback = data_callback;
     deviceConfig.pUserData = &callbackData;
 
-    // Initialize and start device
+    // Initialize device
     if (ma_device_init(&context, &deviceConfig, &outputDevice) != MA_SUCCESS) {
         std::cerr << "Failed to initialize playback device." << std::endl;
         ma_decoder_uninit(&decoder);
-        return false;
-    }
-
-    ma_result result = ma_device_start(&outputDevice);
-
-    if (result != MA_SUCCESS) {
-        printf("Failed to get sound length.\n");
-        uninit();
         return false;
     }
 
@@ -279,17 +268,33 @@ void Audio::loadFile(const char *filename)
 
     decoderInit = true;
 
+    if (!decodeFile()) {
+        std::cerr << "Failed to decode file." << std::endl;
+        return;
+    }
+
+    // Reset index.
+    playbackSampleIndex.store(0, std::memory_order_relaxed);
+
+    ma_decoder_uninit(&decoder);
+
     if(!initializeOutputDevice()) {
         std::cerr << "Failed to initialize output device." << std::endl;
         return;
     }
+}
 
+/*
+ * Decode the entire file manually to playback straight from memory (ie: no streaming).
+ */
+bool Audio::decodeFile()
+{
     frameCount = 0;
 
     if (ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount) != MA_SUCCESS) {
         std::cerr << "Failed to get length" << std::endl;
         ma_decoder_uninit(&decoder);
-        return;
+        return false;
     }
 
     // Create a array/buffer to hold the total number of samples (not frames!):
@@ -300,7 +305,7 @@ void Audio::loadFile(const char *filename)
     if (ma_decoder_read_pcm_frames(&decoder, tempData.data(), frameCount, &framesRead) != MA_SUCCESS) {
         std::cerr << "Failed to read PCM frames" << std::endl;
         ma_decoder_uninit(&decoder);
-        return;
+        return false;
     }
 
     if (decoder.outputChannels == 1) {
@@ -313,6 +318,7 @@ void Audio::loadFile(const char *filename)
     else {
         // Split into left/right channels
         leftSamples.clear();  rightSamples.clear();
+
         for (size_t i = 0; i < framesRead; ++i) {
             leftSamples.push_back(tempData[i * decoder.outputChannels]);
             rightSamples.push_back(tempData[i * decoder.outputChannels + 1]);
@@ -321,7 +327,9 @@ void Audio::loadFile(const char *filename)
         stereo = true;
     }
 
-    ma_decoder_uninit(&decoder);
+    totalSamples = static_cast<int>(framesRead);
+
+    return true;
 }
 
 /*
