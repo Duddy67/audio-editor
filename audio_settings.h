@@ -30,6 +30,7 @@ class AudioSettings : public Fl_Window
         // Getters.
         Fl_Button* getSaveButton()const { return saveBtn; }
         Fl_Button* getCancelButton()const { return cancelBtn; }
+        ma_device getOutputDevice() { return outputDevice; }
 };
 
 #endif

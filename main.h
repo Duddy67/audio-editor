@@ -13,6 +13,7 @@
 #include "dialog_wnd.h"
 #include "file_chooser.h"
 #include "audio.h"
+#include "waveform.h"
 #include "audio_settings.h"
 #include "../libraries/json.hpp"
 #define CONFIG_FILENAME "config.json"
@@ -40,6 +41,7 @@ class Application : public Fl_Double_Window
     FileChooser *fileChooser = 0;
     AudioSettings *audioSettings = 0;
     Audio *audio = 0;
+    WaveformView *view = 0;
     std::string message;
 
     struct AppConfig {

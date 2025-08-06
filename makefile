@@ -1,8 +1,9 @@
-SRC = main.cpp menu.cpp dialog_wnd.cpp file_chooser.cpp main_callbacks.cpp main_functions.cpp audio.cpp audio_settings.cpp
+SRC = main.cpp menu.cpp dialog_wnd.cpp file_chooser.cpp main_callbacks.cpp main_functions.cpp audio.cpp audio_settings.cpp waveform.cpp
 CXX = g++
 CXXFLAGS = -Wall $(shell fltk-config --cxxflags)
 
-LFLAGS = $(shell fltk-config --ldflags)
+# Include OpenGL libraries
+LFLAGS = $(shell fltk-config --ldflags) -lfltk_gl -lGL -lGLU -lX11
 
 OBJS = $(SRC:.cpp=.o)
 DIR_OBJ = obj/
