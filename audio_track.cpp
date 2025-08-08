@@ -6,7 +6,7 @@
 /*
  * Constructor
  */
-Audio::Audio(Application* app) : pApplication(app), contextInit(false) {
+AudioTrack::AudioTrack(Application* app) : pApplication(app), contextInit(false) {
     ma_context_config config = ma_context_config_init();
 
     // Initialize the audio context.
@@ -29,7 +29,7 @@ Audio::Audio(Application* app) : pApplication(app), contextInit(false) {
 /*
  * Destructor: Uninitializes all of the audio parameters before closing the app.
  */
-Audio::~Audio() {
+AudioTrack::~AudioTrack() {
     uninit();
 
     if (contextInit) {
@@ -41,7 +41,7 @@ Audio::~Audio() {
 /*
  * Uninitializes both output device and decoder parameters.
  */
-void Audio::uninit()
+void AudioTrack::uninit()
 {
     if (outputDeviceInit) {
         ma_device_uninit(&outputDevice);
@@ -52,40 +52,10 @@ void Audio::uninit()
     }
 }
 
-void data_callback(ma_device* pDevice, void* output, const void*, ma_uint32 frameCount) {
-    AudioCallbackData* self = (AudioCallbackData*)pDevice->pUserData;
-
-    if (self == nullptr) {
-        return;
-    }
-
-    float* out = static_cast<float*>(output);
-
-    int remaining = *self->pTotalSamples - self->pPlaybackSampleIndex->load(std::memory_order_relaxed);
-    int framesToCopy = std::min((int)frameCount, remaining);
-
-    // Fill buffer with interleaved stereo samples
-    for (int i = 0; i < framesToCopy; ++i) {
-        // Increment the sample index (ie: ++).
-        int idx = self->pPlaybackSampleIndex->fetch_add(1, std::memory_order_relaxed);
-        // Left
-        out[i * 2] = (*self->pLeftSamples)[idx];
-        // Right
-        out[i * 2 + 1] = (*self->pRightSamples)[idx];
-    }
-
-    // Fill remaining frames with silence
-    for (int i = framesToCopy; i < (int)frameCount; ++i) {
-        out[i * 2] = 0.0f;
-        out[i * 2 + 1] = 0.0f;
-    }
-//std::cout << "data_callback: " << std::endl;
-}
-
 /*
  * Initializes the output device selected by the user.
  */
-bool Audio::initializeOutputDevice()
+bool AudioTrack::initializeOutputDevice()
 {
     // Configure device parameters.
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
@@ -107,98 +77,37 @@ bool Audio::initializeOutputDevice()
 }
 
 /*
- * Gathers all the capture and playback device info into an array.
+ * Fills the given output buffer with interleaved stereo samples.
  */
-std::vector<Audio::DeviceInfo> Audio::getDevices(ma_device_type deviceType) {
-    // Create a device array.
-    std::vector<DeviceInfo> devices;
-    
-    if (!contextInit) {
-        return devices;
-    }
+void AudioTrack::mixInto(float* output, int frameCount) {
+    // Check first if the track is playing.
+    if (!playing.load()) {
+        return;
+    } 
 
-    // initialize some MiniAudio variables.
-    ma_device_info* pDeviceInfos = nullptr;
-    ma_uint32 deviceCount = 0;
-    ma_result result;
+    // Fill buffer.
+    for (int i = 0; i < frameCount; ++i) {
+        // Increment the sample index (ie: ++).
+        int idx = playbackIndex.fetch_add(1);
 
-    // Get playback or capture devices.
-    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_duplex) {
-        result = ma_context_get_devices(&context, &pDeviceInfos, &deviceCount, nullptr, nullptr);
-    }
-    else {
-        result = ma_context_get_devices(&context, nullptr, nullptr, &pDeviceInfos, &deviceCount);
-    }
-
-    if (result != MA_SUCCESS) {
-        std::cerr << "Failed to retrieve devices." << std::endl;
-        return devices;
-    }
-
-    // Store the device data in the array.
-    for (ma_uint32 i = 0; i < deviceCount; ++i) {
-        DeviceInfo info;
-        info.name = pDeviceInfos[i].name;
-        info.id = pDeviceInfos[i].id;
-        info.isDefault = pDeviceInfos[i].isDefault;
-        devices.push_back(info);
-    }
-
-    return devices;
-}
-
-/* Device getters. */
-
-std::vector<Audio::DeviceInfo> Audio::getOutputDevices() {
-    return getDevices(ma_device_type_playback);
-}
-
-std::vector<Audio::DeviceInfo> Audio::getInputDevices() {
-    return getDevices(ma_device_type_capture);
-}
-
-/*
- * Set the output to the given device.
- */
-void Audio::setOutputDevice(const char *deviceName)
-{
-    bool found = false;
-    auto outputDevices = getOutputDevices();
-
-    // Loop through the available devices.
-    for (ma_uint32 i = 0; i < (ma_uint32) outputDevices.size(); ++i) {
-        if (strcmp(outputDevices[i].name.c_str(), deviceName) == 0) {
-            std::cout << "Found target device: " << outputDevices[i].name << std::endl;
-            // Set the given device id.
-            memcpy(&outputDeviceID, &outputDevices[i].id, sizeof(ma_device_id));
-            found = true;
+        // End of audio file.
+        if (idx >= totalFrames) {
+            // Stop playback.
+            playing.store(false);
             break;
         }
-    }
 
-    if (!found) {
-        std::cerr << "Target device not found!" << std::endl;
-        return;
-    }
-
-    // An audio file has been loaded.
-    if (decoderInit) {
-        // Stop playback.
-        ma_device_stop(&outputDevice);
-        // Release device resources.
-        ma_device_uninit(&outputDevice);
-
-        if(!initializeOutputDevice()) {
-            std::cerr << "Failed to initialize output device." << std::endl;
-            return;
-        }
+        // Left
+        output[i * 2] += leftSamples[idx];   
+        // Right
+        output[i * 2 + 1] += rightSamples[idx];  
     }
 }
 
 /*
  * Probes the original file format and store its data.
  */
-bool Audio::storeOriginalFileFormat(const char* filename)
+bool AudioTrack::storeOriginalFileFormat(const char* filename)
 {
     // Initialize a temporary decoder without any config data (ie: NULL).
     ma_decoder decoderProbe;
@@ -223,7 +132,7 @@ bool Audio::storeOriginalFileFormat(const char* filename)
 /*
  * Loads a given audio file.
  */
-void Audio::loadFile(const char *filename)
+void AudioTrack::loadFromFile(const char *filename)
 {
     printf("Load audio file '%s'\n", filename);
     // First ensure the file format is supported.
@@ -244,14 +153,6 @@ void Audio::loadFile(const char *filename)
         return;
     }
 
-    // Check for a possible file previously loaded.
-    if (decoderInit) {
-        // Ensure no more callbacks are running.
-        ma_device_stop(&outputDevice);
-        uninit();
-        decoderInit = false;
-    }
-
     // First store the original data file format.
     if (!storeOriginalFileFormat(filename)) {
         std::cerr << "Failed to load audio file." << std::endl;
@@ -266,8 +167,6 @@ void Audio::loadFile(const char *filename)
         return;
     }
 
-    decoderInit = true;
-
     if (!decodeFile()) {
         std::cerr << "Failed to decode file." << std::endl;
         return;
@@ -277,17 +176,12 @@ void Audio::loadFile(const char *filename)
     playbackSampleIndex.store(0, std::memory_order_relaxed);
 
     ma_decoder_uninit(&decoder);
-
-    if(!initializeOutputDevice()) {
-        std::cerr << "Failed to initialize output device." << std::endl;
-        return;
-    }
 }
 
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool Audio::decodeFile()
+bool AudioTrack::decodeFile()
 {
     frameCount = 0;
 
@@ -308,26 +202,25 @@ bool Audio::decodeFile()
         return false;
     }
 
-    if (decoder.outputChannels == 1) {
-        // Mono data
-        leftSamples = std::vector<float>(tempData);
-        // Mirror for playback
-        rightSamples = leftSamples;
-        stereo = false;
-    }
-    else {
+    // Check whether the file is stereo.
+    stereo = decoder.outputChannels == 2;
+    totalFrames = static_cast<int>(framesRead);
+
+    if (stereo) {
         // Split into left/right channels
         leftSamples.clear();  rightSamples.clear();
 
-        for (size_t i = 0; i < framesRead; ++i) {
-            leftSamples.push_back(tempData[i * decoder.outputChannels]);
-            rightSamples.push_back(tempData[i * decoder.outputChannels + 1]);
+        for (int i = 0; i < totalFrames; ++i) {
+            leftSamples.push_back(tempData[i * 2]);
+            rightSamples.push_back(tempData[i * 2 + 1]);
         }
-
-        stereo = true;
     }
-
-    totalSamples = static_cast<int>(framesRead);
+    // Mono data
+    else {
+        leftSamples = std::vector<float>(tempData);
+        // Mirror for playback
+        rightSamples = leftSamples;
+    }
 
     return true;
 }
@@ -336,7 +229,7 @@ bool Audio::decodeFile()
  * Displays both the input and output audio devices in the console.
  * Function used for debugging purpose.
  */
-void Audio::printAllDevices()
+void AudioTrack::printAllDevices()
 {
     if (!contextInit) {
         std::cerr << "Audio context not initialized." << std::endl;

@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include "dialog_wnd.h"
 #include "file_chooser.h"
-#include "audio.h"
+#include "audio_track.h"
 #include "waveform.h"
 #include "audio_settings.h"
 #include "../libraries/json.hpp"

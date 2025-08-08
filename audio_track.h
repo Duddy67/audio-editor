@@ -1,5 +1,5 @@
-#ifndef AUDIO_H
-#define AUDIO_H
+#ifndef AUDIO_TRACK_H
+#define AUDIO_TRACK_H
 
 #include <string>
 #include <iostream>
@@ -21,24 +21,17 @@ struct AudioCallbackData {
     std::atomic<int> *pPlaybackSampleIndex;
     int *pTotalSamples;
     // Pointer to the owning class.
-    class Audio* pInstance;
+    class AudioTrack* pInstance;
     Application* pApplication;
 };
 
 
 /*
- * The Audio class is a kind of interface allowing the application and the MiniAudio
+ * The AudioTrack class is a kind of interface allowing the application and the MiniAudio
  * library to communicate with each other.
  */
-class Audio {
+class AudioTrack {
     private:
-        // Structure that holds the device data.
-        struct DeviceInfo {
-            std::string name;
-            ma_device_id id;
-            bool isDefault;
-        };
-
         struct OriginalFileFormat {
             std::string fileName;
             ma_uint32 outputChannels;
@@ -54,52 +47,33 @@ class Audio {
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         std::atomic<int> playbackSampleIndex{0};
-        int totalSamples = 0;
-        bool contextInit = false;
-        bool decoderInit = false;
-        bool outputDeviceInit = false;
+        int totalFrames = 0;
         bool stereo = true;
-        bool playing = false;
+        std::atomic<bool> playing{false};
         bool paused = false;
-        const ma_format defaultOutputFormat = ma_format_f32;
-        const ma_uint32 defaultOutputChannels = 2;
-        const ma_uint32 defaultOutputSampleRate = 44100;
-        ma_device outputDevice;
-        ma_device_id outputDeviceID = {0};
         OriginalFileFormat originalFileFormat;
-        std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
-        std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
 
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
-        bool initializeOutputDevice();
         bool decodeFile();
 
 
     public:
-      Audio(Application *app);
-      ~Audio();
+      AudioTrack(Application *app);
+      ~AudioTrack();
 
-      bool init(const std::vector<float>& left, const std::vector<float>& right, int rate);
-      std::vector<DeviceInfo> getOutputDevices();
-      std::vector<DeviceInfo> getInputDevices();
-      void printAllDevices();
-      void loadFile(const char *fileName);
+      void loadFromFile(const char *fileName);
       void start() { ma_device_start(&outputDevice); }
       void stop() { ma_device_stop(&outputDevice); }
+      void mixInto(float* output, int frameCount);
 
       // Getters.
 
       std::map<std::string, std::string> getOriginalFileFormat();
-      std::vector<std::string> getSupportedFormats() { return supportedFormats; }
-      bool isContextInit() { return contextInit; }
       bool isStereo() { return stereo; }
-      bool isPlaying() { return playing; }
-
-      // Setters.
-
-      void setOutputDevice(const char *deviceName);
+      bool isPlaying() const { return playing.load(); }
+      bool isPaused() const { return paused; }
 };
 
-#endif // AUDIO_H
+#endif // AUDIO_TRACK_H
 

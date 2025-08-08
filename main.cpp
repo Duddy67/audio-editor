@@ -53,7 +53,7 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     AppConfig config = loadConfig(CONFIG_FILENAME);
 
     // Create and initialize the Audio object.
-    this->audio = new Audio(this);
+    this->audio = new AudioTrack(this);
 
     if (!this->audio->isContextInit()) {
         setMessage("Failed to initialize audio system.");
