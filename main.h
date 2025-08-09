@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include "dialog_wnd.h"
 #include "file_chooser.h"
+#include "audio_engine.h"
 #include "audio_track.h"
 #include "waveform.h"
 #include "audio_settings.h"
@@ -37,11 +38,11 @@ class Application : public Fl_Double_Window
     Fl_Button* playBtn;
     Fl_Button* stopBtn;
     Fl_Button* pauseBtn;
-    DialogWindow* dialogWnd = 0;
-    FileChooser *fileChooser = 0;
-    AudioSettings *audioSettings = 0;
-    Audio *audio = 0;
-    WaveformView *view = 0;
+    DialogWindow* dialogWnd = nullptr;
+    FileChooser *fileChooser = nullptr;
+    AudioSettings *audioSettings = nullptr;
+    AudioEngine *audioEngine = nullptr;
+    WaveformView *view = nullptr;
     std::string message;
 
     struct AppConfig {

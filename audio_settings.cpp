@@ -14,13 +14,13 @@ void Application::audio_settings_cb(Fl_Widget *w, void *data)
         app->audioSettings->getCancelButton()->callback(cancel_audio_settings_cb, app);
     }
 
-    if (!app->audio->isContextInit()) {
+    if (!app->audioEngine->isContextInitialized()) {
         std::cerr << "Failed to initialize audio system." << std::endl;
     }
     else {
         // Get the required variables.
-        auto outputDevices = app->audio->getOutputDevices();
-        auto inputDevices = app->audio->getInputDevices();
+        auto outputDevices = app->audioEngine->getOutputDevices();
+        auto inputDevices = app->audioEngine->getInputDevices();
         AppConfig config = app->loadConfig(CONFIG_FILENAME);
 
         int defaultSelec = 0, selection = 0;
@@ -70,7 +70,6 @@ void Application::audio_settings_cb(Fl_Widget *w, void *data)
     app->audioSettings->show();
 }
 
-
 void Application::save_audio_settings_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
@@ -82,7 +81,7 @@ void Application::save_audio_settings_cb(Fl_Widget* w, void* data)
     config.inputDevice = app->audioSettings->input->text();
     app->saveConfig(config, CONFIG_FILENAME);
     // Update the newly selected playback device. 
-    app->audio->setOutputDevice(config.outputDevice.c_str());
+    app->audioEngine->setOutputDevice(config.outputDevice.c_str());
 
     app->audioSettings->hide();
 }

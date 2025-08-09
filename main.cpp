@@ -53,14 +53,14 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     AppConfig config = loadConfig(CONFIG_FILENAME);
 
     // Create and initialize the Audio object.
-    this->audio = new AudioTrack(this);
+    this->audioEngine = new AudioEngine(this);
 
-    if (!this->audio->isContextInit()) {
+    if (!this->audioEngine->isContextInitialized()) {
         setMessage("Failed to initialize audio system.");
         this->dialog_cb(this->dialogWnd, this);
     }
 
-    audio->setOutputDevice(config.outputDevice.c_str());
+    audioEngine->setOutputDevice(config.outputDevice.c_str());
     //audio->printAllDevices();
 }
 

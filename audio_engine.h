@@ -18,9 +18,13 @@ class AudioEngine {
             bool isDefault;
         };
 
+        Application* pApplication;
         ma_context context;
         ma_device outputDevice;
         ma_device_id outputDeviceID = {0};
+        // Flags to keep track of object state.
+        bool contextInitialized = false;
+        bool outputDeviceInitialized = false;
         // Multiple loaded tracks
         std::vector<std::shared_ptr<AudioTrack>> tracks;  
         const ma_format defaultOutputFormat = ma_format_f32;
@@ -36,6 +40,7 @@ class AudioEngine {
         ~AudioEngine();
 
         bool initializeOutputDevice();
+        void printAllDevices();
         void shutdown();
         void addTrack(std::shared_ptr<AudioTrack> track);
         void removeTrack(std::shared_ptr<AudioTrack> track);
@@ -46,6 +51,10 @@ class AudioEngine {
         std::vector<DeviceInfo> getOutputDevices();
         std::vector<DeviceInfo> getInputDevices();
         std::vector<std::string> getSupportedFormats() { return supportedFormats; }
+        bool isContextInitialized() { return contextInitialized; }
+        ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
+        ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
+        ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
 
       // Setters.
       void setOutputDevice(const char *deviceName);

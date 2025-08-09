@@ -12,6 +12,7 @@ AudioEngine::AudioEngine(Application* app) : pApplication(app) {
 
     // Initialize the audio context.
     if (ma_context_init(NULL, 0, &config, &context) == MA_SUCCESS) {
+        contextInitialized = true;
         std::cerr << "Audio context initialized." << std::endl;
     }
 }
@@ -36,13 +37,15 @@ bool AudioEngine::initializeOutputDevice() {
         return false;
     }
 
+    outputDeviceInitialized = true;
+
     g_audioEngine = this;
 
     return true;
 }
 
 /*
- * Set the output to the given device.
+ * Sets the output to the given device.
  */
 void AudioEngine::setOutputDevice(const char *deviceName)
 {
@@ -66,7 +69,7 @@ void AudioEngine::setOutputDevice(const char *deviceName)
     }
 
     // A device is already set.
-    if (outputDevice) {
+    if (outputDeviceInitialized) {
         // Stop playback.
         ma_device_stop(&outputDevice);
         // Release device resources.
@@ -79,6 +82,9 @@ void AudioEngine::setOutputDevice(const char *deviceName)
     }
 }
 
+/*
+ * Clears all audio ressources currently used by the application. 
+ */
 void AudioEngine::shutdown() {
     ma_device_uninit(&outputDevice);
     ma_context_uninit(&context);
@@ -86,7 +92,7 @@ void AudioEngine::shutdown() {
 }
 
 void AudioEngine::start() { ma_device_start(&outputDevice); }
-void AudioEngine::stop() { ma_device_stop(&outputDevice); }
+void AudioEngine::stop()  { ma_device_stop(&outputDevice); }
 
 void AudioEngine::addTrack(std::shared_ptr<AudioTrack> track) {
     tracks.push_back(track);
@@ -98,7 +104,8 @@ void AudioEngine::removeTrack(std::shared_ptr<AudioTrack> track) {
 
 void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*input*/, ma_uint32 frameCount) {
     float* out = static_cast<float*>(output);
-    std::fill(out, out + frameCount * 2, 0.0f);  // Clear buffer (stereo)
+    // Clear buffer (stereo) with silence (ie: 0.0f). 
+    std::fill(out, out + frameCount * 2, 0.0f);  
 
     AudioEngine* engine = static_cast<AudioEngine*>(pDevice->pUserData);
 
@@ -116,7 +123,7 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type devi
     // Create a device array.
     std::vector<DeviceInfo> devices;
 
-    if (!context) {
+    if (!contextInitialized) {
         return devices;
     }
 
@@ -161,36 +168,36 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getInputDevices() {
 }
 
 /*
- * Set the output to the given device.
+ * Displays both the input and output audio devices in the console.
+ * Function used for debugging purpose.
  */
-void AudioTrack::setOutputDevice(const char *deviceName)
+void AudioEngine::printAllDevices()
 {
-    bool found = false;
+    if (!contextInitialized) {
+        std::cerr << "Audio context not initialized." << std::endl;
+        return;
+    }
+
     auto outputDevices = getOutputDevices();
+    auto inputDevices = getInputDevices();
 
-    // Loop through the available devices.
-    for (ma_uint32 i = 0; i < (ma_uint32) outputDevices.size(); ++i) {
-        if (strcmp(outputDevices[i].name.c_str(), deviceName) == 0) {
-            std::cout << "Found target device: " << outputDevices[i].name << std::endl;
-            // Set the given device id.
-            memcpy(&outputDeviceID, &outputDevices[i].id, sizeof(ma_device_id));
-            found = true;
-            break;
+    std::cout << "=== Available Audio Devices ===" << std::endl;
+
+    std::cout << "\nOutput Devices:" << std::endl;
+    for (size_t i = 0; i < outputDevices.size(); ++i) {
+        std::cout << "  " << i + 1 << ": " << outputDevices[i].name;
+        if (outputDevices[i].isDefault) {
+            std::cout << " (default)";
         }
+        std::cout << std::endl;
     }
 
-    if (!found) {
-        std::cerr << "Target device not found!" << std::endl;
-        return;
-    }
-
-    // Stop playback.
-    ma_device_stop(&outputDevice);
-    // Release device resources.
-    ma_device_uninit(&outputDevice);
-
-    if(!initializeOutputDevice()) {
-        std::cerr << "Failed to initialize output device." << std::endl;
-        return;
+    std::cout << "\nInput Devices:" << std::endl;
+    for (size_t i = 0; i < inputDevices.size(); ++i) {
+        std::cout << "  " << i + 1 << ": " << inputDevices[i].name;
+        if (inputDevices[i].isDefault) {
+            std::cout << " (default)";
+        }
+        std::cout << std::endl;
     }
 }

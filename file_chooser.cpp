@@ -5,7 +5,7 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
     Application* app = (Application*) data;
 
     if (app->fileChooser == 0) {
-        app->fileChooser = new FileChooser(app->audio->getSupportedFormats());
+        app->fileChooser = new FileChooser(app->audioEngine->getSupportedFormats());
     }
 
     switch (app->fileChooser->show()) {
@@ -15,7 +15,8 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
             break;
         default:   // Choice
             app->fileChooser->preset_file(app->fileChooser->filename());
-            app->audio->loadFile(app->fileChooser->filename());
+            auto track = std::make_shared<AudioTrack>(app->audioEngine);
+            track->loadFromFile(app->fileChooser->filename());
             break;
     }
 }

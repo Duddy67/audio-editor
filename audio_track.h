@@ -11,20 +11,8 @@
 #include <time.h>
 #include "../libraries/miniaudio.h"
 
-// Forward declaration.
-class Application;
-
-// Structure used to manipulate some Audio class members through the data_callback function.
-struct AudioCallbackData {
-    std::vector<float> *pLeftSamples;
-    std::vector<float> *pRightSamples;
-    std::atomic<int> *pPlaybackSampleIndex;
-    int *pTotalSamples;
-    // Pointer to the owning class.
-    class AudioTrack* pInstance;
-    Application* pApplication;
-};
-
+// Forward declarations.
+class AudioEngine;
 
 /*
  * The AudioTrack class is a kind of interface allowing the application and the MiniAudio
@@ -42,8 +30,8 @@ class AudioTrack {
         ma_context context;
         ma_decoder decoder;
         ma_uint64 frameCount;
-        Application* pApplication;
-        AudioCallbackData callbackData;
+        //Application* pApplication;
+        AudioEngine *pEngine;
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         std::atomic<int> playbackSampleIndex{0};
@@ -59,12 +47,13 @@ class AudioTrack {
 
 
     public:
-      AudioTrack(Application *app);
-      ~AudioTrack();
+      AudioTrack(AudioEngine* engine) : pEngine(engine) {}
 
       void loadFromFile(const char *fileName);
-      void start() { ma_device_start(&outputDevice); }
-      void stop() { ma_device_stop(&outputDevice); }
+      void play();
+      void pause();
+      void stop();
+      void seek(int frame);
       void mixInto(float* output, int frameCount);
 
       // Getters.
