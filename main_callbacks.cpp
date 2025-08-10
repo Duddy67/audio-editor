@@ -22,13 +22,15 @@ void Application::quit_cb(Fl_Widget* w, void* data)
 void Application::play_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
-    app->audioEngine->start();
+    auto track = app->audioEngine->getTrack(0);
+    track->play();
 }
 
 void Application::stop_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
-    app->audioEngine->stop();
+    auto track = app->audioEngine->getTrack(0);
+    track->stop();
 }
 
 void Application::pause_cb(Fl_Widget* w, void* data)

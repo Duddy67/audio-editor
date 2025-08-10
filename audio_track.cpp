@@ -43,7 +43,7 @@ void AudioTrack::seek(int frame) {
 /*
  * Loads a given audio file.
  */
-void AudioTrack::loadFromFile(const char *filename)
+bool AudioTrack::loadFromFile(const char *filename)
 {
     printf("Load audio file '%s'\n", filename);
     // First ensure the file format is supported.
@@ -62,33 +62,34 @@ void AudioTrack::loadFromFile(const char *filename)
 
     if (!supported) {
         std::cerr << "Format: " << fileFormat << " not supported." << std::endl;
-        return;
+        return false;
     }
 
     // First store the original data file format.
     if (!storeOriginalFileFormat(filename)) {
         std::cerr << "Failed to load audio file." << std::endl;
-        return;
+        return false;
     }
 
-    ma_decoder decoder;
     // Then initialize decoder with format conversion.
     ma_decoder_config decoderConfig = ma_decoder_config_init(pEngine->getDefaultOutputFormat(), pEngine->getDefaultOutputChannels(), pEngine->getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
         std::cerr << "Failed to initialize decoder with conversion." << std::endl;
-        return;
+        return false;
     }
 
     if (!decodeFile()) {
         std::cerr << "Failed to decode file." << std::endl;
-        return;
+        return false;
     }
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);
 
     ma_decoder_uninit(&decoder);
+
+    return true;
 }
 
 /*

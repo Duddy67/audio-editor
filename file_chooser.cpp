@@ -16,7 +16,13 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
         default:   // Choice
             app->fileChooser->preset_file(app->fileChooser->filename());
             auto track = std::make_shared<AudioTrack>(app->audioEngine);
-            track->loadFromFile(app->fileChooser->filename());
+
+            if (!track->loadFromFile(app->fileChooser->filename())) {
+                std::cerr << "Failed to load file." << std::endl;
+                break;
+            }
+
+            app->audioEngine->addTrack(track);
             break;
     }
 }

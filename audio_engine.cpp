@@ -98,6 +98,15 @@ void AudioEngine::addTrack(std::shared_ptr<AudioTrack> track) {
     tracks.push_back(track);
 }
 
+std::shared_ptr<AudioTrack> AudioEngine::getTrack(size_t index) {
+    if (index < tracks.size()) {
+        return tracks[index];
+    }
+
+    return nullptr;
+}
+
+
 void AudioEngine::removeTrack(std::shared_ptr<AudioTrack> track) {
     tracks.erase(std::remove(tracks.begin(), tracks.end(), track), tracks.end());
 }

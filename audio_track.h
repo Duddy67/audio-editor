@@ -49,7 +49,7 @@ class AudioTrack {
     public:
       AudioTrack(AudioEngine* engine) : pEngine(engine) {}
 
-      void loadFromFile(const char *fileName);
+      bool loadFromFile(const char *fileName);
       void play();
       void pause();
       void stop();

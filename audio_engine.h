@@ -55,6 +55,7 @@ class AudioEngine {
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
         ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
+        std::shared_ptr<AudioTrack> getTrack(size_t index);
 
       // Setters.
       void setOutputDevice(const char *deviceName);

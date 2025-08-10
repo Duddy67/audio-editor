@@ -61,6 +61,7 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     }
 
     audioEngine->setOutputDevice(config.outputDevice.c_str());
+    audioEngine->start();
     //audio->printAllDevices();
 }
 
