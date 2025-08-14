@@ -43,6 +43,7 @@ class Application : public Fl_Double_Window
     AudioSettings *audioSettings = nullptr;
     AudioEngine *audioEngine = nullptr;
     WaveformView *view = nullptr;
+    std::vector<Fl_Group*> documents;
     std::string message;
 
     struct AppConfig {

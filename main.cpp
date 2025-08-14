@@ -14,7 +14,6 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Toolbar");
     menuItem->clear();
 
-
     toolbar = new Fl_Group(0, SMALL_SPACE, w, SMALL_SPACE + (TINY_SPACE * 2));
         toolbar->box(FL_FLAT_BOX);
         // Create buttons.

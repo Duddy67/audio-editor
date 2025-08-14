@@ -23,6 +23,7 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
             }
 
             app->audioEngine->addTrack(track);
+
             break;
     }
 }
