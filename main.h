@@ -6,10 +6,11 @@
 #include <FL/Fl_Menu_Item.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Multiline_Output.H>
+#include <FL/Fl_Tabs.H>
 #include <FL/Fl_Box.H>
-#include <FL/Fl_Group.H>
 #include <errno.h>
 #include <cstdlib>
+#include "fixed_tab_group.h"
 #include "dialog_wnd.h"
 #include "file_chooser.h"
 #include "audio_engine.h"
@@ -43,6 +44,7 @@ class Application : public Fl_Double_Window
     AudioSettings *audioSettings = nullptr;
     AudioEngine *audioEngine = nullptr;
     WaveformView *view = nullptr;
+    Fl_Tabs *tabs = nullptr;
     std::vector<Fl_Group*> documents;
     std::string message;
 
@@ -66,7 +68,10 @@ class Application : public Fl_Double_Window
         AppConfig loadConfig(const std::string& filename);
         std::string getMessage() { return message; }
         void setMessage(std::string message);
-        void dispayFileInfo(std::map<std::string, std::string> info);
+        void displayFileInfo(std::map<std::string, std::string> info);
+        void addDocument(const char *name);
+
+        Fl_Tabs* getTabs() const { return tabs; }
 
         // Call back functions.
         static void quit_cb(Fl_Widget* w, void* data);

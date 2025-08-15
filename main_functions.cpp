@@ -44,12 +44,61 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
     return config;
 }
 
+void Application::addDocument(const char *name)
+{
+    // Height of tab label area.
+    const int tabBarHeight = SMALL_SPACE; 
+
+    // Create the group at the correct position relative to the tabs widget
+    tabs->begin();
+
+    FixedTabGroup *g = new FixedTabGroup(
+        tabs->x(),                // same x as tabs
+        tabs->y() + tabBarHeight, // push down for tab bar
+        tabs->w(),
+        tabs->h() - tabBarHeight,
+        nullptr
+    );
+
+    g->copy_label(name); // Safe string copy
+
+    // Add content to the tab
+    g->begin();
+    Fl_Box *b = new Fl_Box(
+        g->x() + 10,
+        g->y() + 10,
+        g->w() - 20,
+        g->h() - 20
+    );
+
+    b->box(FL_UP_BOX);
+    b->copy_label(name); // Safe string copy
+    b->align(FL_ALIGN_INSIDE | FL_ALIGN_LEFT);
+    // Only the content box resizes
+    g->resizable(b); 
+    g->end();
+    tabs->end();
+
+    if (documents.size() == 0) {
+        tabs->show();
+    }
+
+    // Keep track of this document
+    documents.push_back(g);
+
+    // Switch to the newly added tab
+    tabs->value(g);
+
+    // Force FLTK to recalc layout so the first tab displays properly
+    tabs->init_sizes();
+}
+
 void Application::setMessage(std::string message)
 {
     this->message = message;
 }
 
-void Application::dispayFileInfo(std::map<std::string, std::string> info)
+void Application::displayFileInfo(std::map<std::string, std::string> info)
 {
     // Clear the previous display.
     fileInfo->value("");

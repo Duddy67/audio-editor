@@ -1,6 +1,5 @@
 #include "main.h"
 
-
 Application::Application(int w, int h, const char *l, int argc, char *argv[]) : Fl_Double_Window(w, h, l)
 {
     box(FL_DOWN_BOX);
@@ -31,23 +30,19 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
         pauseBtn->clear_visible_focus();
     toolbar->end();
 
-    // Container for other widgets.
-    Fl_Group *group = new Fl_Group(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
-        // Other widgets go here.
-    group->end();
-
-    // Prevent both toolbar and group children from being resized.
-    group->resizable(nullptr); 
+    // Create tabs container
+    tabs = new Fl_Tabs(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
+    tabs->end();
+    tabs->hide();
+    // Make the window resizable via the tabs widget.
+    resizable(tabs);
+    // Prevent toolbar from being resized.
     toolbar->resizable(nullptr); 
-    // Make the window resizable.
-    resizable(group);
-
     // Stop adding children to this window.
     end();
+    show();
 
     this->callback(noEscapeKey_cb, this);
-
-    show();
 
     AppConfig config = loadConfig(CONFIG_FILENAME);
 
