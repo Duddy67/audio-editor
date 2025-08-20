@@ -8,9 +8,9 @@
 #include <FL/Fl_Multiline_Output.H>
 #include <FL/Fl_Tabs.H>
 #include <FL/Fl_Box.H>
+#include <FL/fl_draw.H>
 #include <errno.h>
 #include <cstdlib>
-#include "fixed_tab_group.h"
 #include "dialog_wnd.h"
 #include "file_chooser.h"
 #include "audio_engine.h"
@@ -70,6 +70,10 @@ class Application : public Fl_Double_Window
         void setMessage(std::string message);
         void displayFileInfo(std::map<std::string, std::string> info);
         void addDocument(const char *name);
+        void removeDocument(Fl_Group *document) { documents.erase(std::remove(documents.begin(), documents.end(), document), documents.end()); }
+        std::string truncateText(const std::string &text, int maxWidth, int font, int size);
+        size_t getNbDocuments() { return documents.size(); }
+        void hideTabs() { tabs->hide(); }
 
         Fl_Tabs* getTabs() const { return tabs; }
 
@@ -89,6 +93,7 @@ class Application : public Fl_Double_Window
         static void play_cb(Fl_Widget* w, void* data);
         static void stop_cb(Fl_Widget* w, void* data);
         static void pause_cb(Fl_Widget* w, void* data);
+        static void close_document_cb(Fl_Widget* w, void* data);
 };
 
 #endif

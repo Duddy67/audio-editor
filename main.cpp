@@ -31,9 +31,17 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     toolbar->end();
 
     // Create tabs container
+    /*tabs = new ClosableTabs(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
+
+    tabs->set_close_callback([](Fl_Widget *tab, void *userdata) {
+        Application *app = static_cast<Application*>(userdata);
+        app->closeDocument(static_cast<Fl_Group*>(tab));
+    }, this);*/
+
     tabs = new Fl_Tabs(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
     tabs->end();
     tabs->hide();
+
     // Make the window resizable via the tabs widget.
     resizable(tabs);
     // Prevent toolbar from being resized.

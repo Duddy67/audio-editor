@@ -37,3 +37,24 @@ void Application::pause_cb(Fl_Widget* w, void* data)
 {
     //Application* app = (Application*) data;
 }
+
+void Application::close_document_cb(Fl_Widget* w, void* data)
+{
+    // Cast back the generic Fl_Widget pointer to the type initially passed (ie: Fl_Group*).
+    Fl_Group* g = static_cast<Fl_Group*>(w);
+    Application* app = (Application*) data;
+
+    // 1. Ask user if they want to save changes
+    // 2. Release Track/Waveform/etc objects
+    // 3. Remove from your documents vector
+    app->removeDocument(g);
+
+    auto parent = g->parent();
+    parent->remove(g);
+
+    // No more document in the application.
+    if (app->getNbDocuments() == 0) {
+        app->hideTabs();
+    }
+}
+
