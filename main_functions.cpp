@@ -49,6 +49,15 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
  */
 void Application::addDocument(const char *filepath)
 {
+    /*auto track = std::make_shared<AudioTrack>(app->audioEngine);
+
+    if (!track->loadFromFile(app->fileChooser->filename())) {
+        std::cerr << "Failed to load file." << std::endl;
+        break;
+    }
+
+    app->audioEngine->addTrack(track);*/
+
     // Height of tab label area.
     const int tabBarHeight = SMALL_SPACE; 
 
