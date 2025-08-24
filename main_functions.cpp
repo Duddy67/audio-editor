@@ -49,14 +49,12 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
  */
 void Application::addDocument(const char *filepath)
 {
-    /*auto track = std::make_shared<AudioTrack>(app->audioEngine);
+    auto data = std::make_unique<DocumentData>(audioEngine);
 
-    if (!track->loadFromFile(app->fileChooser->filename())) {
+    if (!data->getTrack()->loadFromFile(filepath)) {
         std::cerr << "Failed to load file." << std::endl;
-        break;
+        return;
     }
-
-    app->audioEngine->addTrack(track);*/
 
     // Height of tab label area.
     const int tabBarHeight = SMALL_SPACE; 
@@ -64,19 +62,22 @@ void Application::addDocument(const char *filepath)
     // Create the group at the correct position relative to the tabs widget
     tabs->begin();
 
-    Fl_Group *g = new Fl_Group(
+    auto view = new DocumentView(
         // Same x as tabs.
         tabs->x(),                
         // Push down for tab bar.
         tabs->y() + tabBarHeight, 
         tabs->w(),
         tabs->h() - tabBarHeight,
-        nullptr
+        data.get()
     );
 
     // Link the new tab to the tab closure callback function.
-    g->when(FL_WHEN_CLOSED);
-    g->callback(close_document_cb, this);
+    view->when(FL_WHEN_CLOSED);
+    view->callback([](Fl_Widget* w, void* userdata) {
+        auto* app = static_cast<Application*>(userdata);
+        app->removeDocument(static_cast<DocumentView*>(w));
+    }, this);
 
     std::string filename = std::filesystem::path(filepath).filename().string();
     // SMALL_SPACE + MEDIUM_SPACE = label max width.
@@ -90,38 +91,22 @@ void Application::addDocument(const char *filepath)
     }
 
     // Safe string copy
-    g->copy_label(label.c_str()); 
-
-    // Add content to the tab
-    g->begin();
-    Fl_Box *b = new Fl_Box(
-        g->x() + 10,
-        g->y() + 10,
-        g->w() - 20,
-        g->h() - 20
-    );
-
-    b->box(FL_DOWN_BOX);
-    b->color(FL_WHITE);
-    b->copy_label(filename.c_str()); 
-    b->align(FL_ALIGN_INSIDE | FL_ALIGN_LEFT);
-    // Only the content box resizes
-    g->resizable(b); 
-    g->end();
+    view->copy_label(label.c_str()); 
     tabs->end();
 
     // It's the first document of the list.
     if (documents.size() == 0) {
         tabs->show();
         // Keep tab height constant.
-        tabs->resizable(g);
+        tabs->resizable(view);
     }
 
     // Keep track of this document
-    documents.push_back(g);
+    // Store both data + view.
+    documents.push_back({std::move(data), view});
 
     // Switch to the newly added tab
-    tabs->value(g);
+    tabs->value(view);
 
     // Force FLTK to recalc layout so the first tab displays properly
     tabs->init_sizes();
@@ -154,6 +139,24 @@ std::string Application::truncateText(const std::string &text, int maxWidth, int
     }
 
     return "...";
+}
+
+void Application::removeDocument(DocumentView* view)
+{
+    // Find the entry
+    auto it = std::find_if(documents.begin(), documents.end(),
+        [view](const DocumentEntry& entry) {
+            return entry.view == view;
+        }
+    );
+
+    if (it != documents.end()) {
+        // 1) Delete the view (FLTK takes care if parented properly)
+        delete it->view;
+
+        // 2) Model is destroyed automatically when unique_ptr goes out of scope
+        documents.erase(it);
+    }
 }
 
 void Application::setMessage(std::string message)
