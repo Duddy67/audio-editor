@@ -7,25 +7,33 @@
 #define TEMPORARY_SIZE 100
 
 // Forward declarations.
-//class AudioTrack;
-//class WaveformView;
 class AudioEngine;
 
 
 class DocumentData {
         std::unique_ptr<AudioTrack> track;
         std::unique_ptr<WaveformView> waveform;
+        AudioEngine& engine;
+        unsigned int trackId = 0;
 
     public:
-        DocumentData(AudioEngine* pEngine) {
-            track = std::make_unique<AudioTrack>(pEngine);
-            // 
-            waveform = std::make_unique<WaveformView>(TEMPORARY_SIZE, TEMPORARY_SIZE, TEMPORARY_SIZE, TEMPORARY_SIZE);
+        DocumentData(AudioEngine& e) : engine(e) {
+            track = std::make_unique<AudioTrack>(engine);
         }
 
         ~DocumentData() = default;
 
-        AudioTrack* getTrack() { return track.get(); }
+        bool loadAudioFile(const char *filepath) {
+            if (!track->loadFromFile(filepath)) {
+                return false;
+            }
+
+            trackId = engine.addTrack(std::move(track));
+            return true;
+        }
+
+        // Getters
+        AudioTrack& getTrack() { return engine.getTrackById(trackId); }
         WaveformView* getWaveform() { return waveform.get(); }
 };
 

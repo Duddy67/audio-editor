@@ -94,21 +94,46 @@ void AudioEngine::shutdown() {
 void AudioEngine::start() { ma_device_start(&outputDevice); }
 void AudioEngine::stop()  { ma_device_stop(&outputDevice); }
 
-void AudioEngine::addTrack(std::shared_ptr<AudioTrack> track) {
-    tracks.push_back(track);
+unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
+{
+    // Set a brand new id for this track.
+    track->setId(trackId++);
+    unsigned int id = track->getId();
+    // Transfer ownership.
+    tracks.push_back(std::move(track));
+
+    return id;
 }
 
-std::shared_ptr<AudioTrack> AudioEngine::getTrack(size_t index) {
-    if (index < tracks.size()) {
-        return tracks[index];
+AudioTrack& AudioEngine::getTrack(size_t index) 
+{
+    // Returns a reference. Throws std::out_of_range if invalid.
+    return *tracks.at(index);
+}
+
+AudioTrack& AudioEngine::getTrackById(unsigned int id) 
+{
+    for (auto& t : tracks) {
+        if (t->getId() == id) {
+            return *t.get();
+        }
     }
 
-    return nullptr;
+    throw std::runtime_error("Track not found");
 }
 
+bool AudioEngine::removeTrack(unsigned int id)
+{
+    auto it = std::find_if(tracks.begin(), tracks.end(),
+    [id](const std::unique_ptr<AudioTrack>& t) { return t->getId() == id; });
 
-void AudioEngine::removeTrack(std::shared_ptr<AudioTrack> track) {
-    tracks.erase(std::remove(tracks.begin(), tracks.end(), track), tracks.end());
+    if (it != tracks.end()) {
+        tracks.erase(it); // unique_ptr destructor deletes the owned AudioTrack
+        return true;      // removed successfully
+    }
+
+    // No such track.
+    return false; 
 }
 
 void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*input*/, ma_uint32 frameCount) {
@@ -121,6 +146,7 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*
     for (auto& track : engine->tracks) {
         if (track->isPlaying()) {
             track->mixInto(out, frameCount);
+
         }
     }
 }

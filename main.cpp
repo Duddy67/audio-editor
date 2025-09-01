@@ -37,7 +37,7 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
 
     // Make the window resizable via the tabs widget.
     resizable(tabs);
-    // Prevent toolbar from being resized.
+    // Prevent toolbar (and its children) from being resized.
     toolbar->resizable(nullptr); 
     // Stop adding children to this window.
     end();

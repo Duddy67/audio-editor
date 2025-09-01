@@ -26,7 +26,9 @@ class AudioEngine {
         bool contextInitialized = false;
         bool outputDeviceInitialized = false;
         // Multiple loaded tracks
-        std::vector<std::shared_ptr<AudioTrack>> tracks;  
+        std::vector<std::unique_ptr<AudioTrack>> tracks;  
+        // The unique id assigned to each track.
+        unsigned int trackId = 1;
         const ma_format defaultOutputFormat = ma_format_f32;
         const ma_uint32 defaultOutputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
@@ -42,10 +44,11 @@ class AudioEngine {
         bool initializeOutputDevice();
         void printAllDevices();
         void shutdown();
-        void addTrack(std::shared_ptr<AudioTrack> track);
-        void removeTrack(std::shared_ptr<AudioTrack> track);
+        unsigned int addTrack(std::unique_ptr<AudioTrack> track);
+        bool removeTrack(unsigned int id);
         void start();
         void stop();
+        size_t getNbTracks() { return tracks.size(); }
 
         // Getters.
         std::vector<DeviceInfo> getOutputDevices();
@@ -55,7 +58,8 @@ class AudioEngine {
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
         ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
-        std::shared_ptr<AudioTrack> getTrack(size_t index);
+        AudioTrack& getTrack(size_t index);
+        AudioTrack& getTrackById(unsigned int id);
 
       // Setters.
       void setOutputDevice(const char *deviceName);

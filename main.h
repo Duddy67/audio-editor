@@ -14,8 +14,6 @@
 #include "dialog_wnd.h"
 #include "file_chooser.h"
 #include "audio_engine.h"
-//#include "audio_track.h"
-//#include "waveform.h"
 #include "document_data.h"
 #include "document_view.h"
 #include "audio_settings.h"
@@ -82,6 +80,7 @@ class Application : public Fl_Double_Window
         std::string truncateText(const std::string &text, int maxWidth, int font, int size);
         size_t getNbDocuments() { return documents.size(); }
         void hideTabs() { tabs->hide(); }
+        AudioTrack& getActiveTrack();
 
         Fl_Tabs* getTabs() const { return tabs; }
 

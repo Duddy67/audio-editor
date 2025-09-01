@@ -9,6 +9,7 @@
 
 // Forward declaration.
 class Application;
+class AudioTrack;
 
 class WaveformView : public Fl_Gl_Window {
         std::vector<float> leftSamples;
@@ -27,14 +28,15 @@ class WaveformView : public Fl_Gl_Window {
         // Position of the cursor when it is manually moved.
         int movedCursorSample = 0;
         Application* app = nullptr;
+        AudioTrack& track;
 
     protected:
         void draw() override;
         int handle(int event) override;
 
     public:
-        WaveformView(int X, int Y, int W, int H)
-            : Fl_Gl_Window(X, Y, W, H) {
+        WaveformView(int X, int Y, int W, int H, AudioTrack& t)
+            : Fl_Gl_Window(X, Y, W, H), track(t) {
             end();
         }
 

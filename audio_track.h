@@ -27,11 +27,12 @@ class AudioTrack {
             ma_format outputFormat;
         };
 
+        // Track unique id. 0 = invalid.
+        unsigned int id = 0;
         ma_context context;
         ma_decoder decoder;
         ma_uint64 frameCount;
-        //Application* pApplication;
-        AudioEngine *pEngine;
+        AudioEngine& engine;
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         std::atomic<int> playbackSampleIndex{0};
@@ -47,7 +48,7 @@ class AudioTrack {
 
 
     public:
-      AudioTrack(AudioEngine* engine) : pEngine(engine) {}
+      AudioTrack(AudioEngine& e) : engine(e) {}
 
       bool loadFromFile(const char *fileName);
       void play();
@@ -62,6 +63,10 @@ class AudioTrack {
       bool isStereo() { return stereo; }
       bool isPlaying() const { return playing.load(); }
       bool isPaused() const { return paused; }
+      std::vector<float> getLeftSamples() { return leftSamples; }
+      std::vector<float> getRightSamples() { return rightSamples; }
+      unsigned int getId() { return id; }
+      void setId(unsigned int i);
 };
 
 #endif // AUDIO_TRACK_H

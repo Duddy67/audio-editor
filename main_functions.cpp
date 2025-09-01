@@ -49,9 +49,9 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
  */
 void Application::addDocument(const char *filepath)
 {
-    auto data = std::make_unique<DocumentData>(audioEngine);
-
-    if (!data->getTrack()->loadFromFile(filepath)) {
+    // First of all, load the audio file.
+    auto data = std::make_unique<DocumentData>(*audioEngine);
+    if (!data->loadAudioFile(filepath)) {
         std::cerr << "Failed to load file." << std::endl;
         return;
     }
@@ -79,6 +79,8 @@ void Application::addDocument(const char *filepath)
         app->removeDocument(static_cast<DocumentView*>(w));
     }, this);
 
+    view->renderWaveform(data->getTrack());
+
     std::string filename = std::filesystem::path(filepath).filename().string();
     // SMALL_SPACE + MEDIUM_SPACE = label max width.
     std::string label = truncateText(filename, SMALL_SPACE + MEDIUM_SPACE, FL_HELVETICA, 12); 
@@ -103,6 +105,7 @@ void Application::addDocument(const char *filepath)
 
     // Keep track of this document
     // Store both data + view.
+    // documents now owns data (ie: move).
     documents.push_back({std::move(data), view});
 
     // Switch to the newly added tab
@@ -157,6 +160,18 @@ void Application::removeDocument(DocumentView* view)
         // 2) Model is destroyed automatically when unique_ptr goes out of scope
         documents.erase(it);
     }
+}
+
+/*
+ * Returns the track corresponding to the active document (ie: tab).
+ */
+AudioTrack& Application::getActiveTrack()
+{
+    auto tabs = getTabs();
+    auto view = static_cast<DocumentView*>(tabs->value());
+    auto data = static_cast<DocumentData*>(view->getData());
+
+    return data->getTrack();
 }
 
 void Application::setMessage(std::string message)

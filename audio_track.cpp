@@ -3,10 +3,22 @@
 #include "../libraries/miniaudio.h"
 
 
+void AudioTrack::setId(unsigned int i)
+{
+    // Make sure ID is initialized only once.
+    if (id > 0) {
+        std::cout << "ID already initialized." << std::endl;
+        return;
+    }
+
+    id = i;
+}
+
 /*
  * Fills the given output buffer with interleaved stereo samples.
  */
-void AudioTrack::mixInto(float* output, int frameCount) {
+void AudioTrack::mixInto(float* output, int frameCount) 
+{
     // Check first if the track is playing.
     if (!playing.load()) {
         return;
@@ -48,7 +60,7 @@ bool AudioTrack::loadFromFile(const char *filename)
     printf("Load audio file '%s'\n", filename);
     // First ensure the file format is supported.
     std::string fileFormat = std::filesystem::path(filename).extension();
-    std::vector<std::string> supportedFormats = pEngine->getSupportedFormats();
+    std::vector<std::string> supportedFormats = engine.getSupportedFormats();
     unsigned int size = supportedFormats.size();
     bool supported = false;
 
@@ -72,7 +84,7 @@ bool AudioTrack::loadFromFile(const char *filename)
     }
 
     // Then initialize decoder with format conversion.
-    ma_decoder_config decoderConfig = ma_decoder_config_init(pEngine->getDefaultOutputFormat(), pEngine->getDefaultOutputChannels(), pEngine->getDefaultOutputSampleRate());
+    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), engine.getDefaultOutputChannels(), engine.getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
         std::cerr << "Failed to initialize decoder with conversion." << std::endl;

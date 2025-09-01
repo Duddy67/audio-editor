@@ -22,21 +22,28 @@ void Application::quit_cb(Fl_Widget* w, void* data)
 void Application::play_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
-    auto tabs = app->getTabs();
-    std::cout << "Active tab: " << tabs->value() << std::endl;
-    //auto track = app->audioEngine->getTrack(0);
-    //track->play();
+    // Check first a tab (ie: document) is active.
+    if (app->tabs->value()) {
+        auto& track = app->getActiveTrack();
+        track.play();
+    }
 }
 
 void Application::stop_cb(Fl_Widget* w, void* data)
 {
-    //Application* app = (Application*) data;
-    //auto track = app->audioEngine->getTrack(0);
-    //track->stop();
+    Application* app = (Application*) data;
+    if (app->tabs->value()) {
+        auto& track = app->getActiveTrack();
+        track.stop();
+    }
 }
 
 void Application::pause_cb(Fl_Widget* w, void* data)
 {
-    //Application* app = (Application*) data;
+    Application* app = (Application*) data;
+    if (app->tabs->value()) {
+        auto& track = app->getActiveTrack();
+        track.pause();
+    }
 }
 
