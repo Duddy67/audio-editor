@@ -55,6 +55,7 @@ class WaveformView : public Fl_Gl_Window {
         bool isPlaying() const { return playing; }
         bool isPaused() const { return paused; }
         int getPlaybackSample() const { return playbackSample; }
+        AudioTrack& getTrack() { return track; }
 
         // Setters.
 

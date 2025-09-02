@@ -47,11 +47,11 @@ class Application : public Fl_Double_Window
     Fl_Button* stopBtn;
     Fl_Button* pauseBtn;
     DialogWindow* dialogWnd = nullptr;
-    FileChooser *fileChooser = nullptr;
-    AudioSettings *audioSettings = nullptr;
-    AudioEngine *audioEngine = nullptr;
-    WaveformView *view = nullptr;
-    Fl_Tabs *tabs = nullptr;
+    FileChooser* fileChooser = nullptr;
+    AudioSettings* audioSettings = nullptr;
+    AudioEngine* audioEngine = nullptr;
+    WaveformView* view = nullptr;
+    Fl_Tabs* tabs = nullptr;
     std::string message;
 
     struct AppConfig {

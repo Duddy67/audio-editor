@@ -1,7 +1,7 @@
 #ifndef DOCUMENT_VIEW_H
 #define DOCUMENT_VIEW_H
 
-#include <FL/Fl_Scrollbar.H>
+//#include <FL/Fl_Scrollbar.H>
 
 // Forward declarations.
 class DocumentData;
@@ -29,7 +29,7 @@ class DocumentView : public Fl_Group {
             waveform->take_focus();    
             waveform->setStereoMode(track.isStereo());    
 
-            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(10, h + 20, w, 15);
+            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(10, h + 20, w, h);
             scrollbar->type(FL_HORIZONTAL);
             scrollbar->step(1);
             scrollbar->minimum(0);
