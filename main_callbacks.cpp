@@ -24,8 +24,13 @@ void Application::play_cb(Fl_Widget* w, void* data)
     Application* app = (Application*) data;
     // Check first a tab (ie: document) is active.
     if (app->tabs->value()) {
-        auto& track = app->getActiveTrack();
-        track.play();
+        try {
+            auto& track = app->getActiveTrack();
+            track.play();
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+        }
     }
 }
 

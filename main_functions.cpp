@@ -49,37 +49,30 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
  */
 void Application::addDocument(const char *filepath)
 {
-    // First of all, load the audio file.
-    auto data = std::make_unique<DocumentData>(*audioEngine);
-    if (!data->loadAudioFile(filepath)) {
-        std::cerr << "Failed to load file." << std::endl;
-        return;
-    }
-
     // Height of tab label area.
     const int tabBarHeight = SMALL_SPACE; 
 
     // Create the group at the correct position relative to the tabs widget
     tabs->begin();
 
-    auto view = new DocumentView(
+    auto doc = new Document(
         // Same x as tabs.
         tabs->x(),                
         // Push down for tab bar.
         tabs->y() + tabBarHeight, 
         tabs->w(),
         tabs->h() - tabBarHeight,
-        data.get()
+        *audioEngine,
+        filepath
     );
 
     // Link the new tab to the tab closure callback function.
-    view->when(FL_WHEN_CLOSED);
-    view->callback([](Fl_Widget* w, void* userdata) {
-        auto* app = static_cast<Application*>(userdata);
-        app->removeDocument(static_cast<DocumentView*>(w));
-    }, this);
+    doc->when(FL_WHEN_CLOSED);
 
-    view->renderWaveform(data->getTrack());
+    doc->callback([](Fl_Widget* w, void* userdata) {
+        auto* app = static_cast<Application*>(userdata);
+        app->removeDocument(static_cast<Document*>(w));
+    }, this);
 
     std::string filename = std::filesystem::path(filepath).filename().string();
     // SMALL_SPACE + MEDIUM_SPACE = label max width.
@@ -93,23 +86,22 @@ void Application::addDocument(const char *filepath)
     }
 
     // Safe string copy
-    view->copy_label(label.c_str()); 
+    doc->copy_label(label.c_str()); 
     tabs->end();
 
     // It's the first document of the list.
     if (documents.size() == 0) {
         tabs->show();
         // Keep tab height constant.
-        tabs->resizable(view);
+        tabs->resizable(doc);
     }
 
     // Keep track of this document
-    // Store both data + view.
     // documents now owns data (ie: move).
-    documents.push_back({std::move(data), view});
+    documents.push_back(doc);
 
     // Switch to the newly added tab
-    tabs->value(view);
+    tabs->value(doc);
 
     // Force FLTK to recalc layout so the first tab displays properly
     tabs->init_sizes();
@@ -144,22 +136,35 @@ std::string Application::truncateText(const std::string &text, int maxWidth, int
     return "...";
 }
 
-void Application::removeDocument(DocumentView* view)
+void Application::removeDocument(Document* document)
 {
-    // Find the entry
-    auto it = std::find_if(documents.begin(), documents.end(),
-        [view](const DocumentEntry& entry) {
-            return entry.view == view;
-        }
-    );
+    auto it = std::find(documents.begin(), documents.end(), document);
 
     if (it != documents.end()) {
-        // 1) Delete the view (FLTK takes care if parented properly)
-        delete it->view;
+        // Remove the track from the track list. 
+        (*it)->removeTrack();
 
-        // 2) Model is destroyed automatically when unique_ptr goes out of scope
+        // Check the document widget is FLTK parented.
+        // If not, memory must be freed here.
+        if (!(*it)->parent()) {
+            delete *it;
+        }
+
+        // Remove the document from tabs
+        tabs->remove(*it);
+        // then from the vector.
         documents.erase(it);
+
+        // No document left in the tab list.
+        if (documents.size() == 0) {
+            tabs->hide();
+        }
     }
+}
+
+void Application::removeDocuments()
+{
+
 }
 
 /*
@@ -168,10 +173,9 @@ void Application::removeDocument(DocumentView* view)
 AudioTrack& Application::getActiveTrack()
 {
     auto tabs = getTabs();
-    auto view = static_cast<DocumentView*>(tabs->value());
-    auto data = static_cast<DocumentData*>(view->getData());
+    auto document = static_cast<Document*>(tabs->value());
 
-    return data->getTrack();
+    return document->getTrack();
 }
 
 void Application::setMessage(std::string message)

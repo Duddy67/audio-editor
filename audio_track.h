@@ -10,6 +10,7 @@
 #include <bits/stdc++.h> // std::map
 #include <time.h>
 #include "../libraries/miniaudio.h"
+#include "waveform.h"
 
 // Forward declarations.
 class AudioEngine;
@@ -41,6 +42,7 @@ class AudioTrack {
         std::atomic<bool> playing{false};
         bool paused = false;
         OriginalFileFormat originalFileFormat;
+        std::unique_ptr<WaveformView> waveform;  
 
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
@@ -50,12 +52,13 @@ class AudioTrack {
     public:
       AudioTrack(AudioEngine& e) : engine(e) {}
 
-      bool loadFromFile(const char *fileName);
+      void loadFromFile(const char *fileName);
       void play();
       void pause();
       void stop();
       void seek(int frame);
       void mixInto(float* output, int frameCount);
+      void renderWaveform(int x, int y, int w, int h);
 
       // Getters.
 
@@ -67,6 +70,7 @@ class AudioTrack {
       std::vector<float> getRightSamples() { return rightSamples; }
       unsigned int getId() { return id; }
       void setId(unsigned int i);
+      WaveformView& getWaveform() { return *waveform.get(); }
 };
 
 #endif // AUDIO_TRACK_H

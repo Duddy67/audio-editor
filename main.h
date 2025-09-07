@@ -14,8 +14,7 @@
 #include "dialog_wnd.h"
 #include "file_chooser.h"
 #include "audio_engine.h"
-#include "document_data.h"
-#include "document_view.h"
+#include "document.h"
 #include "audio_settings.h"
 #include "../libraries/json.hpp"
 #define CONFIG_FILENAME "config.json"
@@ -32,25 +31,18 @@ using json = nlohmann::json;
 
 class Application : public Fl_Double_Window 
 {
-    // One logical document = data + view
-    struct DocumentEntry {
-        std::unique_ptr<DocumentData> data;
-        // Owned by FLTK (inside Fl_Tabs)
-        DocumentView* view;  
-    };
-    std::vector<DocumentEntry> documents;
-    Fl_Menu_Bar* menu;
-    Fl_Menu_Item* menuItem;
-    Fl_Group* toolbar;
-    Fl_Multiline_Output *fileInfo;
-    Fl_Button* playBtn;
-    Fl_Button* stopBtn;
-    Fl_Button* pauseBtn;
+    std::vector<Document*> documents;
+    Fl_Menu_Bar* menu = nullptr;
+    Fl_Menu_Item* menuItem = nullptr;
+    Fl_Group* toolbar = nullptr;
+    Fl_Multiline_Output* fileInfo = nullptr;
+    Fl_Button* playBtn = nullptr;
+    Fl_Button* stopBtn = nullptr;
+    Fl_Button* pauseBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
     FileChooser* fileChooser = nullptr;
     AudioSettings* audioSettings = nullptr;
     AudioEngine* audioEngine = nullptr;
-    WaveformView* view = nullptr;
     Fl_Tabs* tabs = nullptr;
     std::string message;
 
@@ -63,6 +55,10 @@ class Application : public Fl_Double_Window
     public:
 
         Application(int w, int h, const char* l, int argc, char* argv[]);
+        ~Application() {
+            delete audioSettings;
+            delete audioEngine;
+        }
 
         void createMenu();
         void open(const char* filename);
@@ -76,7 +72,8 @@ class Application : public Fl_Double_Window
         void setMessage(std::string message);
         void displayFileInfo(std::map<std::string, std::string> info);
         void addDocument(const char *name);
-        void removeDocument(DocumentView* view);
+        void removeDocument(Document* document);
+        void removeDocuments();
         std::string truncateText(const std::string &text, int maxWidth, int font, int size);
         size_t getNbDocuments() { return documents.size(); }
         void hideTabs() { tabs->hide(); }

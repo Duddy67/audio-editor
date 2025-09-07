@@ -105,13 +105,7 @@ unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
     return id;
 }
 
-AudioTrack& AudioEngine::getTrack(size_t index) 
-{
-    // Returns a reference. Throws std::out_of_range if invalid.
-    return *tracks.at(index);
-}
-
-AudioTrack& AudioEngine::getTrackById(unsigned int id) 
+AudioTrack& AudioEngine::getTrack(unsigned int id) 
 {
     for (auto& t : tracks) {
         if (t->getId() == id) {
@@ -119,21 +113,22 @@ AudioTrack& AudioEngine::getTrackById(unsigned int id)
         }
     }
 
-    throw std::runtime_error("Track not found");
+    throw std::runtime_error("Couldn't find track with id: " + id);
 }
 
-bool AudioEngine::removeTrack(unsigned int id)
+void AudioEngine::removeTrack(unsigned int id)
 {
     auto it = std::find_if(tracks.begin(), tracks.end(),
     [id](const std::unique_ptr<AudioTrack>& t) { return t->getId() == id; });
 
     if (it != tracks.end()) {
-        tracks.erase(it); // unique_ptr destructor deletes the owned AudioTrack
-        return true;      // removed successfully
+        // unique_ptr destructor deletes the owned AudioTrack.
+        tracks.erase(it); 
     }
-
-    // No such track.
-    return false; 
+    // No such track. Throw an exception in case some functions need the info.
+    else {
+        throw std::runtime_error("Couldn't find track with id: " + id);
+    }
 }
 
 void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*input*/, ma_uint32 frameCount) {
@@ -146,7 +141,6 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*
     for (auto& track : engine->tracks) {
         if (track->isPlaying()) {
             track->mixInto(out, frameCount);
-
         }
     }
 }

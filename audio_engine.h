@@ -45,10 +45,10 @@ class AudioEngine {
         void printAllDevices();
         void shutdown();
         unsigned int addTrack(std::unique_ptr<AudioTrack> track);
-        bool removeTrack(unsigned int id);
+        void removeTrack(unsigned int id);
         void start();
         void stop();
-        size_t getNbTracks() { return tracks.size(); }
+        size_t numberOfTracks() { return tracks.size(); }
 
         // Getters.
         std::vector<DeviceInfo> getOutputDevices();
@@ -58,8 +58,7 @@ class AudioEngine {
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
         ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
-        AudioTrack& getTrack(size_t index);
-        AudioTrack& getTrackById(unsigned int id);
+        AudioTrack& getTrack(unsigned int id);
 
       // Setters.
       void setOutputDevice(const char *deviceName);

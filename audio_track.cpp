@@ -55,9 +55,9 @@ void AudioTrack::seek(int frame) {
 /*
  * Loads a given audio file.
  */
-bool AudioTrack::loadFromFile(const char *filename)
+void AudioTrack::loadFromFile(const char *filename)
 {
-    printf("Load audio file '%s'\n", filename);
+    printf("Load audio file '%s'\n", filename); // Debog.
     // First ensure the file format is supported.
     std::string fileFormat = std::filesystem::path(filename).extension();
     std::vector<std::string> supportedFormats = engine.getSupportedFormats();
@@ -73,35 +73,29 @@ bool AudioTrack::loadFromFile(const char *filename)
     }
 
     if (!supported) {
-        std::cerr << "Format: " << fileFormat << " not supported." << std::endl;
-        return false;
+        throw std::runtime_error("Format: " + fileFormat + " not supported.");
     }
 
     // First store the original data file format.
     if (!storeOriginalFileFormat(filename)) {
-        std::cerr << "Failed to load audio file." << std::endl;
-        return false;
+        throw std::runtime_error("Failed to initialized temporary decoder.");
     }
 
     // Then initialize decoder with format conversion.
     ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), engine.getDefaultOutputChannels(), engine.getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
-        std::cerr << "Failed to initialize decoder with conversion." << std::endl;
-        return false;
+        throw std::runtime_error("Failed to initialize decoder with conversion.");
     }
 
     if (!decodeFile()) {
-        std::cerr << "Failed to decode file." << std::endl;
-        return false;
+        throw std::runtime_error("Failed to decode file.");
     }
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);
 
     ma_decoder_uninit(&decoder);
-
-    return true;
 }
 
 /*
@@ -174,5 +168,13 @@ bool AudioTrack::storeOriginalFileFormat(const char* filename)
     ma_decoder_uninit(&decoderProbe);
 
     return true;
+}
+
+void AudioTrack::renderWaveform(int x, int y, int w, int h) 
+{
+    waveform = std::make_unique<WaveformView>(x, y, w, h, *this);
+    waveform->take_focus();    
+    waveform->setStereoMode(isStereo());    
+    waveform->setStereoSamples(getLeftSamples(), getRightSamples());
 }
 

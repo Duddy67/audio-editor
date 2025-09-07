@@ -15,7 +15,13 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
             break;
         default:   // Choice
             app->fileChooser->preset_file(app->fileChooser->filename());
-            app->addDocument(app->fileChooser->filename());
+
+            try {
+                app->addDocument(app->fileChooser->filename());
+            }
+            catch (const std::runtime_error& e) {
+                std::cerr << "Failed to add document: " << e.what() << std::endl;
+            }
 
             break;
     }
