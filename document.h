@@ -3,6 +3,8 @@
 
 #include <FL/Fl_Scrollbar.H>
 #include "audio_track.h"
+#define SB_H 15
+#define SB_MARGIN 10
 
 // Forward declarations.
 class AudioEngine;
@@ -18,6 +20,7 @@ class Document : public Fl_Group {
         Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath)
             : Fl_Group(X, Y, W, H), engine(e) 
         {
+            // Compute tab area.
             x = X + 10;
             y = Y + 10;
             w = W - 20;
@@ -34,9 +37,19 @@ class Document : public Fl_Group {
 
         void renderTrackWaveform() {
             auto& track = getTrack();
-            track.renderWaveform(x, y, w, h);
 
-            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(10, h + 20, w, 15);
+            // Compute waveform area leaving space for scrollbar.
+            int wf_x = x;
+            int wf_y = y;
+            int wf_w = w;
+            int wf_h = h - (SB_H + SB_MARGIN);
+
+            // Parent Document.
+            begin();
+            // Create the WaveformView as a child of Document.
+            track.renderWaveform(wf_x, wf_y, wf_w, wf_h);
+
+            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SB_MARGIN, w, SB_H);
             scrollbar->type(FL_HORIZONTAL);
             scrollbar->step(1);
             scrollbar->minimum(0);
@@ -48,6 +61,11 @@ class Document : public Fl_Group {
             }, &track.getWaveform());
 
             track.getWaveform().setScrollbar(scrollbar);
+            // Done adding children.
+            end();
+
+            track.getWaveform().show();
+            track.getWaveform().redraw();
         }
 
         AudioTrack& getTrack() { return engine.getTrack(trackId); }
