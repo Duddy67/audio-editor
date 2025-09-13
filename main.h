@@ -97,6 +97,7 @@ class Application : public Fl_Double_Window
         static void play_cb(Fl_Widget* w, void* data);
         static void stop_cb(Fl_Widget* w, void* data);
         static void pause_cb(Fl_Widget* w, void* data);
+        static void update_cursor_timer_cb(void* userdata);
 };
 
 #endif

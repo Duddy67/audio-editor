@@ -44,9 +44,15 @@ void AudioTrack::mixInto(float* output, int frameCount)
     }
 }
 
-void AudioTrack::play()  { playing.store(true); }
-void AudioTrack::pause() { playing.store(false); }
-void AudioTrack::stop()  { playing.store(false); playbackSampleIndex.store(0); }
+void AudioTrack::play() { playing.store(true); }
+void AudioTrack::pause() { paused.store(true); }
+void AudioTrack::unpause() { paused.store(false); }
+void AudioTrack::stop() 
+{
+    playing.store(false);
+    //playbackSampleIndex.store(0);
+}
+
 void AudioTrack::seek(int frame) {
     if (frame >= 0 && frame < totalFrames)
         playbackSampleIndex.store(frame);

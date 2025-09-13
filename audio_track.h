@@ -36,11 +36,11 @@ class AudioTrack {
         AudioEngine& engine;
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
-        std::atomic<int> playbackSampleIndex{0};
         int totalFrames = 0;
         bool stereo = true;
+        std::atomic<int> playbackSampleIndex{0};
         std::atomic<bool> playing{false};
-        bool paused = false;
+        std::atomic<bool> paused{false};
         OriginalFileFormat originalFileFormat;
         std::unique_ptr<WaveformView> waveform;  
 
@@ -55,17 +55,20 @@ class AudioTrack {
       void loadFromFile(const char *fileName);
       void play();
       void pause();
+      void unpause();
       void stop();
       void seek(int frame);
       void mixInto(float* output, int frameCount);
       void renderWaveform(int x, int y, int w, int h);
+      void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
 
       // Getters.
 
       std::map<std::string, std::string> getOriginalFileFormat();
       bool isStereo() { return stereo; }
       bool isPlaying() const { return playing.load(); }
-      bool isPaused() const { return paused; }
+      bool isPaused() const { return paused.load(); }
+      int currentSample() const { return playbackSampleIndex.load(); }
       std::vector<float> getLeftSamples() { return leftSamples; }
       std::vector<float> getRightSamples() { return rightSamples; }
       unsigned int getId() { return id; }

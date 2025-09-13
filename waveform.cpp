@@ -1,4 +1,4 @@
-#include "waveform.h"
+#include "audio_track.h"
 
 
 void WaveformView::setOnSeekCallback(std::function<void(int)> callback) {
@@ -186,7 +186,7 @@ void WaveformView::draw() {
     // --- Draw playback cursor ---
     int sampleToDraw = -1;
 
-    if (isPlaying() || isPaused()) {
+    if (track.isPlaying() || track.isPaused()) {
         // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused).
         sampleToDraw = playbackSample;
     }
@@ -268,7 +268,7 @@ int WaveformView::handle(int event) {
             // Spacebar: ' ' => ASCII code 32.
             if (key == ' ') {
                 if (app) {
-                    if (isPlaying()) {
+                    if (track.isPlaying()) {
                         //stop(app);
                     }
                     else {
@@ -289,7 +289,7 @@ int WaveformView::handle(int event) {
             }
             else if (key == FL_Home) {
                 // Process only when playback is stopped.
-                if (app && !isPlaying()) {
+                if (app && !track.isPlaying()) {
                     // Reset the audio cursor to the start position.
                     movedCursorSample = 0;
                     //resetCursor(app);
@@ -301,7 +301,7 @@ int WaveformView::handle(int event) {
             }
             else if (key == FL_End) {
                 // Process only when playback is stopped.
-                if (app && !isPlaying()) {
+                if (app && !track.isPlaying()) {
                     // Take the audio cursor to the end position.
                     movedCursorSample = static_cast<int>(leftSamples.size()) - 1;
                     //resetCursor(app);
@@ -318,4 +318,25 @@ int WaveformView::handle(int event) {
         default:
             return Fl_Gl_Window::handle(event);
     }
+}
+
+void WaveformView::resetCursor()
+{
+    // Get the cursor's starting point.
+    int resetTo = getMovedCursorSample();
+    // Reset the cursor to its initial audio position.
+    track.setPlaybackSampleIndex(resetTo);
+
+    // Compute a target offset before the cursor, (e.g: show 10% of the window before the cursor.)
+    float zoom = getZoomLevel();
+    // Number of samples that fit in the view
+    int visibleSamples = static_cast<int>(w() / zoom);
+    // Shift back by a percentage of visible samples (e.g., 10%)
+    int marginSamples = static_cast<int>(visibleSamples * 0.1f);
+    // Compute the new scroll offset
+    int newScrollOffset = std::max(0, resetTo - marginSamples);
+    // Apply it.
+    setScrollOffset(newScrollOffset);
+    // Force the waveform (and cursor) to repaint
+    redraw();
 }

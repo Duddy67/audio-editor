@@ -47,13 +47,14 @@ class WaveformView : public Fl_Gl_Window {
         void setScrollOffset(int offset);
         void setScrollbar(Fl_Scrollbar* sb);
         void updateScrollbar();
+        void resetCursor();
 
         // Getters.
 
         int getScrollOffset() const { return scrollOffset; }
         float getZoomLevel() const { return zoomLevel; }
-        bool isPlaying() const { return playing; }
-        bool isPaused() const { return paused; }
+        //bool isPlaying() const { return playing; }
+        //bool isPaused() const { return paused; }
         int getPlaybackSample() const { return playbackSample; }
         AudioTrack& getTrack() { return track; }
 
@@ -61,8 +62,8 @@ class WaveformView : public Fl_Gl_Window {
 
         void setContext(Application* app) { this->app = app; }
         int getMovedCursorSample() const { return movedCursorSample; }
-        void setPlaying(bool state) { playing = state; }
-        void setPaused(bool state) { paused = state; }
+        //void setPlaying(bool state) { playing = state; }
+        //void setPaused(bool state) { paused = state; }
         void setPlaybackSample(int sample) {
             playbackSample = sample;
             redraw();
