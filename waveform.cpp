@@ -236,6 +236,11 @@ int WaveformView::handle(int event) {
         // The user has clicked and moved the cursor along the waveform.
         case FL_PUSH: {
             if (Fl::event_button() == FL_LEFT_MOUSE) {
+                // Take focus back if needed.
+                if (Fl::focus() != this) {
+                    Fl_Widget::take_focus();
+                }
+
                 int mouseX = Fl::event_x();
                 int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
 

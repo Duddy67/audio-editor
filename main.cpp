@@ -31,7 +31,7 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     toolbar->end();
 
     // Create tabs container
-    tabs = new Fl_Tabs(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
+    tabs = new Tabs(0, (SMALL_SPACE * 2) + (TINY_SPACE * 2), w, h - SMALL_SPACE);   
     tabs->end();
     tabs->hide();
 

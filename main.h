@@ -6,12 +6,12 @@
 #include <FL/Fl_Menu_Item.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Multiline_Output.H>
-#include <FL/Fl_Tabs.H>
 #include <FL/Fl_Box.H>
 #include <FL/fl_draw.H>
 #include <errno.h>
 #include <cstdlib>
 #include "dialog_wnd.h"
+#include "tabs.h"
 #include "file_chooser.h"
 #include "audio_engine.h"
 #include "document.h"
@@ -43,7 +43,7 @@ class Application : public Fl_Double_Window
     FileChooser* fileChooser = nullptr;
     AudioSettings* audioSettings = nullptr;
     AudioEngine* audioEngine = nullptr;
-    Fl_Tabs* tabs = nullptr;
+    Tabs* tabs = nullptr;
     std::string message;
 
     struct AppConfig {
