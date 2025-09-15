@@ -1,11 +1,6 @@
 #include "audio_track.h"
 
 
-void WaveformView::setOnSeekCallback(std::function<void(int)> callback) {
-    // Assign the function variable.
-    onSeekCallback = callback;
-}
-
 void WaveformView::setStereoSamples(const std::vector<float>& left, const std::vector<float>& right) {
     leftSamples = left;
     rightSamples = right;
@@ -249,12 +244,8 @@ int WaveformView::handle(int event) {
 
                 setPlaybackSample(sample);
                 movedCursorSample = sample;
-
-                // Update external audio playback.
-                if (onSeekCallback != nullptr) {
-                     // Tell the audio system to seek too.
-                    onSeekCallback(sample);  // <- call external logic
-                }
+                // Tell the audio system to seek too.
+                track.setPlaybackSampleIndex(sample);
 
                 return 1;
             }
@@ -267,32 +258,50 @@ int WaveformView::handle(int event) {
 
             // Spacebar: ' ' => ASCII code 32.
             if (key == ' ') {
-                if (app) {
-                    if (track.isPlaying()) {
-                        //stop(app);
+                // Toggle start/stop.
+                if (track.isPlaying()) {
+                    track.stop();
+                    track.setPlaybackSampleIndex(0);
+                    track.unpause();
+                    resetCursor();
+                }
+                else {
+                    if (track.isPaused()) {
+                        resetCursor();
                     }
                     else {
-                        //play(app);
+                        setPlaybackSample(0);
                     }
-                   
-                }
 
+                    track.play();
+                    Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
+                }
+                   
                 return 1;
             }
             else if (key == FL_Pause) {
-                if (app) {
-                    //pause(app);
+                if (track.isPlaying()) {
+                    track.stop();
+                    track.pause();
                     return 1;
+                }
+                // Resume from where playback paused
+                else if (track.isPaused() && !track.isPlaying()) {
+                    int resumeSample = getPlaybackSample();
+                    track.setPlaybackSampleIndex(resumeSample);
+                    track.unpause();
+                    track.play();
+                    Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
                 }
 
                 return 0;
             }
             else if (key == FL_Home) {
                 // Process only when playback is stopped.
-                if (app && !track.isPlaying()) {
+                if (!track.isPlaying()) {
                     // Reset the audio cursor to the start position.
                     movedCursorSample = 0;
-                    //resetCursor(app);
+                    resetCursor();
 
                     return 1;
                 }
@@ -301,10 +310,10 @@ int WaveformView::handle(int event) {
             }
             else if (key == FL_End) {
                 // Process only when playback is stopped.
-                if (app && !track.isPlaying()) {
+                if (!track.isPlaying()) {
                     // Take the audio cursor to the end position.
                     movedCursorSample = static_cast<int>(leftSamples.size()) - 1;
-                    //resetCursor(app);
+                    resetCursor();
 
                     return 1;
                 }
@@ -340,3 +349,35 @@ void WaveformView::resetCursor()
     // Force the waveform (and cursor) to repaint
     redraw();
 }
+
+// ---- Timer Callback ----
+void WaveformView::update_cursor_timer_cb(void* userdata) {
+    auto& track = *(AudioTrack*)userdata;  // Dereference to get reference
+    auto& waveform = track.getWaveform();
+    // Reads from atomic.
+    int sample = track.currentSample();
+    waveform.setPlaybackSample(sample);
+
+    // --- Smart auto-scroll ---
+    // Auto-scroll the view if cursor gets near right edge
+
+    // pixels from right edge
+    int margin = 30;
+    float zoom = waveform.getZoomLevel();
+    int viewWidth = waveform.w();
+    int cursorX = static_cast<int>((sample - waveform.getScrollOffset()) * zoom);
+
+    if (cursorX > viewWidth - margin) {
+        int newOffset = sample - static_cast<int>((viewWidth - margin) / zoom);
+        waveform.setScrollOffset(newOffset);
+    }
+
+    // Assuming left and right channels are the same length.
+    int totalSamples = static_cast<int>(track.getLeftSamples().size());
+
+    if (sample < totalSamples && track.isPlaying()) {
+        // ~60 FPS
+        Fl::repeat_timeout(0.016, update_cursor_timer_cb, &track);
+    }
+}
+

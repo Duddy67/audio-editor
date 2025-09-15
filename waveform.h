@@ -41,11 +41,8 @@ class WaveformView : public Fl_Gl_Window {
         }
 
         std::function<void(int)> onSeekCallback;
+        static void update_cursor_timer_cb(void* userdata);
 
-        void setOnSeekCallback(std::function<void(int)> callback);
-        void setStereoSamples(const std::vector<float>& left, const std::vector<float>& right);
-        void setScrollOffset(int offset);
-        void setScrollbar(Fl_Scrollbar* sb);
         void updateScrollbar();
         void resetCursor();
 
@@ -53,17 +50,16 @@ class WaveformView : public Fl_Gl_Window {
 
         int getScrollOffset() const { return scrollOffset; }
         float getZoomLevel() const { return zoomLevel; }
-        //bool isPlaying() const { return playing; }
-        //bool isPaused() const { return paused; }
         int getPlaybackSample() const { return playbackSample; }
         AudioTrack& getTrack() { return track; }
+        int getMovedCursorSample() const { return movedCursorSample; }
 
         // Setters.
 
+        void setStereoSamples(const std::vector<float>& left, const std::vector<float>& right);
+        void setScrollOffset(int offset);
+        void setScrollbar(Fl_Scrollbar* sb);
         void setContext(Application* app) { this->app = app; }
-        int getMovedCursorSample() const { return movedCursorSample; }
-        //void setPlaying(bool state) { playing = state; }
-        //void setPaused(bool state) { paused = state; }
         void setPlaybackSample(int sample) {
             playbackSample = sample;
             redraw();
