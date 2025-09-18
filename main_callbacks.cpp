@@ -29,11 +29,9 @@ void Application::play_cb(Fl_Widget* w, void* data)
             auto& waveform = track.getWaveform();
 
             if (!track.isPlaying()) {
-                if (track.isPaused()) {
+                if (track.isPaused() || track.isEndOfFile()) {
                     waveform.resetCursor();
-                }
-                else {
-                    waveform.setPlaybackSample(0);
+                    track.resetEndOfFile();
                 }
 
                 track.play();
@@ -60,7 +58,7 @@ void Application::stop_cb(Fl_Widget* w, void* data)
 
             if (track.isPlaying()) {
                 track.stop();
-                track.setPlaybackSampleIndex(0);
+                //track.setPlaybackSampleIndex(0);
             }
 
             track.unpause();

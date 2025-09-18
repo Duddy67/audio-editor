@@ -61,6 +61,11 @@ class Document : public Fl_Group {
             }, &track.getWaveform());
 
             track.getWaveform().setScrollbar(scrollbar);
+
+            // Create a dummy box that represents the waveform’s resize area
+            Fl_Box* resize_box = new Fl_Box(wf_x, wf_y, wf_w, SB_H);
+            this->resizable(resize_box);
+
             // Done adding children.
             end();
 

@@ -187,7 +187,7 @@ void WaveformView::draw() {
     }
     else {
         // The cursor has been manually moved (eg: mouse click, Home key...).
-        sampleToDraw = movedCursorSample;
+        sampleToDraw = cursorSamplePosition;
     }
 
     if (sampleToDraw >= 0) {
@@ -248,7 +248,7 @@ int WaveformView::handle(int event) {
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
 
                 setPlaybackSample(sample);
-                movedCursorSample = sample;
+                cursorSamplePosition = sample;
                 // Tell the audio system to seek too.
                 track.setPlaybackSampleIndex(sample);
 
@@ -271,11 +271,9 @@ int WaveformView::handle(int event) {
                     resetCursor();
                 }
                 else {
-                    if (track.isPaused()) {
+                    if (track.isPaused() || track.isEndOfFile()) {
                         resetCursor();
-                    }
-                    else {
-                        setPlaybackSample(0);
+                        track.resetEndOfFile();
                     }
 
                     track.play();
@@ -305,7 +303,7 @@ int WaveformView::handle(int event) {
                 // Process only when playback is stopped.
                 if (!track.isPlaying()) {
                     // Reset the audio cursor to the start position.
-                    movedCursorSample = 0;
+                    cursorSamplePosition = 0;
                     resetCursor();
 
                     return 1;
@@ -317,7 +315,7 @@ int WaveformView::handle(int event) {
                 // Process only when playback is stopped.
                 if (!track.isPlaying()) {
                     // Take the audio cursor to the end position.
-                    movedCursorSample = static_cast<int>(leftSamples.size()) - 1;
+                    cursorSamplePosition = static_cast<int>(leftSamples.size()) - 1;
                     resetCursor();
 
                     return 1;
@@ -337,7 +335,7 @@ int WaveformView::handle(int event) {
 void WaveformView::resetCursor()
 {
     // Get the cursor's starting point.
-    int resetTo = getMovedCursorSample();
+    int resetTo = cursorSamplePosition;
     // Reset the cursor to its initial audio position.
     track.setPlaybackSampleIndex(resetTo);
 
@@ -360,7 +358,8 @@ void WaveformView::update_cursor_timer_cb(void* userdata) {
     auto& track = *(AudioTrack*)userdata;  // Dereference to get reference
     auto& waveform = track.getWaveform();
     // Reads from atomic.
-    int sample = track.currentSample();
+    int sample = track.getCurrentSample();
+    // Synchronize view with audio. 
     waveform.setPlaybackSample(sample);
 
     // --- Smart auto-scroll ---

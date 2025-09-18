@@ -24,6 +24,8 @@ void AudioTrack::mixInto(float* output, int frameCount)
         return;
     } 
 
+    eof.store(false);
+
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
         // Increment the sample index (ie: ++).
@@ -31,6 +33,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
 
         // End of audio file.
         if (idx >= totalFrames) {
+            eof.store(true);
             // Stop playback.
             playing.store(false);
             // Exit the loop / function.
@@ -47,16 +50,12 @@ void AudioTrack::mixInto(float* output, int frameCount)
 void AudioTrack::play() { playing.store(true); }
 void AudioTrack::pause() { paused.store(true); }
 void AudioTrack::unpause() { paused.store(false); }
-void AudioTrack::stop() 
-{
-    playing.store(false);
-    //playbackSampleIndex.store(0);
-}
+void AudioTrack::stop() { playing.store(false); }
 
-void AudioTrack::seek(int frame) {
+/*void AudioTrack::seek(int frame) {
     if (frame >= 0 && frame < totalFrames)
         playbackSampleIndex.store(frame);
-}
+}*/
 
 /*
  * Loads a given audio file.

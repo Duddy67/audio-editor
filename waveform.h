@@ -22,11 +22,11 @@ class WaveformView : public Fl_Gl_Window {
         int scrollOffset = 0;
         // -1 = not playing
         int playbackSample = -1;
-        bool playing = false;
-        bool paused = false;
+        //bool playing = false;
+        //bool paused = false;
         bool isStereo = true;
-        // Position of the cursor when it is manually moved.
-        int movedCursorSample = 0;
+        // Starting position of the cursor. It can be manually moved.
+        int cursorSamplePosition = 0;
         Application* app = nullptr;
         AudioTrack& track;
 
@@ -52,7 +52,7 @@ class WaveformView : public Fl_Gl_Window {
         float getZoomLevel() const { return zoomLevel; }
         int getPlaybackSample() const { return playbackSample; }
         AudioTrack& getTrack() { return track; }
-        int getMovedCursorSample() const { return movedCursorSample; }
+        //int getCursorSamplePosition() const { return cursorSamplePosition; }
 
         // Setters.
 
