@@ -10,8 +10,23 @@ void WaveformView::setStereoSamples(const std::vector<float>& left, const std::v
 
     // Fit entire waveform on screen initially.
     if (!leftSamples.empty()) {
-        zoomMin = static_cast<float>(w()) / leftSamples.size();
-        zoomLevel = zoomMin;
+        // Compute fit-to-screen zoom (pixels per sample that fits entire file).
+        zoomFit = static_cast<float>(w()) / static_cast<float>(leftSamples.size());
+        // Allow zooming out beyond fit-to-screen.
+        // Note: Tweak factor (0.01 = 100× smaller than fit).
+        zoomMin = zoomFit * 0.01f;
+
+        if (zoomMax <= zoomMin) {
+            // Fallback if zoomMax wasn't sensible.
+            zoomMax = zoomMin * 100.0f;
+        }
+
+        // Start at fit-to-screen.
+        zoomLevel = zoomFit;
+    }
+    else {
+        zoomLevel = 1.0f;
+        zoomFit = zoomMin = 1.0f;
     }
 
     scrollOffset = 0;
@@ -152,18 +167,41 @@ void WaveformView::draw() {
         }
     };
 
+    // If waveform doesn't fill the full width, paint the rest in grey
+    int totalSamples = leftSamples.size();
+    //int visibleSamples = static_cast<int>(w() / zoomLevel);
+    int visibleSamples = visibleSamplesCount();
+    int endSample = scrollOffset + visibleSamples;
+    // compute last drawn x position
+    float lastX = (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
+
+    if (lastX < (float)w()) {
+        glBegin(GL_QUADS);
+            // grey background
+            glColor3f(0.3f, 0.3f, 0.3f);
+            // top-right
+            glVertex2f((float)w(), (float)h());
+            // top-left
+            glVertex2f(lastX, (float)h());
+            // bottom-left
+            glVertex2f(lastX, 0.0f);
+            // bottom-right
+            glVertex2f((float)w(), 0.0f);
+        glEnd();
+    }
+
+    // Waveform color (blue).
+    glColor3f(0.0f, 0.0f, 1.0f);
+
     if (isStereo) {
         // Draw both left and right channels.
-        glColor3f(0.0f, 0.0f, 1.0f); // Left: blue
         drawChannel(leftSamples, 0, halfHeight);
-
-        glColor3f(0.0f, 0.5f, 0.0f); // Right: green
         drawChannel(rightSamples, halfHeight, halfHeight);
 
         // --- Draw separation line between waveforms ---
 
-        // light gray
-        glColor3f(0.8f, 0.8f, 0.8f); 
+        // Dim gray
+        glColor3f(0.412f, 0.412f, 0.412f);
         glLineWidth(1.0f);
         glBegin(GL_LINES);
         // from left
@@ -171,10 +209,31 @@ void WaveformView::draw() {
         // to right
         glVertex2f(w(), h() / 2);   
         glEnd();
+
+        // --- Draw zero lines (middle line) for both channels. ---
+
+        // Gainsboro
+        glColor3f(0.863f, 0.863f, 0.863f);
+        glBegin(GL_LINES);
+            glLineWidth(1.0f);
+            glVertex2f(0.0f,    halfHeight + (halfHeight / 2));
+            glVertex2f((float)w(), halfHeight + (halfHeight / 2));
+            //
+            glLineWidth(1.0f);
+            glVertex2f(0.0f,    halfHeight / 2.0f);
+            glVertex2f((float)w(), halfHeight / 2.0f);
+        glEnd();
     }
     // mono = full height
     else {
         drawChannel(leftSamples, 0, h());  
+        // --- Draw zero line (middle line). ---
+        glColor3f(0.863f, 0.863f, 0.863f);
+        glBegin(GL_LINES);
+            glLineWidth(1.0f);
+            glVertex2f(0.0f,    halfHeight);
+            glVertex2f((float)w(), halfHeight);
+        glEnd();
     }
 
 
@@ -219,9 +278,10 @@ int WaveformView::handle(int event) {
 
         // Zoom with mouse wheel
         case FL_MOUSEWHEEL: {
+            // Zoom in / zoom out.
             zoomLevel *= (Fl::event_dy() < 0) ? 1.1f : 0.9f;
 
-            zoomLevel = std::clamp(zoomLevel, zoomMin, 100.0f);
+            zoomLevel = std::clamp(zoomLevel, zoomMin, zoomMax);
 
             int visibleSamples = static_cast<int>(w() / zoomLevel);
             int maxOffset = std::max(0, (int)leftSamples.size() - visibleSamples);
@@ -385,3 +445,13 @@ void WaveformView::update_cursor_timer_cb(void* userdata) {
     }
 }
 
+// helper to compute how many samples fit inside the widget width at current zoom
+int WaveformView::visibleSamplesCount() const {
+    if (zoomLevel <= 0.0f) return (int)leftSamples.size();
+    // number of samples that correspond to the width: ceil(w / zoomLevel)
+    int vs = static_cast<int>(std::ceil(static_cast<float>(w()) / zoomLevel));
+    vs = std::max(1, vs);
+    vs = std::min((int)leftSamples.size(), vs);
+
+    return vs;
+}

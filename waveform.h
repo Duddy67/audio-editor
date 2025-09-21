@@ -15,8 +15,12 @@ class WaveformView : public Fl_Gl_Window {
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         Fl_Scrollbar* scrollbar = nullptr;
-        // Auto-calculated minimum zoom (fit to screen).
-        float zoomMin = 0.01f;
+        // Fit-to-screen (current starting zoom).
+        float zoomFit = 1.0f;
+        // Allow zooming out further.
+        float zoomMin = 1.0f;
+        // Allow up to 10 pixels per sample.
+        float zoomMax = 10.0f;
         // Pixels per sample.
         float zoomLevel = 1.0f;
         int scrollOffset = 0;
@@ -29,6 +33,7 @@ class WaveformView : public Fl_Gl_Window {
         int cursorSamplePosition = 0;
         Application* app = nullptr;
         AudioTrack& track;
+        int visibleSamplesCount() const;
 
     protected:
         void draw() override;
