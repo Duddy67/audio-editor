@@ -36,12 +36,12 @@ class AudioEngine {
 
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
+        bool initializeOutputDevice();
 
     public:
         AudioEngine(Application *app);
         ~AudioEngine();
 
-        bool initializeOutputDevice();
         void printAllDevices();
         void shutdown();
         unsigned int addTrack(std::unique_ptr<AudioTrack> track);

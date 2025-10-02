@@ -26,6 +26,7 @@ AudioEngine::~AudioEngine() {
 
 bool AudioEngine::initializeOutputDevice() {
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
+    config.playback.pDeviceID = &outputDeviceID;
     config.playback.format = defaultOutputFormat;
     config.playback.channels = defaultOutputChannels;
     config.sampleRate = defaultOutputSampleRate;
@@ -70,10 +71,8 @@ void AudioEngine::setOutputDevice(const char *deviceName)
 
     // A device is already set.
     if (outputDeviceInitialized) {
-        // Stop playback.
-        ma_device_stop(&outputDevice);
-        // Release device resources.
-        ma_device_uninit(&outputDevice);
+        std::cout << "Please restart the application for this change to take effect." << std::endl;
+        return;
     }
 
     if(!initializeOutputDevice()) {
