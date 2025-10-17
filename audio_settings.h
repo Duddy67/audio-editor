@@ -11,6 +11,7 @@ class AudioSettings : public Fl_Window
     public:
         Fl_Button* saveBtn;
         Fl_Button* cancelBtn;
+        Fl_Choice* backend;
         Fl_Choice* input;
         Fl_Choice* output;
 
@@ -18,8 +19,9 @@ class AudioSettings : public Fl_Window
         {
             saveBtn = new Fl_Button(10, 150, 80, 40, "Save");
             cancelBtn = new Fl_Button(110, 150, 80, 40, "Cancel");
-            output = new Fl_Choice(80,10,300,25,"Output:");
-            input = new Fl_Choice(80,50,300,25,"Input:");
+            backend = new Fl_Choice(80,10,300,25,"Backend:");
+            output = new Fl_Choice(80,50,300,25,"Output:");
+            input = new Fl_Choice(80,90,300,25,"Input:");
 
             end();
             set_modal();
@@ -27,9 +29,11 @@ class AudioSettings : public Fl_Window
             show();
         }
 
+        void buildDevices(void* data);
         // Getters.
         Fl_Button* getSaveButton()const { return saveBtn; }
         Fl_Button* getCancelButton()const { return cancelBtn; }
+        Fl_Choice* getBackendChoice()const { return backend; }
 };
 
 #endif

@@ -11,6 +11,12 @@ class AudioTrack;
 class Application;
 
 class AudioEngine {
+        struct BackendInfo {
+            std::string name;
+            ma_backend backend;
+            bool isDefault;
+        };
+
         // Structure that holds the device data.
         struct DeviceInfo {
             std::string name;
@@ -36,14 +42,19 @@ class AudioEngine {
 
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
-        bool initializeOutputDevice();
+        void initializeOutputDevice();
+        bool isBackendAvailable(ma_backend backend);
+        std::string backendToString(ma_backend backend);
 
     public:
-        AudioEngine(Application *app);
+        AudioEngine(Application* app) : pApplication(app) {} //AudioEngine(Application *app);
         ~AudioEngine();
 
         void printAllDevices();
-        void shutdown();
+        std::string currentBackend();
+        std::string currentOutput();
+        void uninitContext();
+        void uninitOutput();
         unsigned int addTrack(std::unique_ptr<AudioTrack> track);
         void removeTrack(unsigned int id);
         void start();
@@ -51,6 +62,7 @@ class AudioEngine {
         size_t numberOfTracks() { return tracks.size(); }
 
         // Getters.
+        std::vector<BackendInfo> getBackends();
         std::vector<DeviceInfo> getOutputDevices();
         std::vector<DeviceInfo> getInputDevices();
         std::vector<std::string> getSupportedFormats() { return supportedFormats; }
@@ -61,7 +73,8 @@ class AudioEngine {
         AudioTrack& getTrack(unsigned int id);
 
       // Setters.
-      void setOutputDevice(const char *deviceName);
+      void setBackend(const char *name);
+      void setOutputDevice(const char *name = nullptr);
 };
 
 #endif // AUDIO_ENGINE_H

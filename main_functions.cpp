@@ -1,10 +1,50 @@
 #include "main.h"
 #include <cstdlib>
 
+void Application::initAudioSystem()
+{
+    // Create and initialize the audio engine object.
+    audioEngine = new AudioEngine(this);
+
+    auto config = loadConfig(CONFIG_FILENAME);
+    // Get the backend name set in the config file.
+    auto backend = config.backend;
+
+    // Initialize backend.
+    try {
+        audioEngine->setBackend(backend.c_str());
+        std::cout << "Current backend: " << audioEngine->currentBackend() << std::endl;
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "Backend error: " << std::string(e.what()) << std::endl;
+        return;
+    }
+
+    auto outputs = audioEngine->getOutputDevices();
+
+    // Initialize devices.
+    try {
+        audioEngine->setOutputDevice(config.outputDevice.c_str());
+        audioEngine->start();
+        audioEngine->printAllDevices();
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "Device error: " << std::string(e.what()) << std::endl;
+        return;
+    }
+
+    if (backend == "") {
+        config.backend = audioEngine->currentBackend();
+        config.outputDevice = audioEngine->currentOutput();
+    }
+
+    std::cout << "=== Audio system initialized ===" << std::endl;
+}
 
 void Application::saveConfig(const AppConfig& config, const std::string& filename)
 {
     json j;
+    j["backend"] = config.backend;
     j["outputDevice"] = config.outputDevice;
     j["inputDevice"] = config.inputDevice;
     //j["volume"] = config.volume;
@@ -22,8 +62,9 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
 
     // If no config file is found, create it.
     if (!file.is_open()) {
-        config.outputDevice = "none";
-        config.inputDevice = "none";
+        config.backend = "";
+        config.outputDevice = "";
+        config.inputDevice = "";
         //config.volume = "0";
         this->saveConfig(config, filename);
         return config;
@@ -33,8 +74,9 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
         json j;
         file >> j;
 
-        config.outputDevice = j.value("outputDevice", "none");
-        config.inputDevice = j.value("inputDevice", "none");
+        config.backend = j.value("backend", "");
+        config.outputDevice = j.value("outputDevice", "");
+        config.inputDevice = j.value("inputDevice", "");
         //config.volume = j.value("volume", "0");
     }
     catch (const json::exception& e) {

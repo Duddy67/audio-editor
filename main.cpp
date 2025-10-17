@@ -1,5 +1,9 @@
 #include "main.h"
 
+/*
+ * Application's constructor.
+ * Build the UI part of the application (windows, buttons...) through FLTK.   
+ */
 Application::Application(int w, int h, const char *l, int argc, char *argv[]) : Fl_Double_Window(w, h, l)
 {
     box(FL_DOWN_BOX);
@@ -44,25 +48,13 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     show();
 
     this->callback(noEscapeKey_cb, this);
-
-    AppConfig config = loadConfig(CONFIG_FILENAME);
-
-    // Create and initialize the Audio object.
-    this->audioEngine = new AudioEngine(this);
-
-    if (!this->audioEngine->isContextInitialized()) {
-        setMessage("Failed to initialize audio system.");
-        this->dialog_cb(this->dialogWnd, this);
-    }
-
-    audioEngine->setOutputDevice(config.outputDevice.c_str());
-    audioEngine->start();
-    //audio->printAllDevices();
 }
 
 
 int main(int argc, char *argv[])
 {
     Application app(1200, 800, "Audio Editor", argc, argv);
+    app.initAudioSystem();
+
     return Fl::run();
 }

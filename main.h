@@ -29,6 +29,7 @@
 
 using json = nlohmann::json;
 
+
 class Application : public Fl_Double_Window 
 {
     std::vector<Document*> documents;
@@ -47,6 +48,7 @@ class Application : public Fl_Double_Window
     std::string message;
 
     struct AppConfig {
+        std::string backend;
         std::string outputDevice;
         std::string inputDevice;
         //std::string volume;
@@ -78,6 +80,8 @@ class Application : public Fl_Double_Window
         size_t getNbDocuments() { return documents.size(); }
         void hideTabs() { tabs->hide(); }
         AudioTrack& getActiveTrack();
+        void initAudioSystem();
+        AudioEngine& getAudioEngine() { return *audioEngine; }
 
         Fl_Tabs* getTabs() const { return tabs; }
 
@@ -92,6 +96,8 @@ class Application : public Fl_Double_Window
         static void saveas_cb(Fl_Widget* w, void* data);
         static void cancel_audio_settings_cb(Fl_Widget *w, void *data);
         static void save_audio_settings_cb(Fl_Widget *w, void *data);
+        static void backend_choice_cb(Fl_Widget *w, void *data);
+        static void output_choice_cb(Fl_Widget *w, void *data);
         static void ok_cb(Fl_Widget* w, void* data);
         static void cancel_cb(Fl_Widget* w, void* data);
         static void play_cb(Fl_Widget* w, void* data);

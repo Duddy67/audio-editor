@@ -1,4 +1,5 @@
 {
-    "inputDevice": "JACK source (PulseAudio JACK Source)",
+    "backend": "PulseAudio",
+    "inputDevice": "JACK sink (PulseAudio JACK Sink)",
     "outputDevice": "JACK sink (PulseAudio JACK Sink)"
 }

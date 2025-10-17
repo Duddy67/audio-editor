@@ -2,29 +2,54 @@
 #include "audio_track.h"
 #include <iostream>
 
-static AudioEngine* g_audioEngine = nullptr;
-
-/*
- * Constructor
- */
-AudioEngine::AudioEngine(Application* app) : pApplication(app) {
-    ma_context_config config = ma_context_config_init();
-
-    // Initialize the audio context.
-    if (ma_context_init(NULL, 0, &config, &context) == MA_SUCCESS) {
-        contextInitialized = true;
-        std::cerr << "Audio context initialized." << std::endl;
-    }
-}
-
 /*
  * Destructor: Uninitializes all of the audio parameters before closing the app.
  */
 AudioEngine::~AudioEngine() {
-    shutdown();
+    // Clears all audio ressources currently used by the application. 
+    uninitOutput();
+    uninitContext();
+    tracks.clear();
 }
 
-bool AudioEngine::initializeOutputDevice() {
+/*
+ * Checks the given backend is available.
+ */
+bool AudioEngine::isBackendAvailable(ma_backend backend) {
+    ma_context context;
+    ma_context_config config = ma_context_config_init();
+
+    if (ma_context_init(&backend, 1, &config, &context) == MA_SUCCESS) {
+        ma_context_uninit(&context);
+        return true;
+    }
+
+    return false;
+}
+
+/*
+ * Returns the name of the given backend handled by MiniAudio.
+ */
+std::string AudioEngine::backendToString(ma_backend backend)
+{
+    switch (backend) {
+        case ma_backend_pulseaudio:
+            return "PulseAudio";
+        case ma_backend_jack:
+            return "JACK";
+        case ma_backend_alsa:
+            return "ALSA";
+        case ma_backend_null:
+            return "Null (no backend)";
+        default:
+            return "Unknown";
+    }
+}
+
+/*
+ * Initializes the output device.
+ */
+void AudioEngine::initializeOutputDevice() {
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.pDeviceID = &outputDeviceID;
     config.playback.format = defaultOutputFormat;
@@ -34,65 +59,131 @@ bool AudioEngine::initializeOutputDevice() {
     config.pUserData = this;
 
     if (ma_device_init(&context, &config, &outputDevice) != MA_SUCCESS) {
-        std::cerr << "Failed to initialize playback device\n";
-        return false;
+        throw std::runtime_error("Failed to initialize playback device.");
     }
 
     outputDeviceInitialized = true;
-
-    g_audioEngine = this;
-
-    return true;
 }
 
 /*
- * Sets the output to the given device.
+ * Sets the given (or default) backend.
  */
-void AudioEngine::setOutputDevice(const char *deviceName)
+void AudioEngine::setBackend(const char *name)
 {
-    bool found = false;
-    auto outputDevices = getOutputDevices();
+    auto backends = getBackends();
 
-    // Loop through the available devices.
-    for (ma_uint32 i = 0; i < (ma_uint32) outputDevices.size(); ++i) {
-        if (strcmp(outputDevices[i].name.c_str(), deviceName) == 0) {
-            std::cout << "Found target device: " << outputDevices[i].name << std::endl;
-            // Set the given device id.
-            memcpy(&outputDeviceID, &outputDevices[i].id, sizeof(ma_device_id));
-            found = true;
+    // First make sure at least one backend is available.
+    if (backends.size() == 0) {
+        throw std::runtime_error("No backend available !");
+    }
+
+    if (contextInitialized) {
+        // Clear output device first.
+        uninitOutput();
+        // Then clear context.
+        uninitContext();
+    }
+
+    int index = 0;
+
+    // Loop through the available backends.
+    for (ma_uint32 i = 0; i < (ma_uint32) backends.size(); ++i) {
+        // Check for the target backend.
+        if (strcmp(backends[i].name.c_str(), name) == 0) {
+            index = i;
             break;
+        }
+
+        // In case of no target backend found, the index of the 
+        // backend chosen by default by the system will be used.
+        if (backends[i].isDefault) {
+            index = i;
         }
     }
 
-    if (!found) {
-        std::cerr << "Target device not found!" << std::endl;
-        return;
+    ma_context_config config = ma_context_config_init();
+
+    // Initialize the audio context with the given (or default) backend.
+    if (ma_context_init(&backends[index].backend, backends.size(), &config, &context) == MA_SUCCESS) {
+        contextInitialized = true;
+        std::cout << "Audio context initialized." << std::endl;
+    }
+    else {
+        throw std::runtime_error("Failed to initialize backend");
+    }
+}
+
+/*
+ * Sets the given (or default) output device.
+ */
+void AudioEngine::setOutputDevice(const char *name)
+{
+    auto outputDevices = getOutputDevices();
+
+    // Check for available devices.
+    if (outputDevices.size() == 0) {
+        throw std::runtime_error("No output device found!");
     }
 
     // A device is already set.
     if (outputDeviceInitialized) {
-        std::cout << "Please restart the application for this change to take effect." << std::endl;
-        return;
+        // Clear current device.
+        uninitOutput();
     }
 
-    if(!initializeOutputDevice()) {
-        std::cerr << "Failed to initialize output device." << std::endl;
-        return;
+    int index = 0;
+
+    if (name != nullptr) {
+        // Loop through the available devices.
+        for (ma_uint32 i = 0; i < (ma_uint32) outputDevices.size(); ++i) {
+            // Check for the target device.
+            if (strcmp(outputDevices[i].name.c_str(), name) == 0) {
+                index = i;
+                break;
+            }
+
+            // In case of no target device found, the index of the 
+            // device chosen by default by the system will be used.
+            if (outputDevices[i].isDefault) {
+                index = i;
+            }
+        }
+    }
+
+    // Set the given (or default) device id.
+    memcpy(&outputDeviceID, &outputDevices[index].id, sizeof(ma_device_id));
+
+    // Let initializeOutputDevice throw if it fails.
+    initializeOutputDevice();
+}
+
+/*
+ * Uninitializes current context.
+ */
+void AudioEngine::uninitContext() {
+    if (contextInitialized) {
+        ma_context_uninit(&context);
+        contextInitialized = false;
     }
 }
 
 /*
- * Clears all audio ressources currently used by the application. 
+ * Uninitializes current output device.
  */
-void AudioEngine::shutdown() {
-    ma_device_uninit(&outputDevice);
-    ma_context_uninit(&context);
-    tracks.clear();
+void AudioEngine::uninitOutput() {
+    if (outputDeviceInitialized) {
+        stop();
+        ma_device_uninit(&outputDevice);
+        outputDeviceInitialized = false;
+    }
 }
 
 void AudioEngine::start() { ma_device_start(&outputDevice); }
 void AudioEngine::stop()  { ma_device_stop(&outputDevice); }
 
+/*
+ * Adds a new track to the track list.
+ */
 unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
 {
     // Set a brand new id for this track.
@@ -104,6 +195,9 @@ unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
     return id;
 }
 
+/*
+ * Returns a track by its id.
+ */
 AudioTrack& AudioEngine::getTrack(unsigned int id) 
 {
     for (auto& t : tracks) {
@@ -115,6 +209,9 @@ AudioTrack& AudioEngine::getTrack(unsigned int id)
     throw std::runtime_error("Couldn't find track with id: " + id);
 }
 
+/*
+ * Removes a track from the track list by its id.
+ */
 void AudioEngine::removeTrack(unsigned int id)
 {
     auto it = std::find_if(tracks.begin(), tracks.end(),
@@ -130,6 +227,9 @@ void AudioEngine::removeTrack(unsigned int id)
     }
 }
 
+/*
+ * Callback function used by MiniAudio to feed audio data to devices.
+ */
 void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*input*/, ma_uint32 frameCount) {
     float* out = static_cast<float*>(output);
     // Clear buffer (stereo) with silence (ie: 0.0f). 
@@ -137,6 +237,7 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*
 
     AudioEngine* engine = static_cast<AudioEngine*>(pDevice->pUserData);
 
+    // Dispatch data among playing tracks.
     for (auto& track : engine->tracks) {
         if (track->isPlaying()) {
             track->mixInto(out, frameCount);
@@ -145,9 +246,34 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*
 }
 
 /*
+ * Collects and returns all the available backends on the system.
+ */
+std::vector<AudioEngine::BackendInfo> AudioEngine::getBackends() 
+{
+    std::vector<BackendInfo> backends;
+    std::vector<ma_backend> candidates = {
+        ma_backend_pulseaudio,
+        ma_backend_jack,
+        ma_backend_alsa
+    };
+
+    for (auto backend : candidates) {
+        if (isBackendAvailable(backend)) {
+            BackendInfo info;
+            info.name = backendToString(backend);
+            info.backend = backend;
+            backends.push_back(info);
+        }
+    }
+
+    return backends;
+}
+
+/*
  * Gathers all the capture and playback device info into an array.
  */
-std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type deviceType) {
+std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type deviceType)
+{
     // Create a device array.
     std::vector<DeviceInfo> devices;
 
@@ -161,7 +287,7 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type devi
     ma_result result;
 
     // Get playback or capture devices.
-    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_duplex) {
+    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_capture) {
         result = ma_context_get_devices(&context, &pDeviceInfos, &deviceCount, nullptr, nullptr);
     }
     else {
@@ -193,6 +319,25 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getOutputDevices() {
 
 std::vector<AudioEngine::DeviceInfo> AudioEngine::getInputDevices() {
     return getDevices(ma_device_type_capture);
+}
+
+/*
+ * Returns the name of the current backend.
+ */
+std::string AudioEngine::currentBackend()
+{
+    if (!contextInitialized) {
+        return backendToString(ma_backend_null);
+    }
+
+    ma_backend backend = context.backend;
+
+    return backendToString(backend);
+}
+
+std::string AudioEngine::currentOutput()
+{
+    return outputDevice.playback.name;
 }
 
 /*
