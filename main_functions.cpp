@@ -33,9 +33,12 @@ void Application::initAudioSystem()
         return;
     }
 
+    // First starting (settings are blank).
     if (backend == "") {
+        // Backend and devices set by default by the system. 
         config.backend = audioEngine->currentBackend();
         config.outputDevice = audioEngine->currentOutput();
+        saveConfig(config, CONFIG_FILENAME);
     }
 
     std::cout << "=== Audio system initialized ===" << std::endl;
