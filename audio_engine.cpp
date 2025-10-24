@@ -65,6 +65,62 @@ void AudioEngine::initializeOutputDevice() {
     outputDeviceInitialized = true;
 }
 
+void AudioEngine::initializeInputDevice()
+{
+    ma_device_config config = ma_device_config_init(ma_device_type_capture);
+    config.capture.pDeviceID = &inputDeviceID;
+    config.capture.format = ma_format_f32;
+    config.capture.channels = 2;
+    config.sampleRate = defaultOutputSampleRate;
+    config.dataCallback = data_callback;
+    config.pUserData = this;
+
+    if (ma_device_init(nullptr, &config, &inputDevice) != MA_SUCCESS) {
+        throw std::runtime_error("Failed to initialize capture device.");
+    }
+
+    inputDeviceInitialized = true;
+}
+
+void AudioEngine::initializeDuplexDevice()
+{
+    ma_device_config config = ma_device_config_init(ma_device_type_duplex);
+    config.sampleRate       = 44100;
+    config.playback.format  = ma_format_f32;
+    config.playback.channels= 2;
+    config.playback.pDeviceID = &duplexDeviceID;
+    config.capture.format   = ma_format_f32;
+    config.capture.channels = 2;
+    config.capture.pDeviceID  = &duplexDeviceID;
+    config.dataCallback     = data_callback;
+    config.pUserData        = this;
+
+    if (ma_device_init(&context, &config, &duplexDevice) != MA_SUCCESS) {
+        throw std::runtime_error("Failed to initialize duplex device.");
+    }
+
+    duplexDeviceInitialized = true;
+}
+
+bool AudioEngine::isDeviceDuplex(const char *name)
+{
+    auto duplexDevices = getDuplexDevices();
+
+    if (duplexDevices.size() == 0) {
+        return false;
+    }
+
+    // Loop through the available backends.
+    for (ma_uint32 i = 0; i < (ma_uint32) duplexDevices.size(); ++i) {
+        // Check for the target backend.
+        if (strcmp(duplexDevices[i].name.c_str(), name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /*
  * Sets the given (or default) backend.
  */
@@ -78,8 +134,10 @@ void AudioEngine::setBackend(const char *name)
     }
 
     if (contextInitialized) {
-        // Clear output device first.
+        // Clear devices first.
         uninitOutput();
+        uninitInput();
+        uninitDuplex();
         // Then clear context.
         uninitContext();
     }
@@ -111,6 +169,50 @@ void AudioEngine::setBackend(const char *name)
     else {
         throw std::runtime_error("Failed to initialize backend");
     }
+}
+
+/*
+ * Sets the given (or default) duplex device.
+ */
+void AudioEngine::setDuplexDevice(const char *name)
+{
+    auto duplexDevices = getDuplexDevices();
+
+    // Check for available devices.
+    if (duplexDevices.size() == 0) {
+        throw std::runtime_error("No duplex device found!");
+    }
+
+    // A device is already set.
+    if (duplexDeviceInitialized) {
+        // Clear current device.
+        uninitDuplex();
+    }
+
+    int index = 0;
+
+    if (name != nullptr) {
+        // Loop through the available devices.
+        for (ma_uint32 i = 0; i < (ma_uint32) duplexDevices.size(); ++i) {
+            // Check for the target device.
+            if (strcmp(duplexDevices[i].name.c_str(), name) == 0) {
+                index = i;
+                break;
+            }
+
+            // In case of no target device found, the index of the 
+            // device chosen by default by the system will be used.
+            if (duplexDevices[i].isDefault) {
+                index = i;
+            }
+        }
+    }
+
+    // Set the given (or default) device id.
+    memcpy(&duplexDeviceID, &duplexDevices[index].id, sizeof(ma_device_id));
+
+    // Let initializeDuplexDevice throw if it fails.
+    initializeDuplexDevice();
 }
 
 /*
@@ -158,6 +260,50 @@ void AudioEngine::setOutputDevice(const char *name)
 }
 
 /*
+ * Sets the input to the given device.
+ */
+void AudioEngine::setInputDevice(const char *name)
+{
+    auto inputDevices = getInputDevices();
+
+    // Check for available devices.
+    if (inputDevices.size() == 0) {
+        throw std::runtime_error("No input device found!");
+    }
+
+    // A device is already set.
+    if (inputDeviceInitialized) {
+        // Clear current device.
+        uninitInput();
+    }
+
+    int index = 0;
+
+    if (name != nullptr) {
+        // Loop through the available devices.
+        for (ma_uint32 i = 0; i < (ma_uint32) inputDevices.size(); ++i) {
+            // Check for the target device.
+            if (strcmp(inputDevices[i].name.c_str(), name) == 0) {
+                index = i;
+                break;
+            }
+
+            // In case of no target device found, the index of the 
+            // device chosen by default by the system will be used.
+            if (inputDevices[i].isDefault) {
+                index = i;
+            }
+        }
+    }
+
+    // Set the given (or default) device id.
+    memcpy(&inputDeviceID, &inputDevices[index].id, sizeof(ma_device_id));
+
+    // Let initializeInputDevice throw if it fails.
+    initializeInputDevice();
+}
+
+/*
  * Uninitializes current context.
  */
 void AudioEngine::uninitContext() {
@@ -172,14 +318,40 @@ void AudioEngine::uninitContext() {
  */
 void AudioEngine::uninitOutput() {
     if (outputDeviceInitialized) {
-        stop();
+        stopPlayback();
         ma_device_uninit(&outputDevice);
         outputDeviceInitialized = false;
     }
 }
 
-void AudioEngine::start() { ma_device_start(&outputDevice); }
-void AudioEngine::stop()  { ma_device_stop(&outputDevice); }
+/*
+ * Uninitializes current input device.
+ */
+void AudioEngine::uninitInput() {
+    if (inputDeviceInitialized) {
+        stopCapture();
+        ma_device_uninit(&inputDevice);
+        inputDeviceInitialized = false;
+    }
+}
+
+/*
+ * Uninitializes current input device.
+ */
+void AudioEngine::uninitDuplex() {
+    if (duplexDeviceInitialized) {
+        stopDuplex();
+        ma_device_uninit(&duplexDevice);
+        duplexDeviceInitialized = false;
+    }
+}
+
+void AudioEngine::startPlayback() { ma_device_start(&outputDevice); }
+void AudioEngine::stopPlayback()  { ma_device_stop(&outputDevice); }
+void AudioEngine::startCapture() { ma_device_start(&inputDevice); }
+void AudioEngine::stopCapture()  { ma_device_stop(&inputDevice); }
+void AudioEngine::startDuplex() { ma_device_start(&duplexDevice); }
+void AudioEngine::stopDuplex()  { ma_device_stop(&duplexDevice); }
 
 /*
  * Adds a new track to the track list.
@@ -230,17 +402,29 @@ void AudioEngine::removeTrack(unsigned int id)
 /*
  * Callback function used by MiniAudio to feed audio data to devices.
  */
-void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* /*input*/, ma_uint32 frameCount) {
-    float* out = static_cast<float*>(output);
-    // Clear buffer (stereo) with silence (ie: 0.0f). 
-    std::fill(out, out + frameCount * 2, 0.0f);  
-
+void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* input, ma_uint32 frameCount) {
     AudioEngine* engine = static_cast<AudioEngine*>(pDevice->pUserData);
 
-    // Dispatch data among playing tracks.
-    for (auto& track : engine->tracks) {
-        if (track->isPlaying()) {
-            track->mixInto(out, frameCount);
+    // First check there are tracks.
+    if (engine->tracks.size() == 0) {
+        return;
+    }
+
+    if (input != nullptr) {
+        (void)input; // explicitly ignore to silence warnings and ensure consistent behavior
+    }
+
+    // Handle playback (output).
+    if (output != nullptr) {
+        float* out = static_cast<float*>(output);
+        // Clear buffer (stereo) with silence (ie: 0.0f). 
+        std::fill(out, out + frameCount * 2, 0.0f);  
+
+        // Dispatch data among playing tracks.
+        for (auto& track : engine->tracks) {
+            if (track->isPlaying()) {
+                track->mixInto(out, frameCount);
+            }
         }
     }
 }
@@ -287,7 +471,7 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type devi
     ma_result result;
 
     // Get playback or capture devices.
-    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_capture) {
+    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_capture || deviceType == ma_device_type_duplex) {
         result = ma_context_get_devices(&context, &pDeviceInfos, &deviceCount, nullptr, nullptr);
     }
     else {
@@ -319,6 +503,10 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getOutputDevices() {
 
 std::vector<AudioEngine::DeviceInfo> AudioEngine::getInputDevices() {
     return getDevices(ma_device_type_capture);
+}
+
+std::vector<AudioEngine::DeviceInfo> AudioEngine::getDuplexDevices() {
+    return getDevices(ma_device_type_duplex);
 }
 
 /*
@@ -353,6 +541,7 @@ void AudioEngine::printAllDevices()
 
     auto outputDevices = getOutputDevices();
     auto inputDevices = getInputDevices();
+    auto duplexDevices = getDuplexDevices();
 
     std::cout << "=== Available Audio Devices ===" << std::endl;
 
@@ -369,6 +558,15 @@ void AudioEngine::printAllDevices()
     for (size_t i = 0; i < inputDevices.size(); ++i) {
         std::cout << "  " << i + 1 << ": " << inputDevices[i].name;
         if (inputDevices[i].isDefault) {
+            std::cout << " (default)";
+        }
+        std::cout << std::endl;
+    }
+
+    std::cout << "\nDuplex Devices:" << std::endl;
+    for (size_t i = 0; i < duplexDevices.size(); ++i) {
+        std::cout << "  " << i + 1 << ": " << duplexDevices[i].name;
+        if (duplexDevices[i].isDefault) {
             std::cout << " (default)";
         }
         std::cout << std::endl;

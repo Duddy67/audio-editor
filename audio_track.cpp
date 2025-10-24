@@ -47,10 +47,40 @@ void AudioTrack::mixInto(float* output, int frameCount)
     }
 }
 
+void AudioTrack::recordInto(const float* input, ma_uint32 frameCount)
+{
+    std::lock_guard<std::mutex> lock(recordingMutex);
+
+    // Check first if the track is recording.
+    if (!recording.load()) {
+        return;
+    }
+
+    // Check if we've reached the maximum recording length
+    if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
+        recording.store(false);
+        return;
+    }
+
+    // Store captured audio data (interleaved stereo)
+    for (ma_uint32 i = 0; i < frameCount; ++i) {
+        // Left channel
+        recordedLeft.push_back(input[i * 2]);
+        // Right channel
+        recordedRight.push_back(input[i * 2 + 1]);
+    }
+}
+
 void AudioTrack::play() { playing.store(true); }
 void AudioTrack::pause() { paused.store(true); }
 void AudioTrack::unpause() { paused.store(false); }
 void AudioTrack::stop() { playing.store(false); }
+
+void AudioTrack::record()
+{
+    recordingStartIndex = playbackSampleIndex.load();
+    recording.store(true);
+}
 
 /*void AudioTrack::seek(int frame) {
     if (frame >= 0 && frame < totalFrames)

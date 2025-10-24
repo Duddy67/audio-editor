@@ -39,8 +39,15 @@ class AudioTrack {
         int totalFrames = 0;
         bool stereo = true;
         std::atomic<int> playbackSampleIndex{0};
+        std::atomic<int> recordingStartIndex{0};
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
+        std::vector<float> recordedLeft;
+        std::vector<float> recordedRight;
+        std::mutex recordingMutex;
+        std::atomic<bool> recording{false};
+        // 0 = unlimited
+        int maxRecordingSamples = 0;
         // End of file flag.
         std::atomic<bool> eof{false};
         OriginalFileFormat originalFileFormat;
@@ -59,8 +66,10 @@ class AudioTrack {
       void pause();
       void unpause();
       void stop();
+      void record();
       //void seek(int frame);
       void mixInto(float* output, int frameCount);
+      void recordInto(const float* input, ma_uint32 frameCount);
       void renderWaveform(int x, int y, int w, int h);
 
       // Getters.
@@ -68,6 +77,7 @@ class AudioTrack {
       bool isStereo() { return stereo; }
       bool isPlaying() const { return playing.load(); }
       bool isPaused() const { return paused.load(); }
+      bool isRecording() const { return recording.load(); }
       bool isEndOfFile() const { return eof.load(); }
       int getCurrentSample() const { return playbackSampleIndex.load(); }
       std::vector<float> getLeftSamples() { return leftSamples; }

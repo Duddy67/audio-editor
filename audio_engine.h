@@ -11,6 +11,7 @@ class AudioTrack;
 class Application;
 
 class AudioEngine {
+        // Structure that holds the backend data.
         struct BackendInfo {
             std::string name;
             ma_backend backend;
@@ -27,10 +28,16 @@ class AudioEngine {
         Application* pApplication;
         ma_context context;
         ma_device outputDevice;
+        ma_device inputDevice;
+        ma_device duplexDevice;
         ma_device_id outputDeviceID = {0};
+        ma_device_id inputDeviceID = {0};
+        ma_device_id duplexDeviceID = {0};
         // Flags to keep track of object state.
         bool contextInitialized = false;
         bool outputDeviceInitialized = false;
+        bool inputDeviceInitialized = false;
+        bool duplexDeviceInitialized = false;
         // Multiple loaded tracks
         std::vector<std::unique_ptr<AudioTrack>> tracks;  
         // The unique id assigned to each track.
@@ -43,11 +50,13 @@ class AudioEngine {
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
         void initializeOutputDevice();
+        void initializeInputDevice();
+        void initializeDuplexDevice();
         bool isBackendAvailable(ma_backend backend);
         std::string backendToString(ma_backend backend);
 
     public:
-        AudioEngine(Application* app) : pApplication(app) {} //AudioEngine(Application *app);
+        AudioEngine(Application* app) : pApplication(app) {} 
         ~AudioEngine();
 
         void printAllDevices();
@@ -55,16 +64,24 @@ class AudioEngine {
         std::string currentOutput();
         void uninitContext();
         void uninitOutput();
+        void uninitInput();
+        void uninitDuplex();
         unsigned int addTrack(std::unique_ptr<AudioTrack> track);
         void removeTrack(unsigned int id);
-        void start();
-        void stop();
+        void startPlayback();
+        void stopPlayback();
+        void startCapture();
+        void stopCapture();
+        void startDuplex();
+        void stopDuplex();
         size_t numberOfTracks() { return tracks.size(); }
+        bool isDeviceDuplex(const char *name);
 
         // Getters.
         std::vector<BackendInfo> getBackends();
         std::vector<DeviceInfo> getOutputDevices();
         std::vector<DeviceInfo> getInputDevices();
+        std::vector<DeviceInfo> getDuplexDevices();
         std::vector<std::string> getSupportedFormats() { return supportedFormats; }
         bool isContextInitialized() { return contextInitialized; }
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
@@ -75,6 +92,8 @@ class AudioEngine {
       // Setters.
       void setBackend(const char *name);
       void setOutputDevice(const char *name = nullptr);
+      void setInputDevice(const char *name = nullptr);
+      void setDuplexDevice(const char *name = nullptr);
 };
 
 #endif // AUDIO_ENGINE_H

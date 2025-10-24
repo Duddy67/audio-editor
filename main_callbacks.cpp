@@ -98,3 +98,25 @@ void Application::pause_cb(Fl_Widget* w, void* data)
     }
 }
 
+void Application::record_cb(Fl_Widget* w, void* data)
+{
+    /*Application* app = (Application*) data;
+
+    if (app->tabs->value()) {
+        try {
+            auto& track = app->getActiveTrack();
+            auto& waveform = track.getWaveform();
+
+            if (!track.isPlaying() && !track.isRecording()) {
+            std::cout << "Start recording record_cb" << std::endl;
+                track.record();
+                Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+            }
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+        }
+
+    }*/
+}
+

@@ -40,6 +40,7 @@ class Application : public Fl_Double_Window
     Fl_Button* playBtn = nullptr;
     Fl_Button* stopBtn = nullptr;
     Fl_Button* pauseBtn = nullptr;
+    Fl_Button* recordBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
     FileChooser* fileChooser = nullptr;
     AudioSettings* audioSettings = nullptr;
@@ -53,6 +54,9 @@ class Application : public Fl_Double_Window
         std::string inputDevice;
         //std::string volume;
     };
+
+    void initBackend();
+    void initDevices();
 
     public:
 
@@ -103,6 +107,7 @@ class Application : public Fl_Double_Window
         static void play_cb(Fl_Widget* w, void* data);
         static void stop_cb(Fl_Widget* w, void* data);
         static void pause_cb(Fl_Widget* w, void* data);
+        static void record_cb(Fl_Widget* w, void* data);
 };
 
 #endif
