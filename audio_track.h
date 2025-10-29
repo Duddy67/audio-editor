@@ -56,7 +56,7 @@ class AudioTrack {
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
         bool decodeFile();
-
+        void setRecordedData();
 
     public:
       AudioTrack(AudioEngine& e) : engine(e) {}
@@ -67,9 +67,8 @@ class AudioTrack {
       void unpause();
       void stop();
       void record();
-      //void seek(int frame);
       void mixInto(float* output, int frameCount);
-      void recordInto(const float* input, ma_uint32 frameCount);
+      void recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels);
       void renderWaveform(int x, int y, int w, int h);
 
       // Getters.
@@ -85,6 +84,7 @@ class AudioTrack {
       unsigned int getId() { return id; }
       WaveformView& getWaveform() { return *waveform.get(); }
       // Setters.
+      void setNewTrack();
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
       void resetEndOfFile() { eof.store(false); }

@@ -5,7 +5,7 @@ void Application::createMenu()
 {
     //Fl_Menu_Item item = {"Edit/&Toolbar2", 0,0, 0, FL_MENU_TOGGLE|FL_MENU_VALUE};
     menu->add("File", 0, 0, 0, FL_SUBMENU);
-    menu->add("File/&New", FL_ALT + 'n', 0, 0);
+    menu->add("File/&New", FL_ALT + 'n', new_cb, (void*) this);
     //menu->add("File/Open", 0, open_cb, (void*) this);
     menu->add("File/_&Open", 0, file_chooser_cb, (void*) this);
     menu->add("File/&Save", 0, save_cb, (void*) this);

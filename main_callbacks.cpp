@@ -19,6 +19,19 @@ void Application::quit_cb(Fl_Widget* w, void* data)
     exit(0);
 }
 
+void Application::new_cb(Fl_Widget *w, void *data)
+{
+    Application* app = (Application*) data;
+
+    try {
+        app->addDocument();
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "Failed to create new document: " << e.what() << std::endl;
+    }
+}
+
+
 void Application::play_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
@@ -56,9 +69,14 @@ void Application::stop_cb(Fl_Widget* w, void* data)
             auto& track = app->getActiveTrack();
             auto& waveform = track.getWaveform();
 
-            if (track.isPlaying()) {
+            if (track.isPlaying() || track.isRecording()) {
+                bool stoppedRecording = track.isRecording();
                 track.stop();
                 //track.setPlaybackSampleIndex(0);
+                if (stoppedRecording) {
+                    //waveform.setStereoMode(track.isStereo());
+                    waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
+                }
             }
 
             track.unpause();
@@ -100,7 +118,7 @@ void Application::pause_cb(Fl_Widget* w, void* data)
 
 void Application::record_cb(Fl_Widget* w, void* data)
 {
-    /*Application* app = (Application*) data;
+    Application* app = (Application*) data;
 
     if (app->tabs->value()) {
         try {
@@ -108,7 +126,6 @@ void Application::record_cb(Fl_Widget* w, void* data)
             auto& waveform = track.getWaveform();
 
             if (!track.isPlaying() && !track.isRecording()) {
-            std::cout << "Start recording record_cb" << std::endl;
                 track.record();
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
             }
@@ -117,6 +134,6 @@ void Application::record_cb(Fl_Widget* w, void* data)
             std::cerr << "Failed to get active track: " << e.what() << std::endl;
         }
 
-    }*/
+    }
 }
 

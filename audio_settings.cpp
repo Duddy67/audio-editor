@@ -44,10 +44,12 @@ void AudioSettings::buildDevices(void* data)
 
     auto outputDevices = app->getAudioEngine().getOutputDevices();
     int value = 100, defaultDevice = 0;
+    std::string escapedName = ""; 
 
     for (size_t i = 0; i < outputDevices.size(); ++i) {
         // Create an option for the device.
-        output->add(outputDevices[i].name.c_str());
+        escapedName = app->escapeMenuText(outputDevices[i].name);
+        output->add(escapedName.c_str());
 
         if (outputDevices[i].isDefault) {
             defaultDevice = i;
@@ -66,7 +68,8 @@ void AudioSettings::buildDevices(void* data)
 
     for (size_t i = 0; i < inputDevices.size(); ++i) {
         // Create an option for the device.
-        input->add(inputDevices[i].name.c_str());
+        escapedName = app->escapeMenuText(inputDevices[i].name);
+        input->add(escapedName.c_str());
 
         if (inputDevices[i].isDefault) {
             defaultDevice = i;

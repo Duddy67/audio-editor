@@ -47,7 +47,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
     }
 }
 
-void AudioTrack::recordInto(const float* input, ma_uint32 frameCount)
+void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels)
 {
     std::lock_guard<std::mutex> lock(recordingMutex);
 
@@ -56,36 +56,94 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount)
         return;
     }
 
-    // Check if we've reached the maximum recording length
-    if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
-        recording.store(false);
-        return;
-    }
-
     // Store captured audio data (interleaved stereo)
     for (ma_uint32 i = 0; i < frameCount; ++i) {
+        float left = 0.0f, right = 0.0f;
+
+        if (captureChannels == 1) {
+            left = input[i * 1 + 0];
+            right = left; // duplicate mono -> stereo
+        }
+        // assume >=2: use first two channels
+        else { 
+            left = input[i * captureChannels + 0];
+            right = input[i * captureChannels + 1];
+        }
+
+        // Check if we've reached the maximum recording length
+        if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
+            recording.store(false);
+            break;
+        }
+
         // Left channel
-        recordedLeft.push_back(input[i * 2]);
+        recordedLeft.push_back(left);
         // Right channel
-        recordedRight.push_back(input[i * 2 + 1]);
+        recordedRight.push_back(right);
     }
 }
 
 void AudioTrack::play() { playing.store(true); }
 void AudioTrack::pause() { paused.store(true); }
 void AudioTrack::unpause() { paused.store(false); }
-void AudioTrack::stop() { playing.store(false); }
+
+void AudioTrack::stop()
+{
+    playing.store(false);
+
+    if (recording.load()) {
+        // Stop recording.
+        recording.store(false);
+        setRecordedData();
+    }
+}
 
 void AudioTrack::record()
 {
+    std::lock_guard<std::mutex> lock(recordingMutex);
+
     recordingStartIndex = playbackSampleIndex.load();
     recording.store(true);
 }
 
-/*void AudioTrack::seek(int frame) {
-    if (frame >= 0 && frame < totalFrames)
-        playbackSampleIndex.store(frame);
-}*/
+void AudioTrack::setRecordedData()
+{
+    std::lock_guard<std::mutex> lock(recordingMutex);
+
+    if (leftSamples.size() == 0) {
+        leftSamples = recordedLeft;
+        rightSamples = recordedRight;
+    }
+    else {
+        size_t endPlayback = leftSamples.size();
+        int recordSampleIndex = recordingStartIndex.load();
+
+        for (size_t i = 0; i < recordedLeft.size(); i++) {
+            if (static_cast<size_t>(recordSampleIndex) < endPlayback) {
+                // Replace the playback values with the newly recorded ones.
+                leftSamples.at(recordSampleIndex) = recordedLeft[i];
+                rightSamples.at(recordSampleIndex) = recordedRight[i];
+
+                recordSampleIndex++;
+            }
+            else {
+                // Add the extra recorded samples to the playback's.
+                leftSamples.push_back(recordedLeft[i]);
+                rightSamples.push_back(recordedRight[i]);
+            }
+        }
+    }
+
+    recordedLeft.clear();
+    recordedRight.clear();
+
+    totalFrames = leftSamples.size();
+}
+
+void AudioTrack::setNewTrack()
+{
+    stereo = engine.getDefaultOutputChannels() == 2;
+}
 
 /*
  * Loads a given audio file.

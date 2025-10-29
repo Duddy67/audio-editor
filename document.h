@@ -17,7 +17,7 @@ class Document : public Fl_Group {
 
     public:
 
-        Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath)
+        Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath = nullptr)
             : Fl_Group(X, Y, W, H), engine(e) 
         {
             // Compute tab area.
@@ -27,7 +27,14 @@ class Document : public Fl_Group {
             h = H - 100;
 
             auto track = std::make_unique<AudioTrack>(engine);
-            track->loadFromFile(filepath);
+
+            // Load the given audio file.
+            if (filepath != nullptr) {
+                track->loadFromFile(filepath);
+            }
+            else {
+                track->setNewTrack();
+            }
 
             // Add the new track and transfer ownership.
             trackId = engine.addTrack(std::move(track));

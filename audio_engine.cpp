@@ -62,6 +62,7 @@ void AudioEngine::initializeOutputDevice() {
         throw std::runtime_error("Failed to initialize playback device.");
     }
 
+    std::cout << "Output device initialized." << std::endl;
     outputDeviceInitialized = true;
 }
 
@@ -79,6 +80,7 @@ void AudioEngine::initializeInputDevice()
         throw std::runtime_error("Failed to initialize capture device.");
     }
 
+    std::cout << "Input device initialized." << std::endl;
     inputDeviceInitialized = true;
 }
 
@@ -196,6 +198,7 @@ void AudioEngine::setDuplexDevice(const char *name)
         for (ma_uint32 i = 0; i < (ma_uint32) duplexDevices.size(); ++i) {
             // Check for the target device.
             if (strcmp(duplexDevices[i].name.c_str(), name) == 0) {
+                std::cout << "Found Duplex Device: " << duplexDevices[i].name << std::endl;
                 index = i;
                 break;
             }
@@ -410,10 +413,6 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* in
         return;
     }
 
-    if (input != nullptr) {
-        (void)input; // explicitly ignore to silence warnings and ensure consistent behavior
-    }
-
     // Handle playback (output).
     if (output != nullptr) {
         float* out = static_cast<float*>(output);
@@ -424,6 +423,24 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* in
         for (auto& track : engine->tracks) {
             if (track->isPlaying()) {
                 track->mixInto(out, frameCount);
+            }
+        }
+    }
+
+    // Handle capture (input)
+    if (input != nullptr) {
+        const float* in = static_cast<const float*>(input);
+
+        // Use the actual device capture channels.
+        ma_uint32 captureChannels = pDevice->capture.channels;
+        // Fallback guard in case the device reports nonsense.
+        if (captureChannels == 0 || captureChannels > 8) {
+            captureChannels = 2;
+        }
+
+        for (auto& track : engine->tracks) {
+            if (track->isRecording()) {
+                track->recordInto(in, frameCount, captureChannels);
             }
         }
     }
@@ -470,12 +487,42 @@ std::vector<AudioEngine::DeviceInfo> AudioEngine::getDevices(ma_device_type devi
     ma_uint32 deviceCount = 0;
     ma_result result;
 
-    // Get playback or capture devices.
-    if (deviceType == ma_device_type_playback || deviceType == ma_device_type_capture || deviceType == ma_device_type_duplex) {
+    // Get playback, capture or duplex devices.
+    if (deviceType == ma_device_type_playback) {
         result = ma_context_get_devices(&context, &pDeviceInfos, &deviceCount, nullptr, nullptr);
     }
-    else {
+    else if (deviceType == ma_device_type_capture) {
         result = ma_context_get_devices(&context, nullptr, nullptr, &pDeviceInfos, &deviceCount);
+    }
+    else if (deviceType == ma_device_type_duplex) {
+        // Duplex = intersection of playback & capture devices (same hardware)
+        ma_device_info *pPlaybackInfos = nullptr, *pCaptureInfos = nullptr;
+        ma_uint32 playbackCount = 0, captureCount = 0;
+
+        result = ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount);
+        if (result != MA_SUCCESS) {
+            std::cerr << "Failed to retrieve devices." << std::endl;
+            return devices;
+        }
+
+        // Find matching names/IDs between playback and capture
+        for (ma_uint32 i = 0; i < playbackCount; ++i) {
+            for (ma_uint32 j = 0; j < captureCount; ++j) {
+                if (strcmp(pPlaybackInfos[i].name, pCaptureInfos[j].name) == 0) {
+                    DeviceInfo info;
+                    info.name = pPlaybackInfos[i].name;
+                    info.id = pPlaybackInfos[i].id;
+                    info.isDefault = pPlaybackInfos[i].isDefault && pCaptureInfos[j].isDefault;
+                    devices.push_back(info);
+                }
+            }
+        }
+
+        return devices;
+    }
+    // Invalid type.
+    else {
+        return devices; 
     }
 
     if (result != MA_SUCCESS) {

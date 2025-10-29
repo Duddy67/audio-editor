@@ -79,8 +79,7 @@ void Application::initDevices()
     }
 
     // Check first if the selected device is duplex. 
-    // Note: Don't use PulseAudio duplex device as it malfunctions (hashed sound, stuttering...).
-    if (getAudioEngine().isDeviceDuplex(config.outputDevice.c_str()) && getAudioEngine().currentBackend() != "PulseAudio") {
+    if (config.outputDevice.compare(config.inputDevice) == 0 && getAudioEngine().isDeviceDuplex(config.outputDevice.c_str())) {
         getAudioEngine().setDuplexDevice(config.outputDevice.c_str());
         getAudioEngine().startDuplex();
     }
@@ -119,7 +118,7 @@ void Application::initAudioSystem()
         return;
     }
 
-    audioEngine->printAllDevices();
+    //audioEngine->printAllDevices();
 
     std::cout << "=== Audio system initialized ===" << std::endl;
 }
@@ -172,7 +171,7 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
 /*
  * Adds a new document (ie: audio track + waveform) to edit. 
  */
-void Application::addDocument(const char *filepath)
+void Application::addDocument(const char *filepath /*= nullptr*/)
 {
     // Height of tab label area.
     const int tabBarHeight = SMALL_SPACE; 
@@ -199,7 +198,16 @@ void Application::addDocument(const char *filepath)
         app->removeDocument(static_cast<Document*>(w));
     }, this);
 
-    std::string filename = std::filesystem::path(filepath).filename().string();
+    std::string filename;
+
+    if (filepath != nullptr) {
+        filename = std::filesystem::path(filepath).filename().string();
+    }
+    else {
+        newDocuments++;
+        filename = "New document " + std::to_string(newDocuments);
+    }
+
     // SMALL_SPACE + MEDIUM_SPACE = label max width.
     std::string label = truncateText(filename, SMALL_SPACE + MEDIUM_SPACE, FL_HELVETICA, 12); 
 
@@ -319,5 +327,24 @@ void Application::displayFileInfo(std::map<std::string, std::string> info)
     concat = concat + "Format: " + info["outputFormat"];
     // Display info.
     fileInfo->value(concat.c_str());
+}
+
+/*
+ * Utility function which escapes characters considered as special by FLTK (ie: / & _).
+ */
+std::string Application::escapeMenuText(const std::string& input) {
+    std::string result;
+
+    for (char c : input) {
+        if (c == '/' || c == '&' || c == '_') {
+            result += '\\';  // FLTK uses backslash for escaping
+            result += c;
+        }
+        else {
+            result += c;
+        }
+    }
+
+    return result;
 }
 

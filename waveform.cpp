@@ -269,11 +269,11 @@ void WaveformView::draw() {
 int WaveformView::handle(int event) {
     switch (event) {
         case FL_FOCUS:
-            std::cout << "Waveform got focus" << std::endl;
+            //std::cout << "Waveform got focus" << std::endl; // For debog purpose
         return 1;
 
         case FL_UNFOCUS:
-            std::cout << "Waveform lost focus" << std::endl;
+            //std::cout << "Waveform lost focus" << std::endl; // For debog purpose
         return 1;
 
         // Zoom with mouse wheel

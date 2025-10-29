@@ -1,5 +1,5 @@
 {
     "backend": "JACK",
-    "inputDevice": "Default Playback Device",
+    "inputDevice": "Default Capture Device",
     "outputDevice": "Default Playback Device"
 }

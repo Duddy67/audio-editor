@@ -47,6 +47,9 @@ class Application : public Fl_Double_Window
     AudioEngine* audioEngine = nullptr;
     Tabs* tabs = nullptr;
     std::string message;
+    // The number of new documents in tabs.
+    unsigned int newDocuments = 0;
+
 
     struct AppConfig {
         std::string backend;
@@ -77,7 +80,7 @@ class Application : public Fl_Double_Window
         std::string getMessage() { return message; }
         void setMessage(std::string message);
         void displayFileInfo(std::map<std::string, std::string> info);
-        void addDocument(const char *name);
+        void addDocument(const char *name = nullptr);
         void removeDocument(Document* document);
         void removeDocuments();
         std::string truncateText(const std::string &text, int maxWidth, int font, int size);
@@ -86,6 +89,7 @@ class Application : public Fl_Double_Window
         AudioTrack& getActiveTrack();
         void initAudioSystem();
         AudioEngine& getAudioEngine() { return *audioEngine; }
+        std::string escapeMenuText(const std::string& input);
 
         Fl_Tabs* getTabs() const { return tabs; }
 
@@ -96,6 +100,7 @@ class Application : public Fl_Double_Window
         static void file_chooser_cb(Fl_Widget *w, void *data);
         static void audio_settings_cb(Fl_Widget *w, void *data);
         static void open_cb(Fl_Widget* w, void* data);
+        static void new_cb(Fl_Widget* w, void* data);
         static void save_cb(Fl_Widget* w, void* data);
         static void saveas_cb(Fl_Widget* w, void* data);
         static void cancel_audio_settings_cb(Fl_Widget *w, void *data);
