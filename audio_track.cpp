@@ -24,6 +24,12 @@ void AudioTrack::mixInto(float* output, int frameCount)
         return;
     } 
 
+    // Make sure playback never tries to read buffers while
+    // a recording session is in progress.
+    if (recording.load()) {
+        return;
+    }
+
     eof.store(false);
 
     // Fill buffer.
@@ -49,12 +55,13 @@ void AudioTrack::mixInto(float* output, int frameCount)
 
 void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels)
 {
-    std::lock_guard<std::mutex> lock(recordingMutex);
-
     // Check first if the track is recording.
     if (!recording.load()) {
         return;
     }
+
+    // Protects both recordedLeft and recordedRight vectors from race conditions.
+    std::lock_guard<std::mutex> lock(recordingMutex);
 
     // Store captured audio data (interleaved stereo)
     for (ma_uint32 i = 0; i < frameCount; ++i) {
@@ -100,14 +107,14 @@ void AudioTrack::stop()
 
 void AudioTrack::record()
 {
-    std::lock_guard<std::mutex> lock(recordingMutex);
-
+    // Note: No need to lock (mutex) just for atomic values.
     recordingStartIndex = playbackSampleIndex.load();
     recording.store(true);
 }
 
 void AudioTrack::setRecordedData()
 {
+    // Protects both recordedLeft and recordedRight vectors from race conditions.
     std::lock_guard<std::mutex> lock(recordingMutex);
 
     if (leftSamples.size() == 0) {
