@@ -74,7 +74,6 @@ void Application::stop_cb(Fl_Widget* w, void* data)
                 track.stop();
                 //track.setPlaybackSampleIndex(0);
                 if (stoppedRecording) {
-                    //waveform.setStereoMode(track.isStereo());
                     waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
                 }
             }

@@ -60,34 +60,64 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
         return;
     }
 
-    // Protects both recordedLeft and recordedRight vectors from race conditions.
-    std::lock_guard<std::mutex> lock(recordingMutex);
+    // Read current write index (ie: number of frames already stored).
+    size_t writeIndex = recordedFrameCount.load(std::memory_order_relaxed);
+    // Compute the possible extra buffer capacity needed.
+    size_t needed = writeIndex + frameCount;
 
-    // Store captured audio data (interleaved stereo)
-    for (ma_uint32 i = 0; i < frameCount; ++i) {
-        float left = 0.0f, right = 0.0f;
+    if (needed > recordedLeft.size()) {
+        size_t currentCapacity = recordedLeft.size();
+        // Grow buffers dynamically (e.g. 1.5x rule)
+        size_t newSize = std::max(needed, currentCapacity + (currentCapacity / 2) + (engine.getDefaultOutputSampleRate() * 10));
+        recordedLeft.resize(newSize);
+        recordedRight.resize(newSize);
+        // Update with the new size.
+        maxRecordedFrames = newSize;
+    }
 
+    // For safety: avoid overrunning the preallocated buffer.
+    const size_t capacity = maxRecordedFrames;
+
+    // Store captured samples in each frame (ie: Mono => 1 frame = 1 sample, Stereo => 1 frame = 2 samples). 
+    for (ma_uint32 f = 0; f < frameCount && writeIndex < capacity; ++f) {
         if (captureChannels == 1) {
-            left = input[i * 1 + 0];
-            right = left; // duplicate mono -> stereo
+            // Mono.
+            float sample = input[f]; 
+            recordedLeft[writeIndex] = sample;
+            recordedRight[writeIndex] = sample;
         }
-        // assume >=2: use first two channels
-        else { 
-            left = input[i * captureChannels + 0];
-            right = input[i * captureChannels + 1];
+        // captureChannels == 2: Read first two channels as stereo.
+        else {
+            // Input interleaved: L R L R...
+            recordedLeft[writeIndex] = input[f * captureChannels + 0];
+            recordedRight[writeIndex] = input[f * captureChannels + 1];
         }
+        captureSampleIndex.fetch_add(1);
 
         // Check if we've reached the maximum recording length
-        if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
+        /*if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
             recording.store(false);
             break;
-        }
+        }*/
 
-        // Left channel
-        recordedLeft.push_back(left);
-        // Right channel
-        recordedRight.push_back(right);
+        ++writeIndex;
     }
+
+    // Publish the new frame count only *after* writing (release semantics)
+    recordedFrameCount.store(writeIndex, std::memory_order_release);
+}
+
+void AudioTrack::prepareRecording()
+{
+    // Compute capacity in frames (frames == samples per channel).
+    maxRecordedFrames = INITIAL_BUFFER_SIZE * engine.getDefaultOutputSampleRate();
+
+    // Allocate the pre-allocated buffers.
+    recordedLeft.resize(maxRecordedFrames);
+    recordedRight.resize(maxRecordedFrames);
+
+    // Reset published count.
+    recordedFrameCount.store(0, std::memory_order_release);
 }
 
 void AudioTrack::play() { playing.store(true); }
@@ -99,17 +129,23 @@ void AudioTrack::stop()
     playing.store(false);
 
     if (recording.load()) {
-        // Stop recording.
+        // Stop recording audio.
         recording.store(false);
+        // Stop drawing waveform.
+        waveform->stopLiveUpdate();
         setRecordedData();
     }
 }
 
 void AudioTrack::record()
 {
-    // Note: No need to lock (mutex) just for atomic values.
-    recordingStartIndex = playbackSampleIndex.load();
+    prepareRecording();
+    // Synchronize indexes.
+    recordingStartIndex = captureSampleIndex = playbackSampleIndex.load();
+    // Start recording audio.
     recording.store(true);
+    // Start drawing waveform.
+    waveform->startLiveUpdate();
 }
 
 void AudioTrack::setRecordedData()
@@ -117,21 +153,26 @@ void AudioTrack::setRecordedData()
     // Protects both recordedLeft and recordedRight vectors from race conditions.
     std::lock_guard<std::mutex> lock(recordingMutex);
 
-    if (leftSamples.size() == 0) {
-        leftSamples = recordedLeft;
-        rightSamples = recordedRight;
+    // Number of valid recorded frames.
+    size_t validFrames = recordedFrameCount.load(std::memory_order_acquire);
+
+    // First recording.
+    if (leftSamples.empty()) {
+        // Just copy the valid part.
+        leftSamples.assign(recordedLeft.begin(),  recordedLeft.begin()  + validFrames);
+        rightSamples.assign(recordedRight.begin(), recordedRight.begin() + validFrames);
     }
     else {
         size_t endPlayback = leftSamples.size();
         int recordSampleIndex = recordingStartIndex.load();
 
-        for (size_t i = 0; i < recordedLeft.size(); i++) {
+        for (size_t i = 0; i < validFrames; ++i) {
             if (static_cast<size_t>(recordSampleIndex) < endPlayback) {
                 // Replace the playback values with the newly recorded ones.
                 leftSamples.at(recordSampleIndex) = recordedLeft[i];
                 rightSamples.at(recordSampleIndex) = recordedRight[i];
 
-                recordSampleIndex++;
+                ++recordSampleIndex;
             }
             else {
                 // Add the extra recorded samples to the playback's.
@@ -141,15 +182,14 @@ void AudioTrack::setRecordedData()
         }
     }
 
-    recordedLeft.clear();
-    recordedRight.clear();
-
     totalFrames = leftSamples.size();
 }
 
 void AudioTrack::setNewTrack()
 {
-    stereo = engine.getDefaultOutputChannels() == 2;
+    newTrack = true;
+    // Set the recording format (ie: mono/stereo).
+    stereo = engine.getDefaultInputChannels() == 2;
 }
 
 /*
@@ -181,8 +221,8 @@ void AudioTrack::loadFromFile(const char *filename)
         throw std::runtime_error("Failed to initialized temporary decoder.");
     }
 
-    // Then initialize decoder with format conversion.
-    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), engine.getDefaultOutputChannels(), engine.getDefaultOutputSampleRate());
+    // Then initialize decoder with format conversion (except for output channels).
+    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), originalFileFormat.outputChannels, engine.getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
         throw std::runtime_error("Failed to initialize decoder with conversion.");

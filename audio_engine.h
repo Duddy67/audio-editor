@@ -44,6 +44,7 @@ class AudioEngine {
         unsigned int trackId = 1;
         const ma_format defaultOutputFormat = ma_format_f32;
         const ma_uint32 defaultOutputChannels = 2;
+        const ma_uint32 defaultInputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
         std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
 
@@ -86,6 +87,7 @@ class AudioEngine {
         bool isContextInitialized() { return contextInitialized; }
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
         ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
+        ma_uint32 getDefaultInputChannels() { return defaultInputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
         AudioTrack& getTrack(unsigned int id);
 

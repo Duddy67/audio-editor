@@ -34,6 +34,8 @@ class WaveformView : public Fl_Gl_Window {
         Application* app = nullptr;
         AudioTrack& track;
         int visibleSamplesCount() const;
+        bool isLiveUpdating = false;
+        static void liveUpdate_cb(void* userdata);
 
     protected:
         void draw() override;
@@ -50,6 +52,8 @@ class WaveformView : public Fl_Gl_Window {
 
         void updateScrollbar();
         void resetCursor();
+        void startLiveUpdate();
+        void stopLiveUpdate();
 
         // Getters.
 
