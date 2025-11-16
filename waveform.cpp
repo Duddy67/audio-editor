@@ -60,7 +60,7 @@ void WaveformView::draw() {
         glViewport(0, 0, w(), h());
         // X: pixels, Y: normalized amplitude.
         // Top to bottom pixel coordinates
-        glOrtho(0, w(), 0, h(), -1.0, 1.0);  
+        glOrtho(0, w(), 0, h(), -1.0, 1.0);
     }
 
     int halfHeight = h() / 2;
@@ -69,15 +69,7 @@ void WaveformView::draw() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    //size_t nFrames = track.getRecordedFrameCount();
-    const std::vector<float>& left  = track.isRecording() ? track.getRecordedLeftSamples() : leftSamples;
-    const std::vector<float>& right = track.isRecording() ? track.getRecordedRightSamples() : rightSamples;
-
-    size_t nFrames = track.isRecording() ? track.getRecordedFrameCount() : leftSamples.size();
-//printf("DRAW: recording=%d, samples=%zu\n", track.isRecording(), left.size());
-    if (!track.isNewTrack() && nFrames == 0) {
-        return; 
-    }
+    if (leftSamples.empty()) return;
 
     // Blue waveform.
     glColor3f(0.0f, 0.0f, 1.0f);
@@ -87,8 +79,6 @@ void WaveformView::draw() {
     // Lambda function that draws a channel.
     auto drawChannel = [&](const std::vector<float>& channel, int yOffset, int heightPx) {
         float samplesPerPixel = 1.0f / zoomLevel;
-        // assume nFrames is in outer scope and up-to-date
-        int totalSamples = static_cast<int>(std::min(channel.size(), nFrames));
 
         // Decide rendering mode based on zoom level.
         if (samplesPerPixel > 5.0f) {
@@ -98,16 +88,6 @@ void WaveformView::draw() {
             for (int x = 0; x < w(); ++x) {
                 int startSample = scrollOffset + static_cast<int>(x * samplesPerPixel);
                 int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)channel.size());
-
-                // --- clamp to valid recorded/playback region ---
-                if (startSample >= totalSamples) {
-                    // Nothing valid to draw in this column (past the end of recording)
-                    continue;
-                }
-
-                if (endSample > totalSamples) {
-                    endSample = totalSamples; // partial column at the right edge
-                }
 
                 float minY = 1.0f, maxY = -1.0f;
                 for (int i = startSample; i < endSample; ++i) {
@@ -120,7 +100,7 @@ void WaveformView::draw() {
 
                 for (int i = startSample; i < endSample; ++i) {
                     // Noise threshold
-                    if (std::abs(channel[i]) > 0.005f) {  
+                    if (std::abs(channel[i]) > 0.005f) {
                         isSilent = false;
                         break;
                     }
@@ -132,9 +112,9 @@ void WaveformView::draw() {
 
                     glVertex2f(x, yFlatPx);
                     // 1-pixel wide horizontal line.
-                    glVertex2f(x + 1, yFlatPx);  
+                    glVertex2f(x + 1, yFlatPx);
                     // Skip the rest of loop.
-                    continue;  
+                    continue;
                 }
 
                 // Avoid disappearing lines: pad very flat sections
@@ -187,20 +167,14 @@ void WaveformView::draw() {
     };
 
     // If waveform doesn't fill the full width, paint the rest in grey
-    int totalSamples = left.size();
+    int totalSamples = leftSamples.size();
     //int visibleSamples = static_cast<int>(w() / zoomLevel);
     int visibleSamples = visibleSamplesCount();
     int endSample = scrollOffset + visibleSamples;
     // compute last drawn x position
     float lastX = (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
 
-    // Auto-fit the entire waveform horizontally while recording
-    if (track.isRecording()) {
-        zoomLevel = static_cast<float>(w()) / static_cast<float>(std::max(1, totalSamples));
-        scrollOffset = 0;
-    }
-
-    if (!track.isRecording() && lastX < (float)w()) {
+    if (lastX < (float)w()) {
         glBegin(GL_QUADS);
             // grey background
             glColor3f(0.3f, 0.3f, 0.3f);
@@ -218,10 +192,10 @@ void WaveformView::draw() {
     // Waveform color (blue).
     glColor3f(0.0f, 0.0f, 1.0f);
 
-    if (track.isStereo()) {
+    if (isStereo) {
         // Draw both left and right channels.
-        drawChannel(left, 0, halfHeight);
-        drawChannel(right, halfHeight, halfHeight);
+        drawChannel(leftSamples, 0, halfHeight);
+        drawChannel(rightSamples, halfHeight, halfHeight);
 
         // --- Draw separation line between waveforms ---
 
@@ -230,9 +204,9 @@ void WaveformView::draw() {
         glLineWidth(1.0f);
         glBegin(GL_LINES);
         // from left
-        glVertex2f(0, h() / 2);     
+        glVertex2f(0, h() / 2);
         // to right
-        glVertex2f(w(), h() / 2);   
+        glVertex2f(w(), h() / 2);
         glEnd();
 
         // --- Draw zero lines (middle line) for both channels. ---
@@ -251,7 +225,7 @@ void WaveformView::draw() {
     }
     // mono = full height
     else {
-        drawChannel(left, 0, h());  
+        drawChannel(leftSamples, 0, h());
         // --- Draw zero line (middle line). ---
         glColor3f(0.863f, 0.863f, 0.863f);
         glBegin(GL_LINES);
@@ -261,15 +235,13 @@ void WaveformView::draw() {
         glEnd();
     }
 
+
     // --- Draw playback cursor ---
     int sampleToDraw = -1;
 
     if (track.isPlaying() || track.isPaused()) {
         // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused).
         sampleToDraw = playbackSample;
-    }
-    else if (track.isRecording()) {
-        sampleToDraw = track.getCurrentCaptureSample();
     }
     else {
         // The cursor has been manually moved (eg: mouse click, Home key...).

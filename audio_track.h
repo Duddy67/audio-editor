@@ -40,20 +40,15 @@ class AudioTrack {
         int totalFrames = 0;
         bool stereo = true;
         std::atomic<int> playbackSampleIndex{0};
-        std::atomic<int> captureSampleIndex{0};
-        std::atomic<int> recordingStartIndex{0};
+        std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
-        std::vector<float> recordedLeft;
-        std::vector<float> recordedRight;
         std::atomic<bool> recording{false};
-        // 0 = unlimited
-        int maxRecordingSamples = 0;
-        // Number of frames published by audio callback.
-        std::atomic<size_t> recordedFrameCount {0}; 
-        // Capacity in frames (per channel).
-        size_t maxRecordedFrames = 0; 
-        std::mutex recordingMutex;
+        // The MiniAudio ring buffer (for recording).
+        ma_pcm_rb captureRing;                 
+        std::atomic<size_t> totalRecordedFrames {0};
+        std::thread workerThread;
+        std::atomic<bool> workerRunning{false};
         // End of file flag.
         std::atomic<bool> eof{false};
         OriginalFileFormat originalFileFormat;
@@ -63,7 +58,8 @@ class AudioTrack {
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
         bool decodeFile();
-        void setRecordedData();
+        void drainAndMergeRingBuffer();
+        void workerThreadLoop();
 
     public:
       AudioTrack(AudioEngine& e) : engine(e) {}
@@ -77,8 +73,6 @@ class AudioTrack {
       void mixInto(float* output, int frameCount);
       void recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels);
       void prepareRecording();
-      // Number of recorded frames (stereo frames = frames per channel)
-      size_t getRecordedFrameCount() const { return recordedFrameCount.load(std::memory_order_acquire); }
       void renderWaveform(int x, int y, int w, int h);
 
       // Getters.
@@ -90,13 +84,11 @@ class AudioTrack {
       bool isEndOfFile() const { return eof.load(); }
       bool isNewTrack() const { return newTrack; }
       int getCurrentSample() const { return playbackSampleIndex.load(); }
-      int getCurrentCaptureSample() const { return captureSampleIndex.load(); }
       std::vector<float> getLeftSamples() { return leftSamples; }
       std::vector<float> getRightSamples() { return rightSamples; }
-      std::vector<float>& getRecordedLeftSamples() { return recordedLeft; }
-      std::vector<float>& getRecordedRightSamples() { return recordedRight; }
       unsigned int getId() { return id; }
       WaveformView& getWaveform() { return *waveform.get(); }
+      size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       // Setters.
       void setNewTrack();
       void setId(unsigned int i);

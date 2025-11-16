@@ -60,64 +60,46 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
         return;
     }
 
-    // Read current write index (ie: number of frames already stored).
-    size_t writeIndex = recordedFrameCount.load(std::memory_order_relaxed);
-    // Compute the possible extra buffer capacity needed.
-    size_t needed = writeIndex + frameCount;
+    ma_uint32 channels = captureChannels;
+    ma_uint32 framesToWrite = frameCount;
 
-    if (needed > recordedLeft.size()) {
-        size_t currentCapacity = recordedLeft.size();
-        // Grow buffers dynamically (e.g. 1.5x rule)
-        size_t newSize = std::max(needed, currentCapacity + (currentCapacity / 2) + (engine.getDefaultOutputSampleRate() * 10));
-        recordedLeft.resize(newSize);
-        recordedRight.resize(newSize);
-        // Update with the new size.
-        maxRecordedFrames = newSize;
+    // Write to ring buffer.
+    float* pDst;
+    ma_pcm_rb_acquire_write(&captureRing, &framesToWrite, (void**)&pDst);
+
+    if (framesToWrite > 0 && pDst != nullptr) {
+        memcpy(pDst, input, framesToWrite * channels * sizeof(float));
+        ma_pcm_rb_commit_write(&captureRing, framesToWrite);
     }
-
-    // For safety: avoid overrunning the preallocated buffer.
-    const size_t capacity = maxRecordedFrames;
-
-    // Store captured samples in each frame (ie: Mono => 1 frame = 1 sample, Stereo => 1 frame = 2 samples). 
-    for (ma_uint32 f = 0; f < frameCount && writeIndex < capacity; ++f) {
-        if (captureChannels == 1) {
-            // Mono.
-            float sample = input[f]; 
-            recordedLeft[writeIndex] = sample;
-            recordedRight[writeIndex] = sample;
-        }
-        // captureChannels == 2: Read first two channels as stereo.
-        else {
-            // Input interleaved: L R L R...
-            recordedLeft[writeIndex] = input[f * captureChannels + 0];
-            recordedRight[writeIndex] = input[f * captureChannels + 1];
-        }
-        captureSampleIndex.fetch_add(1);
-
-        // Check if we've reached the maximum recording length
-        /*if (maxRecordingSamples > 0 && recordedLeft.size() >= static_cast<size_t>(maxRecordingSamples)) {
-            recording.store(false);
-            break;
-        }*/
-
-        ++writeIndex;
-    }
-
-    // Publish the new frame count only *after* writing (release semantics)
-    recordedFrameCount.store(writeIndex, std::memory_order_release);
 }
 
 void AudioTrack::prepareRecording()
 {
+    ma_uint32 numChannels = isStereo() ? 2 : 1;
     // Compute capacity in frames (frames == samples per channel).
-    maxRecordedFrames = INITIAL_BUFFER_SIZE * engine.getDefaultOutputSampleRate();
+    ma_uint32 capacityFrames = INITIAL_BUFFER_SIZE * engine.getDefaultOutputSampleRate();
 
-    // Allocate the pre-allocated buffers.
-    recordedLeft.resize(maxRecordedFrames);
-    recordedRight.resize(maxRecordedFrames);
+    // Initialize the PCM ring buffer directly (no config struct)
+    ma_result result = ma_pcm_rb_init(
+        ma_format_f32,
+        numChannels,
+        capacityFrames,
+        nullptr,
+        nullptr,
+        &captureRing
+    );
 
-    // Reset published count.
-    recordedFrameCount.store(0, std::memory_order_release);
+    if (result != MA_SUCCESS) {
+        std::cout << "Failed to initialize ring buffer\n" << std::endl;
+        return;
+    }
+
+    // Set the start of the recording to the actual position of the cursor.
+    // ie: zero for the very first recording or wherever the cursor is 
+    // positioned for the next recordings.
+    captureWriteIndex.store(playbackSampleIndex.load());
+    // Clear count.
+    totalRecordedFrames.store(0, std::memory_order_release);
 }
 
 void AudioTrack::play() { playing.store(true); }
@@ -132,57 +114,126 @@ void AudioTrack::stop()
         // Stop recording audio.
         recording.store(false);
         // Stop drawing waveform.
-        waveform->stopLiveUpdate();
-        setRecordedData();
+        //waveform->stopLiveUpdate();
+        //drainAndMergeRingBuffer();
+        workerRunning.store(false);
+
+        // Join worker thread
+        if (workerThread.joinable()) {
+            workerThread.join();
+        }
+
+        // Done using the ring buffer.
+        ma_pcm_rb_uninit(&captureRing);
+        // Return possible unused memory (allocated through "reserve") to the system.
+        leftSamples.shrink_to_fit();
+        rightSamples.shrink_to_fit();
     }
 }
 
 void AudioTrack::record()
 {
     prepareRecording();
-    // Synchronize indexes.
-    recordingStartIndex = captureSampleIndex = playbackSampleIndex.load();
     // Start recording audio.
     recording.store(true);
     // Start drawing waveform.
-    waveform->startLiveUpdate();
+    //waveform->startLiveUpdate();
+    workerRunning.store(true);
+
+    // Start worker thread
+    workerThread = std::thread(&AudioTrack::workerThreadLoop, this);
 }
 
-void AudioTrack::setRecordedData()
+void AudioTrack::drainAndMergeRingBuffer()
 {
-    // Protects both recordedLeft and recordedRight vectors from race conditions.
-    std::lock_guard<std::mutex> lock(recordingMutex);
+    const ma_uint32 numChannels = isStereo() ? 2 : 1;
 
-    // Number of valid recorded frames.
-    size_t validFrames = recordedFrameCount.load(std::memory_order_acquire);
-
-    // First recording.
-    if (leftSamples.empty()) {
-        // Just copy the valid part.
-        leftSamples.assign(recordedLeft.begin(),  recordedLeft.begin()  + validFrames);
-        rightSamples.assign(recordedRight.begin(), recordedRight.begin() + validFrames);
+    // How many frames are available in the PCM ring buffer ?
+    ma_uint32 framesToRead = ma_pcm_rb_available_read(&captureRing);
+    if (framesToRead == 0) {
+        return;
     }
-    else {
-        size_t endPlayback = leftSamples.size();
-        int recordSampleIndex = recordingStartIndex.load();
 
-        for (size_t i = 0; i < validFrames; ++i) {
-            if (static_cast<size_t>(recordSampleIndex) < endPlayback) {
-                // Replace the playback values with the newly recorded ones.
-                leftSamples.at(recordSampleIndex) = recordedLeft[i];
-                rightSamples.at(recordSampleIndex) = recordedRight[i];
+    // TEMP INTERLEAVED READ BUFFER
+    std::vector<float> interleaved(framesToRead * numChannels);
+    float* pSrc = nullptr;
 
-                ++recordSampleIndex;
-            }
-            else {
-                // Add the extra recorded samples to the playback's.
-                leftSamples.push_back(recordedLeft[i]);
-                rightSamples.push_back(recordedRight[i]);
-            }
+    ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
+    if (framesToRead == 0 || !pSrc) {
+        // Nothing valid to read.
+        return; 
+    }
+
+    memcpy(interleaved.data(), pSrc, framesToRead * numChannels * sizeof(float));
+    ma_pcm_rb_commit_read(&captureRing, framesToRead);
+
+    // --- Deinterleave into temporary buffers ---
+    std::vector<float> newLeft(framesToRead);
+    std::vector<float> newRight(framesToRead);
+
+    for (ma_uint32 i = 0; i < framesToRead; ++i) {
+        newLeft[i]  = interleaved[i * numChannels + 0];
+        newRight[i] = (numChannels > 1)
+                        ? interleaved[i * numChannels + 1]
+                        : interleaved[i * numChannels + 0];
+    }
+
+    // --- Merge (Punch-In Aware) ---
+    size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
+    size_t oldLength  = leftSamples.size();
+    size_t newWriteEnd = writeIndex + framesToRead;
+    // 1 second for 44.1 kHz
+    const size_t blockSize = engine.getDefaultOutputSampleRate();
+    size_t required = newWriteEnd;
+
+    // Reserve new required capacity beforehand to prevent multiple 
+    // vector memory allocations causing audio glitches.
+    if (required > leftSamples.capacity()) {
+        size_t newCapacity = ((required / blockSize) + 1) * blockSize;
+        leftSamples.reserve(newCapacity);
+        rightSamples.reserve(newCapacity);
+    }
+
+    // Overwrite or append frame-by-frame.
+    for (size_t i = 0; i < framesToRead; ++i) {
+
+        size_t pos = writeIndex + i;
+
+        if (pos < oldLength) {
+            // Overwrite existing audio.
+            leftSamples[pos]  = newLeft[i];
+            rightSamples[pos] = newRight[i];
+        }
+        else {
+            // Append new audio.
+            leftSamples.push_back(newLeft[i]);
+            rightSamples.push_back(newRight[i]);
         }
     }
 
+    // --- Update write cursor to the end of newly written region ---
+    captureWriteIndex.store(newWriteEnd, std::memory_order_release);
+
+    // --- Update stats and GUI ---
+    totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
     totalFrames = leftSamples.size();
+}
+
+void AudioTrack::workerThreadLoop()
+{
+    // Lower priority to avoid starving GUI
+    // (optional, platform-specific)
+    // setLowPriority();
+
+    while (workerRunning.load(std::memory_order_acquire)) {
+        drainAndMergeRingBuffer();
+
+        // Sleep 1–2 ms for smooth draining
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+
+    // One last drain after stop
+    drainAndMergeRingBuffer();
 }
 
 void AudioTrack::setNewTrack()
