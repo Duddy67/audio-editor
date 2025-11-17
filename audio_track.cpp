@@ -115,7 +115,6 @@ void AudioTrack::stop()
         recording.store(false);
         // Stop drawing waveform.
         //waveform->stopLiveUpdate();
-        //drainAndMergeRingBuffer();
         workerRunning.store(false);
 
         // Join worker thread
