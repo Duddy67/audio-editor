@@ -61,15 +61,42 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
     }
 
     ma_uint32 channels = captureChannels;
-    ma_uint32 framesToWrite = frameCount;
+    ma_uint32 framesRemaining = frameCount;
+    const float* pInput = input;
 
-    // Write to ring buffer.
-    float* pDst;
-    ma_pcm_rb_acquire_write(&captureRing, &framesToWrite, (void**)&pDst);
+    while (framesRemaining > 0) {
+        ma_uint32 framesToWrite = framesRemaining;
+        float* pDst = nullptr;
 
-    if (framesToWrite > 0 && pDst != nullptr) {
-        memcpy(pDst, input, framesToWrite * channels * sizeof(float));
+        // Ask MiniAudio for a contiguous writable region.
+        ma_pcm_rb_acquire_write(&captureRing, &framesToWrite, (void**)&pDst);
+
+        // If we can’t write anything right now, stop — ring buffer is full.
+        if (framesToWrite == 0 || pDst == nullptr) {
+            // If buffer full, stop and log once.
+            static std::atomic_flag overrunLogged = ATOMIC_FLAG_INIT;
+
+            if (!overrunLogged.test_and_set()) {
+                std::cerr << "[Overrun] Ring buffer full; dropped " << framesRemaining << " frames at " << framesToWrite << "s\n";
+            }
+
+            break;
+        }
+
+        // Copy only the granted portion.
+        memcpy(pDst, pInput, framesToWrite * channels * sizeof(float));
+        // Commit those frames.
         ma_pcm_rb_commit_write(&captureRing, framesToWrite);
+
+        // Advance pointers/counters.
+        pInput += framesToWrite * channels;
+        framesRemaining -= framesToWrite;
+
+        // If this loop completes in one iteration most of the time,
+        // avoid calling acquire/commit again unnecessarily.
+        if (framesRemaining == 0) {
+            break;
+        }
     }
 }
 
@@ -158,6 +185,7 @@ void AudioTrack::drainAndMergeRingBuffer()
     float* pSrc = nullptr;
 
     ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
+
     if (framesToRead == 0 || !pSrc) {
         // Nothing valid to read.
         return; 
