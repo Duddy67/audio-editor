@@ -177,15 +177,17 @@ void AudioTrack::drainAndMergeRingBuffer()
 
     // --- Step 1: Check how many frames are available in the PCM ring buffer ---
     ma_uint32 framesToRead = ma_pcm_rb_available_read(&captureRing);
-    if (framesToRead == 0)
+    if (framesToRead == 0) {
         return;
+    }
 
     float* pSrc = nullptr;
     ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
 
-    if (framesToRead == 0 || pSrc == nullptr)
+    if (framesToRead == 0 || pSrc == nullptr) {
         // Nothing valid to read.
         return;
+    }
 
     // --- Step 2: Prepare a preallocated interleaved buffer ---
     static thread_local std::vector<float> interleaved;
