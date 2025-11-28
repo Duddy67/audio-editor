@@ -77,7 +77,7 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
             static std::atomic_flag overrunLogged = ATOMIC_FLAG_INIT;
 
             if (!overrunLogged.test_and_set()) {
-                std::cerr << "[Overrun] Ring buffer full; dropped " << framesRemaining << " frames at " << framesToWrite << "s\n";
+                std::cerr << "[Overrun] Ring buffer full; dropped " << framesRemaining << "\n";
             }
 
             break;
@@ -172,69 +172,81 @@ void AudioTrack::record()
 
 void AudioTrack::drainAndMergeRingBuffer()
 {
+    const bool stereo = isStereo();
     const ma_uint32 numChannels = isStereo() ? 2 : 1;
 
-    // How many frames are available in the PCM ring buffer ?
+    // --- Step 1: Check how many frames are available in the PCM ring buffer ---
     ma_uint32 framesToRead = ma_pcm_rb_available_read(&captureRing);
-    if (framesToRead == 0) {
+    if (framesToRead == 0)
         return;
-    }
 
-    // TEMP INTERLEAVED READ BUFFER
-    std::vector<float> interleaved(framesToRead * numChannels);
     float* pSrc = nullptr;
-
     ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
 
-    if (framesToRead == 0 || !pSrc) {
+    if (framesToRead == 0 || pSrc == nullptr)
         // Nothing valid to read.
-        return; 
-    }
+        return;
 
-    memcpy(interleaved.data(), pSrc, framesToRead * numChannels * sizeof(float));
+    // --- Step 2: Prepare a preallocated interleaved buffer ---
+    static thread_local std::vector<float> interleaved;
+    interleaved.resize((size_t)framesToRead * numChannels);
+
+    std::memcpy(interleaved.data(), pSrc, (size_t)framesToRead * numChannels * sizeof(float));
     ma_pcm_rb_commit_read(&captureRing, framesToRead);
 
-    // --- Deinterleave into temporary buffers ---
-    std::vector<float> newLeft(framesToRead);
-    std::vector<float> newRight(framesToRead);
+    // --- Step 3: Preallocate temp buffers once per thread ---
+    static thread_local std::vector<float> newLeft;
+    static thread_local std::vector<float> newRight;
 
-    for (ma_uint32 i = 0; i < framesToRead; ++i) {
-        newLeft[i]  = interleaved[i * numChannels + 0];
-        newRight[i] = (numChannels > 1)
-                        ? interleaved[i * numChannels + 1]
-                        : interleaved[i * numChannels + 0];
+    // --- Step 4: Deinterleave directly (SIMD-friendly pattern) if stereo ---
+    if (stereo) {
+        // Stereo: deinterleave
+        newLeft.resize(framesToRead);
+        newRight.resize(framesToRead);
+        const float* src = interleaved.data();
+        for (ma_uint32 i = 0; i < framesToRead; ++i) {
+            newLeft[i]  = src[i * 2 + 0];
+            newRight[i] = src[i * 2 + 1];
+        }
+    }
+    else {
+        // Mono: directly copy (no deinterleave)
+        newLeft.resize(framesToRead);
+        std::memcpy(newLeft.data(), interleaved.data(), framesToRead * sizeof(float));
     }
 
-    // --- Merge (Punch-In Aware) ---
+    // --- Step 5: Merge (Punch-In Aware) ---
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
     size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
-    // 1 second for 44.1 kHz
     const size_t blockSize = engine.getDefaultOutputSampleRate();
-    size_t required = newWriteEnd;
 
-    // Reserve new required capacity beforehand to prevent multiple 
+    // Reserve new required capacity beforehand to prevent multiple
     // vector memory allocations causing audio glitches.
-    if (required > leftSamples.capacity()) {
-        size_t newCapacity = ((required / blockSize) + 1) * blockSize;
+    if (newWriteEnd > leftSamples.capacity()) {
+        size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
         leftSamples.reserve(newCapacity);
-        rightSamples.reserve(newCapacity);
+
+        if (stereo) {
+            rightSamples.reserve(newCapacity);
+        }
     }
 
-    // Overwrite or append frame-by-frame.
-    for (size_t i = 0; i < framesToRead; ++i) {
+    // --- Step 6: Merge using direct pointer access (faster than push_back loop) ---
+    if (newWriteEnd > oldLength) {
+        // Append portion
+        leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
 
-        size_t pos = writeIndex + i;
-
-        if (pos < oldLength) {
-            // Overwrite existing audio.
-            leftSamples[pos]  = newLeft[i];
-            rightSamples[pos] = newRight[i];
+        if (stereo) {
+            rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
         }
-        else {
-            // Append new audio.
-            leftSamples.push_back(newLeft[i]);
-            rightSamples.push_back(newRight[i]);
+    }
+    else {
+        // Overwrite portion
+        std::copy_n(newLeft.begin(), framesToRead, leftSamples.begin() + writeIndex);
+
+        if (stereo) {
+            std::copy_n(newRight.begin(), framesToRead, rightSamples.begin() + writeIndex);
         }
     }
 

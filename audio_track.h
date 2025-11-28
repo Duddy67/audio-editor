@@ -39,13 +39,13 @@ class AudioTrack {
         std::vector<float> rightSamples;
         int totalFrames = 0;
         bool stereo = true;
-        // The MiniAudio ring buffer (for recording).
-        ma_pcm_rb captureRing;                 
         std::atomic<int> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
         std::atomic<bool> recording{false};
+        // The MiniAudio ring buffer (for recording).
+        ma_pcm_rb captureRing;                 
         std::atomic<size_t> totalRecordedFrames {0};
         std::thread workerThread;
         std::atomic<bool> workerRunning{false};
@@ -54,7 +54,6 @@ class AudioTrack {
         OriginalFileFormat originalFileFormat;
         std::unique_ptr<WaveformView> waveform;  
         bool newTrack = false;
-std::mutex ringMutex; // temporary synchronization for testing
 
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
