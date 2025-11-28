@@ -141,7 +141,7 @@ void AudioTrack::stop()
         // Stop recording audio.
         recording.store(false);
         // Stop drawing waveform.
-        //waveform->stopLiveUpdate();
+        waveform->stopLiveUpdate();
         workerRunning.store(false);
 
         // Join worker thread
@@ -163,7 +163,7 @@ void AudioTrack::record()
     // Start recording audio.
     recording.store(true);
     // Start drawing waveform.
-    //waveform->startLiveUpdate();
+    waveform->startLiveUpdate();
     workerRunning.store(true);
 
     // Start worker thread
@@ -252,6 +252,11 @@ void AudioTrack::drainAndMergeRingBuffer()
         }
     }
 
+    // Mark that new data is available
+    if (leftSamples.size() > lastPublishedSize) {
+        newDataAvailable.store(true, std::memory_order_release);
+    }
+
     // --- Update write cursor to the end of newly written region ---
     captureWriteIndex.store(newWriteEnd, std::memory_order_release);
 
@@ -275,6 +280,31 @@ void AudioTrack::workerThreadLoop()
 
     // One last drain after stop
     drainAndMergeRingBuffer();
+}
+
+// Safe method that copies only new data
+bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount) {
+    if (!newDataAvailable.load(std::memory_order_acquire)) {
+        return false;
+    }
+
+    // Take snapshot under protection (brief, but safe)
+    size_t currentSize = leftSamples.size();
+    newStartIndex = lastPublishedSize;
+    newCount = currentSize - lastPublishedSize;
+
+    if (newCount > 0) {
+        // Copy only the NEW portion
+        leftCopy.assign(leftSamples.begin() + newStartIndex, leftSamples.end());
+        rightCopy.assign(rightSamples.begin() + newStartIndex, rightSamples.end());
+
+        lastPublishedSize = currentSize;
+        newDataAvailable.store(false, std::memory_order_release);
+        return true;
+    }
+
+    newDataAvailable.store(false, std::memory_order_release);
+    return false;
 }
 
 void AudioTrack::setNewTrack()

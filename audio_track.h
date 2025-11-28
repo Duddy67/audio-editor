@@ -54,6 +54,8 @@ class AudioTrack {
         OriginalFileFormat originalFileFormat;
         std::unique_ptr<WaveformView> waveform;  
         bool newTrack = false;
+        std::atomic<bool> newDataAvailable{false};
+        size_t lastPublishedSize = 0;
 
         bool storeOriginalFileFormat(const char* filename);
         void uninit();
@@ -89,6 +91,8 @@ class AudioTrack {
       unsigned int getId() { return id; }
       WaveformView& getWaveform() { return *waveform.get(); }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
+      size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
+      bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       // Setters.
       void setNewTrack();
       void setId(unsigned int i);

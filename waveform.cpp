@@ -54,6 +54,73 @@ void WaveformView::updateScrollbar() {
     scrollbar->slider_size((float)visibleSamples / leftSamples.size());
 }
 
+void WaveformView::prepareForRecording()
+{
+    scrollOffset = 0;
+    recordingStartSample = cursorSamplePosition;
+    lastSyncedSample = recordingStartSample;
+
+    // ===== Fix a 50% zoom value ====
+    // Compute a comfortable starting zoom so waveform grows naturally
+    zoomFit = static_cast<float>(w()) / static_cast<float>(44100 * 5); // 5 s fits width
+    zoomLevel = zoomFit;
+    zoomMin = zoomFit * 0.01f;
+    zoomMax = zoomFit * 100.0f;
+    // ==============
+
+    updateScrollbar();
+    redraw();
+}
+
+void WaveformView::pullNewRecordedSamples()
+{
+    std::vector<float> newLeft, newRight;
+    size_t startIndex, count;
+
+    if (track.getNewSamplesCopy(newLeft, newRight, startIndex, count)) {
+        if (count == 0) return;
+
+        // Ensure we have enough capacity
+        size_t requiredSize = startIndex + count;
+        if (leftSamples.capacity() < requiredSize) {
+            leftSamples.reserve(requiredSize + 10000);
+            rightSamples.reserve(requiredSize + 10000);
+        }
+
+        // Append new samples
+        for (size_t i = 0; i < count; i++) {
+            size_t globalIndex = startIndex + i;
+
+            if (globalIndex < leftSamples.size()) {
+                // Shouldn't happen with proper indexing, but safe
+                leftSamples[globalIndex] = newLeft[i];
+                rightSamples[globalIndex] = newRight[i];
+            } else {
+                // Normal case - append
+                leftSamples.push_back(newLeft[i]);
+                rightSamples.push_back(newRight[i]);
+            }
+        }
+
+        lastSyncedSample = startIndex + count;
+
+        // ===== Rolling window style  ====
+        int head = static_cast<int>(leftSamples.size());
+        int visible = visibleSamplesCount();
+        int rightEdge = scrollOffset + visible;
+
+        // Scroll only when the record head nears the right edge
+        if (head > rightEdge - visible / 10) {
+            scrollOffset = head - (int)(visible * 0.9f);
+            if (scrollOffset < 0) scrollOffset = 0;
+        }
+        // =====================
+
+        // Update zoom/scroll boundaries if needed
+        updateScrollbar();
+    }
+}
+
 void WaveformView::draw() {
     if (!valid()) {
         glLoadIdentity();
@@ -239,7 +306,10 @@ void WaveformView::draw() {
     // --- Draw playback cursor ---
     int sampleToDraw = -1;
 
-    if (track.isPlaying() || track.isPaused()) {
+    if (track.isRecording()) {
+        sampleToDraw = track.getCaptureWriteIndex();
+    }
+    else if (track.isPlaying() || track.isPaused()) {
         // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused).
         sampleToDraw = playbackSample;
     }
@@ -458,6 +528,7 @@ int WaveformView::visibleSamplesCount() const {
 void WaveformView::liveUpdate_cb(void* userdata)
 {
     WaveformView* self = static_cast<WaveformView*>(userdata);
+    self->pullNewRecordedSamples();
     self->redraw();
     if (self->isLiveUpdating)
         Fl::repeat_timeout(0.30, liveUpdate_cb, userdata); // 30 ms refresh
@@ -469,6 +540,7 @@ void WaveformView::startLiveUpdate()
         return;
     }
 
+    prepareForRecording();
     isLiveUpdating = true;
     Fl::add_timeout(0.30, liveUpdate_cb, this);
 }

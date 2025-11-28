@@ -31,11 +31,15 @@ class WaveformView : public Fl_Gl_Window {
         bool isStereo = true;
         // Starting position of the cursor. It can be manually moved.
         int cursorSamplePosition = 0;
+        int lastSyncedSample = 0;
+        int recordingStartSample = 0;
         Application* app = nullptr;
         AudioTrack& track;
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
         static void liveUpdate_cb(void* userdata);
+        void prepareForRecording();
+        void pullNewRecordedSamples();
 
     protected:
         void draw() override;
