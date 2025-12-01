@@ -54,8 +54,10 @@ class AudioTrack {
         OriginalFileFormat originalFileFormat;
         std::unique_ptr<WaveformView> waveform;  
         bool newTrack = false;
+        // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
-        size_t lastPublishedSize = 0;
+        std::atomic<size_t> dirtyStart{SIZE_MAX};
+        std::atomic<size_t> dirtyEnd{0};
 
         bool storeOriginalFileFormat(const char* filename);
         void uninit();

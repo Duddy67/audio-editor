@@ -80,11 +80,12 @@ void WaveformView::pullNewRecordedSamples()
     if (track.getNewSamplesCopy(newLeft, newRight, startIndex, count)) {
         if (count == 0) return;
 
-        // Ensure we have enough capacity
         size_t requiredSize = startIndex + count;
-        if (leftSamples.capacity() < requiredSize) {
-            leftSamples.reserve(requiredSize + 10000);
-            rightSamples.reserve(requiredSize + 10000);
+
+        // Ensure we have enough capacity
+        if (leftSamples.size() < requiredSize) {
+            leftSamples.resize(requiredSize, 0.0f);
+            rightSamples.resize(requiredSize, 0.0f);
         }
 
         // Append new samples
@@ -102,6 +103,11 @@ void WaveformView::pullNewRecordedSamples()
             }
         }
 
+        // --- Alternative (without loop nor condition) ---
+        // Copy new samples (overwrite or append)
+        //std::copy_n(newLeft.begin(), count, leftSamples.begin() + startIndex);
+        //std::copy_n(newRight.begin(), count, rightSamples.begin() + startIndex);
+
         lastSyncedSample = startIndex + count;
 
         // ===== Rolling window style  ====
@@ -112,7 +118,10 @@ void WaveformView::pullNewRecordedSamples()
         // Scroll only when the record head nears the right edge
         if (head > rightEdge - visible / 10) {
             scrollOffset = head - (int)(visible * 0.9f);
-            if (scrollOffset < 0) scrollOffset = 0;
+
+            if (scrollOffset < 0) { 
+                scrollOffset = 0;
+            }
         }
         // =====================
 

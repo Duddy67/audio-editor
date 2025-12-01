@@ -140,8 +140,6 @@ void AudioTrack::stop()
     if (recording.load()) {
         // Stop recording audio.
         recording.store(false);
-        // Stop drawing waveform.
-        waveform->stopLiveUpdate();
         workerRunning.store(false);
 
         // Join worker thread
@@ -154,6 +152,8 @@ void AudioTrack::stop()
         // Return possible unused memory (allocated through "reserve") to the system.
         leftSamples.shrink_to_fit();
         rightSamples.shrink_to_fit();
+        // Stop drawing waveform.
+        waveform->stopLiveUpdate();
     }
 }
 
@@ -162,9 +162,9 @@ void AudioTrack::record()
     prepareRecording();
     // Start recording audio.
     recording.store(true);
+    workerRunning.store(true);
     // Start drawing waveform.
     waveform->startLiveUpdate();
-    workerRunning.store(true);
 
     // Start worker thread
     workerThread = std::thread(&AudioTrack::workerThreadLoop, this);
@@ -252,17 +252,26 @@ void AudioTrack::drainAndMergeRingBuffer()
         }
     }
 
-    // Mark that new data is available
-    if (leftSamples.size() > lastPublishedSize) {
-        newDataAvailable.store(true, std::memory_order_release);
-    }
-
     // --- Update write cursor to the end of newly written region ---
     captureWriteIndex.store(newWriteEnd, std::memory_order_release);
 
-    // --- Update stats and GUI ---
+    // --- Step 7: Update stats and GUI ---
     totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
     totalFrames = leftSamples.size();
+
+    // --- Step 8: Update dirty range atomically (for GUI) ---
+    size_t prevStart = dirtyStart.load(std::memory_order_acquire);
+    size_t prevEnd   = dirtyEnd.load(std::memory_order_acquire);
+
+    // Extend range atomically
+    if (prevStart == SIZE_MAX || writeIndex < prevStart) {
+        dirtyStart.store(writeIndex, std::memory_order_release);
+    }
+    if (newWriteEnd > prevEnd) {
+        dirtyEnd.store(newWriteEnd, std::memory_order_release);
+    }
+
+    newDataAvailable.store(true, std::memory_order_release);
 }
 
 void AudioTrack::workerThreadLoop()
@@ -288,23 +297,23 @@ bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<flo
         return false;
     }
 
-    // Take snapshot under protection (brief, but safe)
-    size_t currentSize = leftSamples.size();
-    newStartIndex = lastPublishedSize;
-    newCount = currentSize - lastPublishedSize;
+    // Atomically grab and reset dirty range
+    size_t start = dirtyStart.exchange(SIZE_MAX, std::memory_order_acq_rel);
+    size_t end   = dirtyEnd.exchange(0, std::memory_order_acq_rel);
+    newDataAvailable.store(false, std::memory_order_release);
 
-    if (newCount > 0) {
-        // Copy only the NEW portion
-        leftCopy.assign(leftSamples.begin() + newStartIndex, leftSamples.end());
-        rightCopy.assign(rightSamples.begin() + newStartIndex, rightSamples.end());
-
-        lastPublishedSize = currentSize;
-        newDataAvailable.store(false, std::memory_order_release);
-        return true;
+    if (start == SIZE_MAX || end <= start || end > leftSamples.size()) {
+        return false;
     }
 
-    newDataAvailable.store(false, std::memory_order_release);
-    return false;
+    newStartIndex = start;
+    newCount = end - start;
+
+    // Copy or overwrite a new chunk of recorded data.
+    leftCopy.assign(leftSamples.begin() + start, leftSamples.begin() + end);
+    rightCopy.assign(rightSamples.begin() + start, rightSamples.begin() + end);
+
+    return true;
 }
 
 void AudioTrack::setNewTrack()
