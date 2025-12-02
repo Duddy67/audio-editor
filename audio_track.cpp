@@ -121,6 +121,9 @@ void AudioTrack::prepareRecording()
         return;
     }
 
+    // Reset the ring buffer so the next recording starts clean.
+    ma_pcm_rb_reset(&captureRing);
+
     // Set the start of the recording to the actual position of the cursor.
     // ie: zero for the very first recording or wherever the cursor is 
     // positioned for the next recordings.
@@ -234,21 +237,35 @@ void AudioTrack::drainAndMergeRingBuffer()
         }
     }
 
-    // --- Step 6: Merge using direct pointer access (faster than push_back loop) ---
-    if (newWriteEnd > oldLength) {
-        // Append portion
-        leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
+    // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
+    if (writeIndex < oldLength) {
+        // Compute how many frames fit inside the current buffer.
+        size_t overwriteCount = std::min<size_t>(framesToRead, oldLength - writeIndex);
 
+        // Overwrite the existing region.
+        std::copy_n(newLeft.begin(), overwriteCount, leftSamples.begin() + writeIndex);
         if (stereo) {
-            rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
+            std::copy_n(newRight.begin(), overwriteCount, rightSamples.begin() + writeIndex);
+        }
+
+        // If there are still extra frames beyond oldLength, append them.
+        if (overwriteCount < framesToRead) {
+            size_t appendCount = framesToRead - overwriteCount;
+            leftSamples.insert(leftSamples.end(),
+                               newLeft.begin() + overwriteCount,
+                               newLeft.begin() + overwriteCount + appendCount);
+            if (stereo) {
+                rightSamples.insert(rightSamples.end(),
+                                    newRight.begin() + overwriteCount,
+                                    newRight.begin() + overwriteCount + appendCount);
+            }
         }
     }
     else {
-        // Overwrite portion
-        std::copy_n(newLeft.begin(), framesToRead, leftSamples.begin() + writeIndex);
-
+        // Entirely beyond old length → just append.
+        leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
         if (stereo) {
-            std::copy_n(newRight.begin(), framesToRead, rightSamples.begin() + writeIndex);
+            rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
         }
     }
 
@@ -267,6 +284,7 @@ void AudioTrack::drainAndMergeRingBuffer()
     if (prevStart == SIZE_MAX || writeIndex < prevStart) {
         dirtyStart.store(writeIndex, std::memory_order_release);
     }
+
     if (newWriteEnd > prevEnd) {
         dirtyEnd.store(newWriteEnd, std::memory_order_release);
     }
