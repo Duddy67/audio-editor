@@ -11,10 +11,12 @@
 #include <time.h>
 #include "../libraries/miniaudio.h"
 #include "waveform.h"
+#include "audio_engine.h"
 #define INITIAL_BUFFER_SIZE 10 // In seconds
 
 // Forward declarations.
 class AudioEngine;
+class Application;
 
 /*
  * The AudioTrack class is a kind of interface allowing the application and the MiniAudio
@@ -95,6 +97,8 @@ class AudioTrack {
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
+      Application& getApplication() const { return engine.getApplication(); }
+
       // Setters.
       void setNewTrack();
       void setId(unsigned int i);

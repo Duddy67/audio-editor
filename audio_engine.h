@@ -90,6 +90,7 @@ class AudioEngine {
         ma_uint32 getDefaultInputChannels() { return defaultInputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
         AudioTrack& getTrack(unsigned int id);
+        Application& getApplication() const { return *pApplication; }
 
       // Setters.
       void setBackend(const char *name);

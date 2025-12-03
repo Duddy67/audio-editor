@@ -348,3 +348,21 @@ std::string Application::escapeMenuText(const std::string& input) {
     return result;
 }
 
+/*
+ * Returns the reference of the given button.
+ */
+Fl_Button& Application::getButton(const char* name)
+{
+    if (strcmp(name, "record") == 0) {
+        return *recordBtn;
+    }
+    else if (strcmp(name, "play") == 0) {
+        return *playBtn;
+    }
+    else if (strcmp(name, "pause") == 0) {
+        return *pauseBtn;
+    }
+
+    throw std::runtime_error("Couldn't find button: ");
+}
+

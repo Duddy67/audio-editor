@@ -41,6 +41,11 @@ void Application::play_cb(Fl_Widget* w, void* data)
             auto& track = app->getActiveTrack();
             auto& waveform = track.getWaveform();
 
+            // Cannot play while recording.
+            if (track.isRecording()) {
+                return;
+            }
+
             if (!track.isPlaying()) {
                 if (track.isPaused() || track.isEndOfFile()) {
                     waveform.resetCursor();
@@ -48,6 +53,7 @@ void Application::play_cb(Fl_Widget* w, void* data)
                 }
 
                 track.play();
+                app->getButton("record").deactivate();
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
             }
             else {
@@ -75,6 +81,10 @@ void Application::stop_cb(Fl_Widget* w, void* data)
                 //track.setPlaybackSampleIndex(0);
                 if (stoppedRecording) {
                     waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
+                    app->getButton("play").activate();
+                }
+                else {
+                    app->getButton("record").activate();
                 }
             }
 
@@ -124,8 +134,10 @@ void Application::record_cb(Fl_Widget* w, void* data)
             auto& track = app->getActiveTrack();
             auto& waveform = track.getWaveform();
 
+            // Check the app can record.
             if (!track.isPlaying() && !track.isRecording()) {
                 track.record();
+                app->getButton("play").deactivate();
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
             }
         }

@@ -20,10 +20,10 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     toolbar = new Fl_Group(0, SMALL_SPACE, w, SMALL_SPACE + (TINY_SPACE * 2));
         toolbar->box(FL_FLAT_BOX);
         // Create buttons.
-        playBtn = new Fl_Button(TINY_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "Play");
-        stopBtn = new Fl_Button((TINY_SPACE * 2) + MEDIUM_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "Stop");
-        pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "Pause");
-        recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "Record");
+        playBtn = new Fl_Button(TINY_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@>");
+        stopBtn = new Fl_Button((TINY_SPACE * 2) + MEDIUM_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@square");
+        pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@||");
+        recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@circle");
 
         playBtn->callback(play_cb, this);
         stopBtn->callback(stop_cb, this);

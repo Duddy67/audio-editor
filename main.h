@@ -90,6 +90,7 @@ class Application : public Fl_Double_Window
         void initAudioSystem();
         AudioEngine& getAudioEngine() { return *audioEngine; }
         std::string escapeMenuText(const std::string& input);
+        Fl_Button& getButton(const char* name);
 
         Fl_Tabs* getTabs() const { return tabs; }
 

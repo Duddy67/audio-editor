@@ -1,4 +1,5 @@
 #include "audio_track.h"
+#include "main.h"
 
 
 void WaveformView::setStereoSamples(const std::vector<float>& left, const std::vector<float>& right) {
@@ -407,6 +408,7 @@ int WaveformView::handle(int event) {
                     track.setPlaybackSampleIndex(0);
                     track.unpause();
                     resetCursor();
+                    track.getApplication().getButton("record").activate();
                 }
                 else {
                     if (track.isPaused() || track.isEndOfFile()) {
@@ -416,6 +418,7 @@ int WaveformView::handle(int event) {
 
                     track.play();
                     Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
+                    track.getApplication().getButton("record").deactivate();
                 }
                    
                 return 1;
