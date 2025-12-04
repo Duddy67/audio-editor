@@ -91,6 +91,8 @@ class Application : public Fl_Double_Window
         AudioEngine& getAudioEngine() { return *audioEngine; }
         std::string escapeMenuText(const std::string& input);
         Fl_Button& getButton(const char* name);
+        void documentHasChanged(unsigned int trackId);
+        unsigned int checkChangedDocuments();
 
         Fl_Tabs* getTabs() const { return tabs; }
 

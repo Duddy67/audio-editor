@@ -10,12 +10,28 @@ void Application::noEscapeKey_cb(Fl_Widget* w, void* data)
         return;
     }
 
+    Application* app = (Application*) data;
+
+    unsigned int changedDocuments = app->checkChangedDocuments();
+
+    if (changedDocuments > 0) {
+        std::cout << changedDocuments << " changed document(s) !" << std::endl;
+    }
+
     // Close the application when the "close" button is clicked.
     exit(0);
 }
 
 void Application::quit_cb(Fl_Widget* w, void* data)
 {
+    Application* app = (Application*) data;
+
+    unsigned int changedDocuments = app->checkChangedDocuments();
+
+    if (changedDocuments > 0) {
+        std::cout << changedDocuments << " changed document(s) !" << std::endl;
+    }
+
     exit(0);
 }
 

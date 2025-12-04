@@ -366,3 +366,29 @@ Fl_Button& Application::getButton(const char* name)
     throw std::runtime_error("Couldn't find button: ");
 }
 
+void Application::documentHasChanged(unsigned int trackId)
+{
+    for (size_t i = 0; i < documents.size(); i++) {
+        if (documents[i]->getTrackId() == trackId) {
+            // Mark the given document as "changed".
+            documents[i]->hasChanged();
+
+            return;
+        }
+    }
+
+}
+
+unsigned int Application::checkChangedDocuments()
+{
+    unsigned int changedDocuments = 0;
+
+    for (size_t i = 0; i < documents.size(); i++) {
+        if (documents[i]->isChanged()) {
+            changedDocuments++;
+        }
+    }
+
+    return changedDocuments;
+}
+

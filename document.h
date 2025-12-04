@@ -10,53 +10,28 @@
 class AudioEngine;
 
 class Document : public Fl_Group {
-        int x, y, w, h;
+        int xPos, yPos, width, height;
         AudioEngine& engine;
         // Unique track id.
         unsigned int trackId = 0;
-
-    public:
-
-        Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath = nullptr)
-            : Fl_Group(X, Y, W, H), engine(e) 
-        {
-            // Compute tab area.
-            x = X + 10;
-            y = Y + 10;
-            w = W - 20;
-            h = H - 100;
-
-            auto track = std::make_unique<AudioTrack>(engine);
-
-            // Load the given audio file.
-            if (filepath != nullptr) {
-                track->loadFromFile(filepath);
-            }
-            else {
-                track->setNewTrack();
-            }
-
-            // Add the new track and transfer ownership.
-            trackId = engine.addTrack(std::move(track));
-
-            renderTrackWaveform();
-        }
+        bool changed = false;
 
         void renderTrackWaveform() {
-            auto& track = getTrack();
+            //auto& track = getTrack();
+            AudioTrack& track = engine.getTrack(trackId);
 
             // Compute waveform area leaving space for scrollbar.
-            int wf_x = x;
-            int wf_y = y;
-            int wf_w = w;
-            int wf_h = h - (SB_H + SB_MARGIN);
+            int wf_x = xPos;
+            int wf_y = yPos;
+            int wf_w = width;
+            int wf_h = height - (SB_H + SB_MARGIN);
 
             // Parent Document.
             begin();
             // Create the WaveformView as a child of Document.
             track.renderWaveform(wf_x, wf_y, wf_w, wf_h);
 
-            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SB_MARGIN, w, SB_H);
+            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SB_MARGIN, width, SB_H);
             scrollbar->type(FL_HORIZONTAL);
             scrollbar->step(1);
             scrollbar->minimum(0);
@@ -80,9 +55,46 @@ class Document : public Fl_Group {
             track.getWaveform().redraw();
         }
 
+    public:
+
+        Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath = nullptr)
+            : Fl_Group(X, Y, W, H), engine(e) 
+        {
+            // Compute tab area.
+            xPos = X + 10;
+            yPos = Y + 10;
+            width = W - 20;
+            height = H - 100;
+
+            auto track = std::make_unique<AudioTrack>(engine);
+
+            // Load the given audio file.
+            if (filepath != nullptr) {
+                track->loadFromFile(filepath);
+            }
+            else {
+                track->setNewTrack();
+            }
+
+            // Add the new track and transfer ownership.
+            trackId = engine.addTrack(std::move(track));
+
+            renderTrackWaveform();
+        }
+
         AudioTrack& getTrack() { return engine.getTrack(trackId); }
-        unsigned int getTrackId() { return trackId; }
+        unsigned int getTrackId() const { return trackId; }
         void removeTrack() { engine.removeTrack(trackId); }
+        bool isChanged() const { return changed; }
+
+        void hasChanged() {
+            changed = true;
+            std::cout << "Document: " << label() << std::endl;
+        }
+
+        void saved() {
+            changed = false;
+        }
 };
 
 #endif // DOCUMENT_H

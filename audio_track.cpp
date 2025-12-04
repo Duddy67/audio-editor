@@ -163,6 +163,8 @@ void AudioTrack::stop()
 void AudioTrack::record()
 {
     prepareRecording();
+    // Mark the document as "changed". 
+    getApplication().documentHasChanged(id);
     // Start recording audio.
     recording.store(true);
     workerRunning.store(true);

@@ -10,7 +10,7 @@ void Application::createMenu()
     menu->add("File/_&Open", 0, file_chooser_cb, (void*) this);
     menu->add("File/&Save", 0, save_cb, (void*) this);
     menu->add("File/_&Save as", 0, saveas_cb, (void*) this);
-    menu->add("File/&Quit", FL_CTRL + 'q',(Fl_Callback*) quit_cb, 0, 0);
+    menu->add("File/&Quit", FL_CTRL + 'q',(Fl_Callback*) quit_cb, (void*) this);
     menu->add("Edit", 0, 0, 0, FL_SUBMENU);
     menu->add("Edit/&Copy", FL_CTRL + 'c',0, 0, 0);
     menu->add("Edit/&Past", FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
