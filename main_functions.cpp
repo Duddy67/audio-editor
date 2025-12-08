@@ -201,11 +201,14 @@ void Application::addDocument(const char *filepath /*= nullptr*/)
     std::string filename;
 
     if (filepath != nullptr) {
-        filename = std::filesystem::path(filepath).filename().string();
+        //filename = std::filesystem::path(filepath).filename().string();
+        filename = doc->getFileName();
     }
     else {
         newDocuments++;
-        filename = "New document " + std::to_string(newDocuments);
+        // Create new document as .wav file by default.
+        filename = "New document " + std::to_string(newDocuments) + ".wav";
+        doc->setFileName(filename.c_str());
     }
 
     // SMALL_SPACE + MEDIUM_SPACE = label max width.
@@ -366,6 +369,18 @@ Fl_Button& Application::getButton(const char* name)
     throw std::runtime_error("Couldn't find button: ");
 }
 
+Document& Application::getDocumentByTrackId(unsigned int trackId)
+{
+    for (size_t i = 0; i < documents.size(); i++) {
+        if (documents[i]->getTrackId() == trackId) {
+            // 
+            return *documents[i];
+        }
+    }
+
+    throw std::runtime_error("Couldn't find document: ");
+}
+
 void Application::documentHasChanged(unsigned int trackId)
 {
     for (size_t i = 0; i < documents.size(); i++) {
@@ -376,7 +391,6 @@ void Application::documentHasChanged(unsigned int trackId)
             return;
         }
     }
-
 }
 
 unsigned int Application::checkChangedDocuments()

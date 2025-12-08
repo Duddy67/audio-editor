@@ -436,6 +436,39 @@ bool AudioTrack::decodeFile()
     return true;
 }
 
+void AudioTrack::save(const char* filename)
+{
+    ma_encoder_config config = ma_encoder_config_init(
+        ma_encoding_format_wav,
+        ma_format_f32,      // 32-bit float samples
+        2,                  // stereo
+        44100               // sample rate (adjust to your app)
+    );
+
+    ma_encoder encoder;
+    if (ma_encoder_init_file(filename, &config, &encoder) != MA_SUCCESS) {
+        printf("Failed to initialize encoder.\n");
+        return;
+    }
+
+    // Interleave the samples
+    size_t frameCount = leftSamples.size();
+    std::vector<float> interleaved(frameCount * 2);
+    for (size_t i = 0; i < frameCount; ++i) {
+        interleaved[i * 2 + 0] = leftSamples[i];
+        interleaved[i * 2 + 1] = rightSamples[i];
+    }
+
+    // Write audio data
+    ma_uint64 framesWritten = 0;
+    ma_encoder_write_pcm_frames(&encoder, interleaved.data(), frameCount, &framesWritten);
+
+    // Clean up
+    ma_encoder_uninit(&encoder);
+
+    printf("Wrote %llu frames to %s\n", framesWritten, filename);
+}
+
 /*
  * Probes the original file format and store its data.
  */

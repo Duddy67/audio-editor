@@ -1,10 +1,10 @@
 #include "main.h"
 
-void Application::file_chooser_cb(Fl_Widget *w, void *data)
+/*void Application::file_chooser_cb(Fl_Widget *w, void *data)
 {
     Application* app = (Application*) data;
 
-    if (app->fileChooser == 0) {
+    if (app->fileChooser == nullptr) {
         app->fileChooser = new FileChooser(app->audioEngine->getSupportedFormats());
     }
 
@@ -25,6 +25,5 @@ void Application::file_chooser_cb(Fl_Widget *w, void *data)
 
             break;
     }
-}
-
+}*/
 

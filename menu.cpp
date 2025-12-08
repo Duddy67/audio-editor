@@ -6,8 +6,8 @@ void Application::createMenu()
     //Fl_Menu_Item item = {"Edit/&Toolbar2", 0,0, 0, FL_MENU_TOGGLE|FL_MENU_VALUE};
     menu->add("File", 0, 0, 0, FL_SUBMENU);
     menu->add("File/&New", FL_ALT + 'n', new_cb, (void*) this);
-    //menu->add("File/Open", 0, open_cb, (void*) this);
-    menu->add("File/_&Open", 0, file_chooser_cb, (void*) this);
+    menu->add("File/Open", 0, open_cb, (void*) this);
+    //menu->add("File/_&Open", 0, file_chooser_cb, (void*) this);
     menu->add("File/&Save", 0, save_cb, (void*) this);
     menu->add("File/_&Save as", 0, saveas_cb, (void*) this);
     menu->add("File/&Quit", FL_CTRL + 'q',(Fl_Callback*) quit_cb, (void*) this);
@@ -25,6 +25,30 @@ void Application::createMenu()
     return;
 }
 
+
+// "Open" the file
+void Application::open(const char* filename)
+{
+    try {
+        addDocument(filename);
+        printf("Open: '%s'\n", filename);
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "Failed to add document: " << e.what() << std::endl;
+    }
+}
+
+// 'Save' the file, create the file if it doesn't exist
+// and save something in it.
+void Application::save(const char* filename) {
+    printf("Saving '%s'\n", filename);
+    auto* document = (Document*)tabs->value();
+    auto& track = document->getTrack();
+    // Just save the file - native dialog already handled confirmation 
+    // in case of same file name.
+    track.save(filename);
+}
+
 int Application::isFileExist(const char* filename) {
     FILE* fp = fl_fopen(filename, "r");
 
@@ -35,13 +59,6 @@ int Application::isFileExist(const char* filename) {
     else {
         return(0);
     }
-}
-
-// "Open" the file
-void Application::open(const char* filename)
-{
-    // A real app would do something useful here.
-    printf("Open: '%s'\n", filename);
 }
 
 // Return an 'untitled' default pathname
@@ -61,44 +78,102 @@ const char* Application::untitledDefault()
     return(filename);
 }
 
-// Handle an 'Open' request from the menu
+void Application::setSupportedFormats() 
+{
+    std::vector<std::string> formats = getAudioEngine().getSupportedFormats();
+    unsigned int size = formats.size();
+    std::string supportedFormats = "";
+
+    // Iterate through the extension array.
+    for (unsigned int i = 0; i < size; i++) {
+        // Leave out formats in uppercase as there are displayed anyway.
+        if (!std::isupper(formats[i][1])) {
+            // Store the supported formats.
+            supportedFormats = supportedFormats + "*" + formats[i] + "\n";
+        }
+    }
+
+    // Initialize the file chooser
+    /*filter("Wav\t*.wav\n"
+           "MP3\t*.mp3\n");*/
+    fileChooser->filter(supportedFormats.c_str());
+}
+
+//================== Callback functions called from menu  =========================
+
+/*
+ * Handle an 'Open' request from the menu.
+ */
 void Application::open_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
+
+    // Create the file chooser widget.
+    if (app->fileChooser == nullptr) {
+        app->fileChooser = new Fl_Native_File_Chooser();
+        app->setSupportedFormats();
+    }
+
     app->fileChooser->title("Open file");
     // Only picks files that exist.
     app->fileChooser->type(Fl_Native_File_Chooser::BROWSE_FILE);     
 
     switch (app->fileChooser->show()) {
-        case -1: break; // Error
-        case  1: break; // Cancel
-        default:        // Choice (ie: 0)
-            app->fileChooser->preset_file(app->fileChooser->filename());
+        case -1:   // Error
+            break;
+        case 1:    // Cancel
+            break;
+        default:   // Choice
             app->open(app->fileChooser->filename());
-        break;
+            break;
     }
 }
 
-// 'Save' the file, create the file if it doesn't exist
-// and save something in it.
-void Application::save(const char* filename) {
-    printf("Saving '%s'\n", filename);
+/*
+ * Handle a 'Save' request from the menu.
+ */
+void Application::save_cb(Fl_Widget* w, void* data)
+{
+    Application* app = (Application*) data;
 
-    if (!isFileExist(filename)) {
-        // Create file if it doesn't exist.
-        FILE *fp = fl_fopen(filename, "w");               
+    // Create the file chooser widget.
+    if (app->fileChooser == nullptr) {
+        app->fileChooser = new Fl_Native_File_Chooser();
+        app->setSupportedFormats();
+    }
 
-        if (fp) {
-            // A real app would do something useful here.
-            fprintf(fp, "Hello world.\n");
-            fclose(fp);
+    app->fileChooser->title("Save");
+    // Need this if file doesn't exist yet.
+    app->fileChooser->type(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);    
+    // Enable native overwrite confirmation.
+    app->fileChooser->options(Fl_Native_File_Chooser::SAVEAS_CONFIRM);
+
+    if (app->tabs->value()) {
+        auto* document = (Document*)app->tabs->value();
+        // Set the name of the file to save. 
+        app->fileChooser->preset_file(document->getFileName().c_str());
+
+        // If file already exists in the default directory just save it.
+        if (app->isFileExist(app->fileChooser->filename())) {
+            auto& track = document->getTrack();
+            track.save(app->fileChooser->filename());
+            // No need to open up the chooser's dialog.
+            return;
         }
-        else {
-            fl_message("Error: %s: %s", filename, strerror(errno));
+
+        switch (app->fileChooser->show()) {
+            case -1:   // Error
+                break;
+            case 1:    // Cancel
+                break;
+            default:   // Choice
+                app->save(app->fileChooser->filename());
+                break;
         }
     }
     else {
-        // A real app would do something useful here.
+        std::cout << "No file selected!" << std::endl;
+        return;
     }
 }
 
@@ -107,30 +182,36 @@ void Application::saveas_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
 
+    // Create the file chooser widget.
+    if (app->fileChooser == nullptr) {
+        app->fileChooser = new Fl_Native_File_Chooser();
+        app->setSupportedFormats();
+    }
+
     app->fileChooser->title("Save As");
     // Need this if file doesn't exist yet.
     app->fileChooser->type(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);    
+    // Enable native overwrite confirmation.
+    app->fileChooser->options(Fl_Native_File_Chooser::SAVEAS_CONFIRM);
 
-    switch ( app->fileChooser->show() ) {
-        case -1: break;  // Error
-        case  1: break;  // Cancel
-        default:         // Choice (ie: 0)
-            app->fileChooser->preset_file(app->fileChooser->filename());
-            app->save(app->fileChooser->filename());
-        break;
-    }
-}
+    if (app->tabs->value()) {
+        auto* document = (Document*)app->tabs->value();
+        // Set the name of the file to save. 
+        app->fileChooser->preset_file(document->getFileName().c_str());
 
-// Handle a 'Save' request from the menu
-void Application::save_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    if (strlen(app->fileChooser->filename()) == 0) {
-        saveas_cb(w, data);
+        switch (app->fileChooser->show()) {
+            case -1:   // Error
+                break;
+            case 1:    // Cancel
+                break;
+            default:   // Choice
+                app->save(app->fileChooser->filename());
+                break;
+        }
     }
     else {
-        app->save(app->fileChooser->filename());
+        std::cout << "No file selected!" << std::endl;
+        return;
     }
 }
 

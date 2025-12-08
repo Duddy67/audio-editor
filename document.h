@@ -1,6 +1,7 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
+#include <filesystem>
 #include <FL/Fl_Scrollbar.H>
 #include "audio_track.h"
 #define SB_H 15
@@ -14,7 +15,12 @@ class Document : public Fl_Group {
         AudioEngine& engine;
         // Unique track id.
         unsigned int trackId = 0;
+        // Track state.
         bool changed = false;
+        bool created = false;
+        // File name and extension associated to the track.
+        std::string fileName;
+        std::string extension;
 
         void renderTrackWaveform() {
             //auto& track = getTrack();
@@ -71,9 +77,17 @@ class Document : public Fl_Group {
             // Load the given audio file.
             if (filepath != nullptr) {
                 track->loadFromFile(filepath);
+                // Set the file name and extension from the file path. 
+                std::filesystem::path p(filepath);
+                fileName = p.filename();
+                extension = p.extension();
             }
+            // New track.
             else {
                 track->setNewTrack();
+                created = true;
+                // NB: The temporary file name for this new track (eg: untitled.wav) 
+                //     will be set later in the addDocument function.
             }
 
             // Add the new track and transfer ownership.
@@ -86,6 +100,16 @@ class Document : public Fl_Group {
         unsigned int getTrackId() const { return trackId; }
         void removeTrack() { engine.removeTrack(trackId); }
         bool isChanged() const { return changed; }
+        bool isNew() const { return created; }
+        std::string getFileName() const { return fileName; }
+        std::string getFileExtension() const { return extension; }
+
+        void setFileName(const char* filename) {
+            fileName = filename;
+            // Set the file extension from the filename.
+            std::filesystem::path p(filename);
+            extension = p.extension();
+        }
 
         void hasChanged() {
             changed = true;

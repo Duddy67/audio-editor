@@ -3,6 +3,7 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
+#include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Menu_Item.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Multiline_Output.H>
@@ -12,7 +13,7 @@
 #include <cstdlib>
 #include "dialog_wnd.h"
 #include "tabs.h"
-#include "file_chooser.h"
+//#include "file_chooser.h"
 #include "audio_engine.h"
 #include "document.h"
 #include "audio_settings.h"
@@ -42,7 +43,8 @@ class Application : public Fl_Double_Window
     Fl_Button* pauseBtn = nullptr;
     Fl_Button* recordBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
-    FileChooser* fileChooser = nullptr;
+    //FileChooser* fileChooser = nullptr;
+    Fl_Native_File_Chooser* fileChooser = nullptr;
     AudioSettings* audioSettings = nullptr;
     AudioEngine* audioEngine = nullptr;
     Tabs* tabs = nullptr;
@@ -93,6 +95,8 @@ class Application : public Fl_Double_Window
         Fl_Button& getButton(const char* name);
         void documentHasChanged(unsigned int trackId);
         unsigned int checkChangedDocuments();
+        Document& getDocumentByTrackId(unsigned int trackId);
+        void setSupportedFormats();
 
         Fl_Tabs* getTabs() const { return tabs; }
 

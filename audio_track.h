@@ -92,7 +92,7 @@ class AudioTrack {
       int getCurrentSample() const { return playbackSampleIndex.load(); }
       std::vector<float> getLeftSamples() { return leftSamples; }
       std::vector<float> getRightSamples() { return rightSamples; }
-      unsigned int getId() { return id; }
+      unsigned int getId() const { return id; }
       WaveformView& getWaveform() { return *waveform.get(); }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
@@ -101,6 +101,7 @@ class AudioTrack {
 
       // Setters.
       void setNewTrack();
+      void save(const char* filename);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
       void resetEndOfFile() { eof.store(false); }
