@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <atomic>
 #include "../libraries/miniaudio.h"
 
 // Forward declarations.
@@ -47,6 +48,8 @@ class AudioEngine {
         const ma_uint32 defaultInputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
         std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
+        std::atomic<float> currentLevelL {0.0f};
+        std::atomic<float> currentLevelR {0.0f};
 
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
@@ -55,6 +58,7 @@ class AudioEngine {
         void initializeDuplexDevice();
         bool isBackendAvailable(ma_backend backend);
         std::string backendToString(ma_backend backend);
+        void setCurrentLevel(const float* out, const ma_uint32 frameCount);
 
     public:
         AudioEngine(Application* app) : pApplication(app) {} 
@@ -89,6 +93,8 @@ class AudioEngine {
         ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
         ma_uint32 getDefaultInputChannels() { return defaultInputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
+        float getCurrentLevelL() const { return currentLevelL.load(); }
+        float getCurrentLevelR() const { return currentLevelR.load(); }
         AudioTrack& getTrack(unsigned int id);
         Application& getApplication() const { return *pApplication; }
 

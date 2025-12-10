@@ -425,6 +425,8 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* in
                 track->mixInto(out, frameCount);
             }
         }
+
+        engine->setCurrentLevel(out, frameCount);
     }
 
     // Handle capture (input)
@@ -444,6 +446,40 @@ void AudioEngine::data_callback(ma_device* pDevice, void* output, const void* in
             }
         }
     }
+}
+
+void AudioEngine::setCurrentLevel(const float* out, const ma_uint32 frameCount)
+{
+    // --- Compute RMS level for the mixed output ---
+    double sumL = 0.0;
+    double sumR = 0.0;
+
+    for (ma_uint32 i = 0; i < frameCount; ++i) {
+        float left = out[i * 2];
+        float right = out[i * 2 + 1];
+        sumL += left * left;
+        sumR += right * right;
+    }
+
+    float rmsL = sqrt(sumL / frameCount);
+    float rmsR = sqrt(sumR / frameCount);
+
+    // Convert to dB (optional, for realism)
+    float dBL = 20.0f * log10f(rmsL + 1e-6f);
+    float dBR = 20.0f * log10f(rmsR + 1e-6f);
+
+    // Normalize from -60dB..0dB to 0..1 range
+    auto normalizeDB = [](float dB) {
+        return std::clamp((dB + 60.0f) / 60.0f, 0.0f, 1.0f);
+    };
+
+    float normL = normalizeDB(dBL);
+    float normR = normalizeDB(dBR);
+
+    // Optional: Apply smoothing to avoid flicker
+    const float smoothing = 0.6f;
+    currentLevelL = smoothing * currentLevelL.load() + (1.0f - smoothing) * normL;
+    currentLevelR = smoothing * currentLevelR.load() + (1.0f - smoothing) * normR;
 }
 
 /*

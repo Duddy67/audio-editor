@@ -13,8 +13,8 @@
 #include <cstdlib>
 #include "dialog_wnd.h"
 #include "tabs.h"
-//#include "file_chooser.h"
 #include "audio_engine.h"
+#include "vu_meter.h"
 #include "document.h"
 #include "audio_settings.h"
 #include "../libraries/json.hpp"
@@ -43,8 +43,9 @@ class Application : public Fl_Double_Window
     Fl_Button* pauseBtn = nullptr;
     Fl_Button* recordBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
-    //FileChooser* fileChooser = nullptr;
     Fl_Native_File_Chooser* fileChooser = nullptr;
+    VuMeter* vuMeterL = nullptr;
+    VuMeter* vuMeterR = nullptr;
     AudioSettings* audioSettings = nullptr;
     AudioEngine* audioEngine = nullptr;
     Tabs* tabs = nullptr;
@@ -91,6 +92,8 @@ class Application : public Fl_Double_Window
         AudioTrack& getActiveTrack();
         void initAudioSystem();
         AudioEngine& getAudioEngine() { return *audioEngine; }
+        VuMeter& getVuMeterL() const { return *vuMeterL; }
+        VuMeter& getVuMeterR() const { return *vuMeterR; }
         std::string escapeMenuText(const std::string& input);
         Fl_Button& getButton(const char* name);
         void documentHasChanged(unsigned int trackId);
@@ -120,6 +123,7 @@ class Application : public Fl_Double_Window
         static void stop_cb(Fl_Widget* w, void* data);
         static void pause_cb(Fl_Widget* w, void* data);
         static void record_cb(Fl_Widget* w, void* data);
+        static void update_vu_cb(void* data);
 };
 
 #endif

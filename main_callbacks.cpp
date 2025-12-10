@@ -71,6 +71,7 @@ void Application::play_cb(Fl_Widget* w, void* data)
                 track.play();
                 app->getButton("record").deactivate();
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+                Fl::add_timeout(0.05, update_vu_cb, app);
             }
             else {
                 waveform.resetCursor();
@@ -94,7 +95,7 @@ void Application::stop_cb(Fl_Widget* w, void* data)
             if (track.isPlaying() || track.isRecording()) {
                 bool stoppedRecording = track.isRecording();
                 track.stop();
-                //track.setPlaybackSampleIndex(0);
+
                 if (stoppedRecording) {
                     waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
                     app->getButton("play").activate();
@@ -164,3 +165,15 @@ void Application::record_cb(Fl_Widget* w, void* data)
     }
 }
 
+void Application::update_vu_cb(void* data)
+{
+    Application* app = (Application*) data;
+
+    float levelL = app->getAudioEngine().getCurrentLevelL();
+    float levelR = app->getAudioEngine().getCurrentLevelR();
+
+    app->getVuMeterL().setLevel(levelL);
+    app->getVuMeterR().setLevel(levelR);
+
+    Fl::repeat_timeout(0.05, update_vu_cb, data); // 20 FPS
+}
