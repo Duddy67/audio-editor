@@ -103,6 +103,8 @@ void Application::stop_cb(Fl_Widget* w, void* data)
                 else {
                     app->getButton("record").activate();
                 }
+
+                //Fl::remove_timeout(update_vu_cb, app);
             }
 
             track.unpause();
