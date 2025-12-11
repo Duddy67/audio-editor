@@ -17,9 +17,24 @@ class VuMeter : public Fl_Widget {
         VuMeter(int X, int Y, int W, int H)
             : Fl_Widget(X, Y, W, H), level(0.0f), peakHold(0.0f), decayRate(0.02f), peakDecayRate(0.005f) {}
 
-        void setLevel(float newLevel)
+        void setLevel(float newLevel, float newPeak)
         {
-            if (newLevel > level) {
+            // Smooth RMS (already smoothed externally).
+            level = newLevel;
+
+            // Update peak hold with external peak value
+            if (newPeak > peakHold) {
+                peakHold = newPeak;  // rise immediately
+            } 
+            else {
+                peakHold -= peakDecayRate;  // fall slowly
+
+                if (peakHold < 0) {
+                    peakHold = 0;
+                }
+            }
+
+            /*if (newLevel > level) {
                 level = newLevel;
             }
             else {
@@ -40,7 +55,7 @@ class VuMeter : public Fl_Widget {
                 if (peakHold < 0) {
                     peakHold = 0;
                 }
-            }
+            }*/
 
             redraw();
         }
@@ -73,6 +88,8 @@ class VuMeter : public Fl_Widget {
                 fl_rectf(x(), peakY, w(), 2);
             }
             else {  // FL_HORIZONTAL
+                // Make sure the bar visually reaches the top when the signal is peaking.
+                level = (peakHold == 1) ? peakHold : level;
                 int barWidth = static_cast<int>(level * w());
                 // Draw the filled part (left to right)
                 fl_rectf(x(), y(), barWidth, h());

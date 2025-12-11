@@ -173,9 +173,11 @@ void Application::update_vu_cb(void* data)
 
     float levelL = app->getAudioEngine().getCurrentLevelL();
     float levelR = app->getAudioEngine().getCurrentLevelR();
+    float peakL = app->getAudioEngine().getCurrentPeakL();
+    float peakR = app->getAudioEngine().getCurrentPeakR();
 
-    app->getVuMeterL().setLevel(levelL);
-    app->getVuMeterR().setLevel(levelR);
+    app->getVuMeterL().setLevel(levelL, peakL);
+    app->getVuMeterR().setLevel(levelR, peakR);
 
     Fl::repeat_timeout(0.05, update_vu_cb, data); // 20 FPS
 }

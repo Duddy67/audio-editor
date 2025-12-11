@@ -50,6 +50,8 @@ class AudioEngine {
         std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
         std::atomic<float> currentLevelL {0.0f};
         std::atomic<float> currentLevelR {0.0f};
+        std::atomic<float> currentPeakL {0.0f};
+        std::atomic<float> currentPeakR {0.0f};
 
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
@@ -95,6 +97,8 @@ class AudioEngine {
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
         float getCurrentLevelL() const { return currentLevelL.load(); }
         float getCurrentLevelR() const { return currentLevelR.load(); }
+        float getCurrentPeakL() const { return currentPeakL.load(); }
+        float getCurrentPeakR() const { return currentPeakR.load(); }
         AudioTrack& getTrack(unsigned int id);
         Application& getApplication() const { return *pApplication; }
 
