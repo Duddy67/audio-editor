@@ -48,6 +48,7 @@ class AudioEngine {
         const ma_uint32 defaultInputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
         std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
+        // Used with vu-meters.
         std::atomic<float> currentLevelL {0.0f};
         std::atomic<float> currentLevelR {0.0f};
         std::atomic<float> currentPeakL {0.0f};

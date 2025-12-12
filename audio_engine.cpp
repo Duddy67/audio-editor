@@ -463,17 +463,17 @@ void AudioEngine::setCurrentLevel(const float* out, const ma_uint32 frameCount)
         sumR += right * right;
 
         // Track the instantaneous peaks
-        if (fabs(left) > peakL) { 
-            peakL = fabs(left);
+        if (std::fabs(left) > peakL) { 
+            peakL = std::fabs(left);
         }
 
-        if (fabs(right) > peakR) { 
-            peakR = fabs(right);
+        if (std::fabs(right) > peakR) { 
+            peakR = std::fabs(right);
         }
     }
 
-    float rmsL = sqrt(sumL / frameCount);
-    float rmsR = sqrt(sumR / frameCount);
+    float rmsL = std::sqrt(sumL / frameCount);
+    float rmsR = std::sqrt(sumR / frameCount);
 
     // Convert both RMS and peak to dB (optional, for realism).
     float dBL = 20.0f * log10f(rmsL + 1e-6f);

@@ -2,15 +2,22 @@
 #include <FL/Fl_Widget.H>
 #include <FL/fl_draw.H>
 #include <cmath>
+#define VU_METER_DECAY_TIME 1.0f
 
 
 class VuMeter : public Fl_Widget {
     private:
-
-        float level;         // current level 0–1
-        float peakHold;      // current held peak 0–1
-        float decayRate;     // for normal level smoothing
-        float peakDecayRate; // for the peak hold fall speed
+        // Current level 0–1.
+        float level;         
+        // Current held peak 0–1.
+        float peakHold;     
+        // For normal level smoothing.
+        float decayRate;     
+        // For the peak hold fall speed.
+        float peakDecayRate; 
+        // Time used to decrease level and peak 
+        // just after playback stopped.
+        float vuDecayTimer = 0.0f;
 
     public:
 
@@ -24,41 +31,39 @@ class VuMeter : public Fl_Widget {
 
             // Update peak hold with external peak value
             if (newPeak > peakHold) {
-                peakHold = newPeak;  // rise immediately
+                peakHold = newPeak;  // Rise immediately.
             } 
             else {
-                peakHold -= peakDecayRate;  // fall slowly
+                peakHold -= peakDecayRate;  // Fall slowly.
 
                 if (peakHold < 0) {
                     peakHold = 0;
                 }
             }
-
-            /*if (newLevel > level) {
-                level = newLevel;
-            }
-            else {
-                level -= decayRate;
-            }
-
-            if (level < 0) {
-                level = 0;
-            }
-
-            // --- Peak hold logic ---
-            if (newLevel > peakHold) {
-                peakHold = newLevel;  // rise immediately
-            }
-            else {
-                peakHold -= peakDecayRate;  // fall slowly
-
-                if (peakHold < 0) {
-                    peakHold = 0;
-                }
-            }*/
 
             redraw();
         }
+
+        void resetDecayTimer()
+        {
+            vuDecayTimer = 0.0f;
+            // Reset decay rate as well to its initial value.
+            peakDecayRate = 0.005f;
+        }
+
+        void decayTimer()
+        {
+            vuDecayTimer += 0.05f;
+
+            // When third of VU_METER_DECAY_TIME is reached (ie: 1.0f ~1 sec)  
+            if (vuDecayTimer >= 0.3f) {
+                // make the peak decreasing faster to prevent being frozen
+                // somewhere along the bar when the timer stop.
+                peakDecayRate = 0.1f;
+            }
+        }
+
+        float getVuDecayTimer() const { return vuDecayTimer; }
 
         void draw() override
         {

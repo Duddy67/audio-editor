@@ -69,7 +69,12 @@ void Application::play_cb(Fl_Widget* w, void* data)
                 }
 
                 track.play();
+
                 app->getButton("record").deactivate();
+                app->getVuMeterL().resetDecayTimer();
+                app->getVuMeterR().resetDecayTimer();
+
+                // Launch needed timers.
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
                 Fl::add_timeout(0.05, update_vu_cb, app);
             }
@@ -103,8 +108,6 @@ void Application::stop_cb(Fl_Widget* w, void* data)
                 else {
                     app->getButton("record").activate();
                 }
-
-                //Fl::remove_timeout(update_vu_cb, app);
             }
 
             track.unpause();
@@ -175,6 +178,24 @@ void Application::update_vu_cb(void* data)
     float levelR = app->getAudioEngine().getCurrentLevelR();
     float peakL = app->getAudioEngine().getCurrentPeakL();
     float peakR = app->getAudioEngine().getCurrentPeakR();
+
+    // If playback has stopped, force levels and peaks to decay toward zero.
+    if (!app->getActiveTrack().isPlaying()) {
+        levelL *= 0.9f;
+        levelR *= 0.9f;
+        // Accumulate vu-meters decay time.
+        app->getVuMeterL().decayTimer();
+        app->getVuMeterR().decayTimer();
+
+        // After ~1 second, stop updating completely.
+        if (app->getVuMeterL().getVuDecayTimer() >= VU_METER_DECAY_TIME && levelL < 0.01f && levelR < 0.01f) {
+            app->getVuMeterL().setLevel(0.0f, 0.0f);
+            app->getVuMeterR().setLevel(0.0f, 0.0f);
+
+            // Don't repeat timeout anymore.
+            return; 
+        }
+    }
 
     app->getVuMeterL().setLevel(levelL, peakL);
     app->getVuMeterR().setLevel(levelR, peakR);
