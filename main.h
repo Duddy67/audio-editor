@@ -44,6 +44,7 @@ class Application : public Fl_Double_Window
     Fl_Button* recordBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
     Fl_Native_File_Chooser* fileChooser = nullptr;
+    Fl_Group* vuMeters = nullptr;
     VuMeter* vuMeterL = nullptr;
     VuMeter* vuMeterR = nullptr;
     AudioSettings* audioSettings = nullptr;
