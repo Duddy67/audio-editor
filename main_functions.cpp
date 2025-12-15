@@ -406,3 +406,11 @@ unsigned int Application::checkChangedDocuments()
     return changedDocuments;
 }
 
+void Application::startVuMeters()
+{
+    getVuMeterL().resetDecayTimer();
+    getVuMeterR().resetDecayTimer();
+    // Launch vu-meter timer.
+    Fl::add_timeout(0.05, update_vu_cb, this);
+}
+

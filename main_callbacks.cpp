@@ -63,7 +63,7 @@ void Application::play_cb(Fl_Widget* w, void* data)
             }
 
             if (!track.isPlaying()) {
-                if (track.isPaused() || track.isEndOfFile()) {
+                if (track.isPaused() || track.isEndOfFile() || waveform.selection()) {
                     waveform.resetCursor();
                     track.resetEndOfFile();
                 }
@@ -71,12 +71,8 @@ void Application::play_cb(Fl_Widget* w, void* data)
                 track.play();
 
                 app->getButton("record").deactivate();
-                app->getVuMeterL().resetDecayTimer();
-                app->getVuMeterR().resetDecayTimer();
-
-                // Launch needed timers.
+                app->startVuMeters();
                 Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
-                Fl::add_timeout(0.05, update_vu_cb, app);
             }
             else {
                 waveform.resetCursor();

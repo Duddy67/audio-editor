@@ -46,6 +46,13 @@ void AudioTrack::mixInto(float* output, int frameCount)
             break;
         }
 
+        // Playback has reached the end of the current selection.
+        if (getWaveform().selection() && idx >= getWaveform().getSelectionEndSample()) {
+            // Stop playback.
+            playing.store(false);
+            break;
+        }
+
         // Left
         output[i * 2] += leftSamples[idx];   
         // Right

@@ -101,6 +101,7 @@ class Application : public Fl_Double_Window
         unsigned int checkChangedDocuments();
         Document& getDocumentByTrackId(unsigned int trackId);
         void setSupportedFormats();
+        void startVuMeters();
 
         Fl_Tabs* getTabs() const { return tabs; }
 

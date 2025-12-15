@@ -131,6 +131,17 @@ void WaveformView::pullNewRecordedSamples()
     }
 }
 
+/*
+ * Check whether a selection is currently set.
+ */
+bool WaveformView::selection() {
+    if (selectionStartSample >= 0 && selectionEndSample >= 0 && selectionStartSample != selectionEndSample) {
+        return true;
+    }
+
+    return false;
+}
+
 void WaveformView::draw() {
     if (!valid()) {
         glLoadIdentity();
@@ -266,6 +277,24 @@ void WaveformView::draw() {
         glEnd();
     }
 
+    // --- Draw current selection (if any) ---
+    if (selection() || (isSelecting && !track.isPlaying() && !track.isRecording())) {
+        int x1 = (std::min(selectionStartSample, selectionEndSample) - scrollOffset) * zoomLevel;
+        int x2 = (std::max(selectionStartSample, selectionEndSample) - scrollOffset) * zoomLevel;
+
+        // Clamp to visible area
+        x1 = std::clamp(x1, 0, w());
+        x2 = std::clamp(x2, 0, w());
+
+        glColor3f(0.0f, 0.0f, 0.0f); // black
+        glBegin(GL_QUADS);
+            glVertex2f(x1, 0.0f);
+            glVertex2f(x2, 0.0f);
+            glVertex2f(x2, (float)h());
+            glVertex2f(x1, (float)h());
+        glEnd();
+    }
+
     // Waveform color (blue).
     glColor3f(0.0f, 0.0f, 1.0f);
 
@@ -391,10 +420,39 @@ int WaveformView::handle(int event) {
                 // Tell the audio system to seek too.
                 track.setPlaybackSampleIndex(sample);
 
+                // Start a new selection.
+                if (!isSelecting && !track.isPlaying() && !track.isRecording()) {
+                    selectionStartSample = sample;
+                    selectionEndSample = sample;
+                    isSelecting = true;
+                }
+
                 return 1;
             }
 
             return 0;
+        }
+
+        case FL_RELEASE: {
+            if (Fl::event_button() == FL_LEFT_MOUSE) {
+                // The user is done selecting.
+                isSelecting = false;
+            }
+
+        }
+
+        case FL_DRAG: {
+            if (Fl::event_button() == FL_LEFT_MOUSE && isSelecting) {
+                // Stretch the selection range.
+                int mouseX = Fl::event_x();
+                int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
+                // Clamp within sample range
+                sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
+                selectionEndSample = sample;
+
+                redraw();
+            }
+
         }
 
         case FL_KEYDOWN: {
@@ -419,6 +477,7 @@ int WaveformView::handle(int event) {
                     track.play();
                     Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
                     track.getApplication().getButton("record").deactivate();
+                    track.getApplication().startVuMeters();
                 }
                    
                 return 1;
@@ -542,8 +601,10 @@ void WaveformView::liveUpdate_cb(void* userdata)
     WaveformView* self = static_cast<WaveformView*>(userdata);
     self->pullNewRecordedSamples();
     self->redraw();
-    if (self->isLiveUpdating)
+
+    if (self->isLiveUpdating) {
         Fl::repeat_timeout(0.30, liveUpdate_cb, userdata); // 30 ms refresh
+    }
 }
 
 void WaveformView::startLiveUpdate()

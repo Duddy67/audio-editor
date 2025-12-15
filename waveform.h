@@ -33,6 +33,10 @@ class WaveformView : public Fl_Gl_Window {
         AudioTrack& track;
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
+        bool isSelecting = false;
+        int selectionStartSample = -1;
+        int selectionEndSample = -1;
+
         static void liveUpdate_cb(void* userdata);
         void prepareForRecording();
         void pullNewRecordedSamples();
@@ -54,6 +58,7 @@ class WaveformView : public Fl_Gl_Window {
         void resetCursor();
         void startLiveUpdate();
         void stopLiveUpdate();
+        bool selection();
 
         // Getters.
 
@@ -61,6 +66,8 @@ class WaveformView : public Fl_Gl_Window {
         float getZoomLevel() const { return zoomLevel; }
         int getPlaybackSample() const { return playbackSample; }
         AudioTrack& getTrack() { return track; }
+        int getSelectionStartSample() const { return selectionStartSample; }
+        int getSelectionEndSample() const { return selectionEndSample; }
 
         // Setters.
 
