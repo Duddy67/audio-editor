@@ -25,10 +25,10 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
         pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@||");
         recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@circle");
 
-        playBtn->callback(play_cb, this);
-        stopBtn->callback(stop_cb, this);
-        pauseBtn->callback(pause_cb, this);
-        recordBtn->callback(record_cb, this);
+        playBtn->callback(playButton_cb, this);
+        stopBtn->callback(stopButton_cb, this);
+        pauseBtn->callback(pauseButton_cb, this);
+        recordBtn->callback(recordButton_cb, this);
 
         // Disable keyboard focus on buttons
         playBtn->clear_visible_focus();

@@ -41,7 +41,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
         if (idx >= totalFrames) {
             eof.store(true);
             // Stop playback.
-            playing.store(false);
+            getApplication().stopTrack(*this);
             // Exit the loop / function.
             break;
         }
@@ -49,7 +49,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
         // Playback has reached the end of the current selection.
         if (getWaveform().selection() && idx >= getWaveform().getSelectionEndSample()) {
             // Stop playback.
-            playing.store(false);
+            getApplication().stopTrack(*this);
             break;
         }
 

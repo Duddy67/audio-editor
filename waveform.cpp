@@ -462,42 +462,18 @@ int WaveformView::handle(int event) {
             if (key == ' ') {
                 // Toggle start/stop.
                 if (track.isPlaying()) {
-                    track.stop();
-                    track.setPlaybackSampleIndex(0);
-                    track.unpause();
-                    resetCursor();
-                    track.getApplication().getButton("record").activate();
+                    track.getApplication().stopTrack(track);
                 }
                 else {
-                    if (track.isPaused() || track.isEndOfFile()) {
-                        resetCursor();
-                        track.resetEndOfFile();
-                    }
-
-                    track.play();
-                    Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
-                    track.getApplication().getButton("record").deactivate();
-                    track.getApplication().startVuMeters();
+                    track.getApplication().playTrack(track);
                 }
                    
                 return 1;
             }
             else if (key == FL_Pause) {
-                if (track.isPlaying()) {
-                    track.stop();
-                    track.pause();
-                    return 1;
-                }
-                // Resume from where playback paused
-                else if (track.isPaused() && !track.isPlaying()) {
-                    int resumeSample = getPlaybackSample();
-                    track.setPlaybackSampleIndex(resumeSample);
-                    track.unpause();
-                    track.play();
-                    Fl::add_timeout(0.016, update_cursor_timer_cb, &track);
-                }
+                track.getApplication().pauseTrack(track);
 
-                return 0;
+                return 1;
             }
             else if (key == FL_Home) {
                 // Process only when playback is stopped.

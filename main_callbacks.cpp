@@ -48,35 +48,15 @@ void Application::new_cb(Fl_Widget *w, void *data)
 }
 
 
-void Application::play_cb(Fl_Widget* w, void* data)
+void Application::playButton_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
+
     // Check first a tab (ie: document) is active.
     if (app->tabs->value()) {
         try {
             auto& track = app->getActiveTrack();
-            auto& waveform = track.getWaveform();
-
-            // Cannot play while recording.
-            if (track.isRecording()) {
-                return;
-            }
-
-            if (!track.isPlaying()) {
-                if (track.isPaused() || track.isEndOfFile() || waveform.selection()) {
-                    waveform.resetCursor();
-                    track.resetEndOfFile();
-                }
-
-                track.play();
-
-                app->getButton("record").deactivate();
-                app->startVuMeters();
-                Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
-            }
-            else {
-                waveform.resetCursor();
-            }
+            app->playTrack(track);
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get active track: " << e.what() << std::endl;
@@ -84,30 +64,14 @@ void Application::play_cb(Fl_Widget* w, void* data)
     }
 }
 
-void Application::stop_cb(Fl_Widget* w, void* data)
+void Application::stopButton_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
 
     if (app->tabs->value()) {
         try {
             auto& track = app->getActiveTrack();
-            auto& waveform = track.getWaveform();
-
-            if (track.isPlaying() || track.isRecording()) {
-                bool stoppedRecording = track.isRecording();
-                track.stop();
-
-                if (stoppedRecording) {
-                    waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
-                    app->getButton("play").activate();
-                }
-                else {
-                    app->getButton("record").activate();
-                }
-            }
-
-            track.unpause();
-            waveform.resetCursor();
+            app->stopTrack(track);
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get active track: " << e.what() << std::endl;
@@ -115,27 +79,14 @@ void Application::stop_cb(Fl_Widget* w, void* data)
     }
 }
 
-void Application::pause_cb(Fl_Widget* w, void* data)
+void Application::pauseButton_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
 
     if (app->tabs->value()) {
         try {
             auto& track = app->getActiveTrack();
-            auto& waveform = track.getWaveform();
-
-            if (track.isPlaying()) {
-                track.stop();
-                track.pause();
-            }
-            else if (track.isPaused() && !track.isPlaying()) {
-                // Resume from where playback paused
-                int resumeSample = waveform.getPlaybackSample();
-                track.setPlaybackSampleIndex(resumeSample);
-                track.unpause();
-                track.play();
-                Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
-            }
+            app->pauseTrack(track);
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get active track: " << e.what() << std::endl;
@@ -143,21 +94,14 @@ void Application::pause_cb(Fl_Widget* w, void* data)
     }
 }
 
-void Application::record_cb(Fl_Widget* w, void* data)
+void Application::recordButton_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
 
     if (app->tabs->value()) {
         try {
             auto& track = app->getActiveTrack();
-            auto& waveform = track.getWaveform();
-
-            // Check the app can record.
-            if (!track.isPlaying() && !track.isRecording()) {
-                track.record();
-                app->getButton("play").deactivate();
-                Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
-            }
+            app->recordTrack(track);
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get active track: " << e.what() << std::endl;

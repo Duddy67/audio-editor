@@ -414,3 +414,80 @@ void Application::startVuMeters()
     Fl::add_timeout(0.05, update_vu_cb, this);
 }
 
+void Application::playTrack(AudioTrack& track)
+{
+    auto& waveform = track.getWaveform();
+
+    // Cannot play while recording.
+    if (track.isRecording()) {
+        return;
+    }
+
+    if (!track.isPlaying()) {
+        if (track.isPaused() || track.isEndOfFile() || waveform.selection()) {
+            waveform.resetCursor();
+            track.resetEndOfFile();
+        }
+
+        track.play();
+
+        getButton("record").deactivate();
+        startVuMeters();
+        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+    }
+    else {
+        waveform.resetCursor();
+    }
+}
+
+void Application::stopTrack(AudioTrack& track)
+{
+    auto& waveform = track.getWaveform();
+
+    if (track.isPlaying() || track.isRecording()) {
+        bool stoppedRecording = track.isRecording();
+        track.stop();
+
+        if (stoppedRecording) {
+            waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
+            getButton("play").activate();
+        }
+        else {
+            getButton("record").activate();
+        }
+    }
+
+    track.unpause();
+    waveform.resetCursor();
+}
+
+void Application::pauseTrack(AudioTrack& track)
+{
+    auto& waveform = track.getWaveform();
+
+    if (track.isPlaying()) {
+        track.stop();
+        track.pause();
+    }
+    else if (track.isPaused() && !track.isPlaying()) {
+        // Resume from where playback paused
+        int resumeSample = waveform.getPlaybackSample();
+        track.setPlaybackSampleIndex(resumeSample);
+        track.unpause();
+        track.play();
+        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+    }
+}
+
+void Application::recordTrack(AudioTrack& track)
+{
+    auto& waveform = track.getWaveform();
+
+    // Check the app can record.
+    if (!track.isPlaying() && !track.isRecording()) {
+        track.record();
+        getButton("play").deactivate();
+        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+    }
+}
+

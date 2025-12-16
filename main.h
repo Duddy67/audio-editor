@@ -102,6 +102,10 @@ class Application : public Fl_Double_Window
         Document& getDocumentByTrackId(unsigned int trackId);
         void setSupportedFormats();
         void startVuMeters();
+        void playTrack(AudioTrack& track);
+        void stopTrack(AudioTrack& track);
+        void pauseTrack(AudioTrack& track);
+        void recordTrack(AudioTrack& track);
 
         Fl_Tabs* getTabs() const { return tabs; }
 
@@ -121,10 +125,10 @@ class Application : public Fl_Double_Window
         static void output_choice_cb(Fl_Widget *w, void *data);
         static void ok_cb(Fl_Widget* w, void* data);
         static void cancel_cb(Fl_Widget* w, void* data);
-        static void play_cb(Fl_Widget* w, void* data);
-        static void stop_cb(Fl_Widget* w, void* data);
-        static void pause_cb(Fl_Widget* w, void* data);
-        static void record_cb(Fl_Widget* w, void* data);
+        static void playButton_cb(Fl_Widget* w, void* data);
+        static void stopButton_cb(Fl_Widget* w, void* data);
+        static void pauseButton_cb(Fl_Widget* w, void* data);
+        static void recordButton_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
 };
 
