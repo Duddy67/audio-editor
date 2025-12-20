@@ -421,9 +421,14 @@ int WaveformView::handle(int event) {
                 track.setPlaybackSampleIndex(sample);
 
                 // Start a new selection.
-                if (!isSelecting && !track.isPlaying() && !track.isRecording()) {
+                if (!isSelecting && selectionHandle == NONE && !track.isPlaying() && !track.isRecording()) {
                     selectionStartSample = sample;
                     selectionEndSample = sample;
+                    isSelecting = true;
+                }
+
+                // Keep current selection alive while it's modified. 
+                if (selectionHandle != NONE) {
                     isSelecting = true;
                 }
 
@@ -435,24 +440,83 @@ int WaveformView::handle(int event) {
 
         case FL_RELEASE: {
             if (Fl::event_button() == FL_LEFT_MOUSE) {
-                // The user is done selecting.
-                isSelecting = false;
+                if (isSelecting) {
+                    // Check for selection reversing.
+                    if (selectionEndSample < selectionStartSample) {
+                        // Swap values.
+                        int tmp = selectionStartSample;
+                        selectionStartSample = selectionEndSample;
+                        selectionEndSample = tmp;
+                    }
+
+                    // Always placing the cursor at the start of the selection.
+                    setPlaybackSample(selectionStartSample);
+                    cursorSamplePosition = selectionStartSample;
+                    // Tell the audio system to seek too.
+                    track.setPlaybackSampleIndex(selectionStartSample);
+
+                    // The user is done selecting.
+                    isSelecting = false;
+                    selectionHandle = NONE;
+
+                    return 1;
+                }
             }
 
+            return 0;
         }
 
         case FL_DRAG: {
             if (Fl::event_button() == FL_LEFT_MOUSE && isSelecting) {
-                // Stretch the selection range.
+                // Draw the selection range.
                 int mouseX = Fl::event_x();
                 int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
                 // Clamp within sample range
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
-                selectionEndSample = sample;
+
+                // Check for selection.
+                if (selectionHandle == LEFT) {
+                    selectionStartSample = sample;
+                }
+                // RIGHT or NONE.
+                else {
+                    selectionEndSample = sample;
+                }
 
                 redraw();
+
+                return 1;
             }
 
+            return 0;
+        }
+
+        case FL_MOVE: {
+            if (selection()) {
+                int mouseX = Fl::event_x();
+                int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
+
+                // The mouse is over the left selection edge.
+                if (sample == selectionStartSample) {
+                    window()->cursor(FL_CURSOR_WE);
+                    selectionHandle = LEFT;
+                    return 1;
+                }
+                // The mouse is over the right selection edge.
+                else if (sample == selectionEndSample) {
+                    window()->cursor(FL_CURSOR_WE);
+                    selectionHandle = RIGHT;
+                    return 1;
+                }
+                // The mouse is elsewhere in the window.
+                else {
+                    window()->cursor(FL_CURSOR_DEFAULT);
+                    selectionHandle = NONE;
+                    return 0;
+                }
+            }
+
+            return 0;
         }
 
         case FL_KEYDOWN: {

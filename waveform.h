@@ -6,9 +6,14 @@
 #include <functional>
 #include <cmath>
 #include <iostream>
+//#include "utilities.h"
 
 // Forward declaration.
 class AudioTrack;
+
+typedef enum direction {
+    NONE, LEFT, RIGHT, UP, DOWN
+}Direction;
 
 class WaveformView : public Fl_Gl_Window {
         std::vector<float> leftSamples;
@@ -34,6 +39,7 @@ class WaveformView : public Fl_Gl_Window {
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
         bool isSelecting = false;
+        Direction selectionHandle = NONE;
         int selectionStartSample = -1;
         int selectionEndSample = -1;
 
@@ -68,6 +74,7 @@ class WaveformView : public Fl_Gl_Window {
         AudioTrack& getTrack() { return track; }
         int getSelectionStartSample() const { return selectionStartSample; }
         int getSelectionEndSample() const { return selectionEndSample; }
+        int getCursorSamplePosition() const { return cursorSamplePosition; }
 
         // Setters.
 

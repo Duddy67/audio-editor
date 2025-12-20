@@ -365,6 +365,9 @@ Fl_Button& Application::getButton(const char* name)
     else if (strcmp(name, "pause") == 0) {
         return *pauseBtn;
     }
+    else if (strcmp(name, "loop") == 0) {
+        return *loopBtn;
+    }
 
     throw std::runtime_error("Couldn't find button: ");
 }

@@ -4,8 +4,8 @@
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
 #include "audio_track.h"
-#define SB_H 15
-#define SB_MARGIN 10
+#define SCROLLBAR_HEIGHT 15
+#define SCROLLBAR_MARGIN 10
 
 // Forward declarations.
 class AudioEngine;
@@ -30,14 +30,14 @@ class Document : public Fl_Group {
             int wf_x = xPos;
             int wf_y = yPos;
             int wf_w = width;
-            int wf_h = height - (SB_H + SB_MARGIN);
+            int wf_h = height - (SCROLLBAR_HEIGHT + SCROLLBAR_MARGIN);
 
             // Parent Document.
             begin();
             // Create the WaveformView as a child of Document.
             track.renderWaveform(wf_x, wf_y, wf_w, wf_h);
 
-            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SB_MARGIN, width, SB_H);
+            Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SCROLLBAR_MARGIN, width, SCROLLBAR_HEIGHT);
             scrollbar->type(FL_HORIZONTAL);
             scrollbar->step(1);
             scrollbar->minimum(0);
@@ -51,7 +51,7 @@ class Document : public Fl_Group {
             track.getWaveform().setScrollbar(scrollbar);
 
             // Create a dummy box that represents the waveform’s resize area
-            Fl_Box* resize_box = new Fl_Box(wf_x, wf_y, wf_w, SB_H);
+            Fl_Box* resize_box = new Fl_Box(wf_x, wf_y, wf_w, SCROLLBAR_HEIGHT);
             this->resizable(resize_box);
 
             // Done adding children.

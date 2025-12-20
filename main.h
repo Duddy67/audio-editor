@@ -6,6 +6,7 @@
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Menu_Item.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Light_Button.H>
 #include <FL/Fl_Multiline_Output.H>
 #include <FL/Fl_Box.H>
 #include <FL/fl_draw.H>
@@ -30,7 +31,6 @@
 
 using json = nlohmann::json;
 
-
 class Application : public Fl_Double_Window 
 {
     std::vector<Document*> documents;
@@ -42,6 +42,7 @@ class Application : public Fl_Double_Window
     Fl_Button* stopBtn = nullptr;
     Fl_Button* pauseBtn = nullptr;
     Fl_Button* recordBtn = nullptr;
+    Fl_Light_Button* loopBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
     Fl_Native_File_Chooser* fileChooser = nullptr;
     Fl_Group* vuMeters = nullptr;
@@ -53,6 +54,7 @@ class Application : public Fl_Double_Window
     std::string message;
     // The number of new documents in tabs.
     unsigned int newDocuments = 0;
+    bool loop = false;
 
 
     struct AppConfig {
@@ -106,6 +108,7 @@ class Application : public Fl_Double_Window
         void stopTrack(AudioTrack& track);
         void pauseTrack(AudioTrack& track);
         void recordTrack(AudioTrack& track);
+        bool isLooped() const { return loop; }
 
         Fl_Tabs* getTabs() const { return tabs; }
 
@@ -129,6 +132,7 @@ class Application : public Fl_Double_Window
         static void stopButton_cb(Fl_Widget* w, void* data);
         static void pauseButton_cb(Fl_Widget* w, void* data);
         static void recordButton_cb(Fl_Widget* w, void* data);
+        static void loopButton_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
 };
 

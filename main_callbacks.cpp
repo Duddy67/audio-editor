@@ -110,6 +110,20 @@ void Application::recordButton_cb(Fl_Widget* w, void* data)
     }
 }
 
+void Application::loopButton_cb(Fl_Widget* w, void* data)
+{
+    Application* app = (Application*) data;
+
+    if (app->loop) {
+        app->loop = false;
+    }
+    else {
+        app->loop = true;
+    }
+//std::cout << "loop " << app->loop << std::endl;
+
+}
+
 void Application::update_vu_cb(void* data)
 {
     Application* app = (Application*) data;

@@ -39,19 +39,36 @@ void AudioTrack::mixInto(float* output, int frameCount)
 
         // End of audio file.
         if (idx >= totalFrames) {
-            eof.store(true);
-            // Stop playback.
-            getApplication().stopTrack(*this);
-            // Exit the loop / function.
+            if (getApplication().isLooped()) {
+                // Go back to the cursor's current position.
+                playbackSampleIndex.store(getWaveform().getCursorSamplePosition(), std::memory_order_relaxed);
+            }
+            else {
+                eof.store(true);
+                // Stop playback.
+                getApplication().stopTrack(*this);
+            }
+
+            // Exit the loop and function.
             break;
         }
 
         // Playback has reached the end of the current selection.
         if (getWaveform().selection() && idx >= getWaveform().getSelectionEndSample()) {
-            // Stop playback.
-            getApplication().stopTrack(*this);
+            if (getApplication().isLooped()) {
+                // Go back to the start of the selection.
+                playbackSampleIndex.store(getWaveform().getSelectionStartSample(), std::memory_order_relaxed);
+            }
+            else {
+                // Stop playback.
+                getApplication().stopTrack(*this);
+            }
+
+            // Exit the loop and function.
             break;
         }
+
+        // --- Copy audio data to output device. ---
 
         // Left
         output[i * 2] += leftSamples[idx];   

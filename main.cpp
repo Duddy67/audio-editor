@@ -24,24 +24,28 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
         stopBtn = new Fl_Button((TINY_SPACE * 2) + MEDIUM_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@square");
         pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@||");
         recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@circle");
+        loopBtn = new Fl_Light_Button((TINY_SPACE * 5) + (MEDIUM_SPACE * 4), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@reload");
+        loopBtn->selection_color(FL_GREEN);
 
         playBtn->callback(playButton_cb, this);
         stopBtn->callback(stopButton_cb, this);
         pauseBtn->callback(pauseButton_cb, this);
         recordBtn->callback(recordButton_cb, this);
+        loopBtn->callback(loopButton_cb, this);
 
         // Disable keyboard focus on buttons
         playBtn->clear_visible_focus();
         stopBtn->clear_visible_focus();
         pauseBtn->clear_visible_focus();
         recordBtn->clear_visible_focus();
+        loopBtn->clear_visible_focus();
 
         // Create the vu-meters container.
-        vuMeters = new Fl_Group((TINY_SPACE * 5) + (MEDIUM_SPACE * 4), SMALL_SPACE, XLARGE_SPACE + (TINY_SPACE * 2), SMALL_SPACE + 5);
+        vuMeters = new Fl_Group((TINY_SPACE * 6) + (MEDIUM_SPACE * 5), SMALL_SPACE, XLARGE_SPACE + (TINY_SPACE * 2), SMALL_SPACE + 5);
             vuMeters->box(FL_UP_BOX);
             // Create stereo vu-meters.
-            vuMeterL = new VuMeter((TINY_SPACE * 6) + (MEDIUM_SPACE * 4), SMALL_SPACE + TINY_SPACE, XLARGE_SPACE, TINY_SPACE);
-            vuMeterR = new VuMeter((TINY_SPACE * 6) + (MEDIUM_SPACE * 4), SMALL_SPACE + (TINY_SPACE * 2) + 5, XLARGE_SPACE, TINY_SPACE);
+            vuMeterL = new VuMeter((TINY_SPACE * 7) + (MEDIUM_SPACE * 5), SMALL_SPACE + TINY_SPACE, XLARGE_SPACE, TINY_SPACE);
+            vuMeterR = new VuMeter((TINY_SPACE * 7) + (MEDIUM_SPACE * 5), SMALL_SPACE + (TINY_SPACE * 2) + 5, XLARGE_SPACE, TINY_SPACE);
             vuMeterL->type(FL_HORIZONTAL);
             vuMeterR->type(FL_HORIZONTAL);
         vuMeters->end();
