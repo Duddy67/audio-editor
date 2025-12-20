@@ -6,14 +6,10 @@
 #include <functional>
 #include <cmath>
 #include <iostream>
-//#include "utilities.h"
+#include "constants.h"
 
 // Forward declaration.
 class AudioTrack;
-
-typedef enum direction {
-    NONE, LEFT, RIGHT, UP, DOWN
-}Direction;
 
 class WaveformView : public Fl_Gl_Window {
         std::vector<float> leftSamples;

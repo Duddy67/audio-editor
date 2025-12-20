@@ -2,7 +2,6 @@
 #include <FL/Fl_Widget.H>
 #include <FL/fl_draw.H>
 #include <cmath>
-#define VU_METER_DECAY_TIME 1.0f
 
 
 class VuMeter : public Fl_Widget {

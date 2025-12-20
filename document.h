@@ -4,8 +4,6 @@
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
 #include "audio_track.h"
-#define SCROLLBAR_HEIGHT 15
-#define SCROLLBAR_MARGIN 10
 
 // Forward declarations.
 class AudioEngine;

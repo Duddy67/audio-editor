@@ -12,7 +12,6 @@
 #include "../libraries/miniaudio.h"
 #include "waveform.h"
 #include "audio_engine.h"
-#define INITIAL_BUFFER_SIZE 10 // In seconds
 
 // Forward declarations.
 class AudioEngine;

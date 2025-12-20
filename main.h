@@ -18,16 +18,8 @@
 #include "vu_meter.h"
 #include "document.h"
 #include "audio_settings.h"
+#include "constants.h"
 #include "../libraries/json.hpp"
-#define CONFIG_FILENAME "config.json"
-#define HEIGHT_MENUBAR 24
-#define MODAL_WND_POS 20
-#define TINY_SPACE 10
-#define SMALL_SPACE 40
-#define MEDIUM_SPACE 80
-#define LARGE_SPACE 160
-#define XLARGE_SPACE 320
-#define TEXT_SIZE 13
 
 using json = nlohmann::json;
 
