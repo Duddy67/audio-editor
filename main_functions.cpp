@@ -494,3 +494,17 @@ void Application::recordTrack(AudioTrack& track)
     }
 }
 
+int Application::handle(int event) {
+    switch (event) {
+        case FL_KEYDOWN: {
+            //int key = Fl::event_key();
+
+            // Set here possible key handling.
+
+            return 0;
+        }
+
+        default:
+            return Fl_Double_Window::handle(event);
+    }
+}

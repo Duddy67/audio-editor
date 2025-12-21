@@ -26,6 +26,8 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
         recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@circle");
         loopBtn = new Fl_Light_Button((TINY_SPACE * 5) + (MEDIUM_SPACE * 4), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@reload");
         loopBtn->selection_color(FL_GREEN);
+        // Set the loop button shortcut to the L key (ie: 108).
+        loopBtn->shortcut(108);
 
         playBtn->callback(playButton_cb, this);
         stopBtn->callback(stopButton_cb, this);

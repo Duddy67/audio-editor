@@ -114,14 +114,8 @@ void Application::loopButton_cb(Fl_Widget* w, void* data)
 {
     Application* app = (Application*) data;
 
-    if (app->loop) {
-        app->loop = false;
-    }
-    else {
-        app->loop = true;
-    }
-//std::cout << "loop " << app->loop << std::endl;
-
+    // Toggle the loop flag.
+    app->loop = app->loop ? false : true;
 }
 
 void Application::update_vu_cb(void* data)

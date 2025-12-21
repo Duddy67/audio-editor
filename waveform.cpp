@@ -432,9 +432,11 @@ int WaveformView::handle(int event) {
                     isSelecting = true;
                 }
 
+                // Event handled - Stop propagation.
                 return 1;
             }
 
+            // Right click or other buttons not handled. Let parent widgets see it too.
             return 0;
         }
 
@@ -568,6 +570,7 @@ int WaveformView::handle(int event) {
         } 
 
         default:
+            // For events we don't handle, pass to parent.
             return Fl_Gl_Window::handle(event);
     }
 }

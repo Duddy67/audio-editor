@@ -101,6 +101,7 @@ class Application : public Fl_Double_Window
         void pauseTrack(AudioTrack& track);
         void recordTrack(AudioTrack& track);
         bool isLooped() const { return loop; }
+        int handle(int event) override;
 
         Fl_Tabs* getTabs() const { return tabs; }
 
