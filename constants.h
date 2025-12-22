@@ -3,6 +3,7 @@
 
 constexpr unsigned int HEIGHT_MENUBAR = 24;
 constexpr unsigned int MODAL_WND_POS = 20;
+constexpr unsigned int MICRO_SPACE = 5;
 constexpr unsigned int TINY_SPACE = 10;
 constexpr unsigned int SMALL_SPACE = 40;
 constexpr unsigned int MEDIUM_SPACE = 80;
