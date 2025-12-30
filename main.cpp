@@ -20,11 +20,11 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     toolbar = new Fl_Group(0, SMALL_SPACE, w, SMALL_SPACE + (TINY_SPACE * 2));
         toolbar->box(FL_FLAT_BOX);
         // Create buttons.
-        playBtn = new Fl_Button(TINY_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@>");
-        stopBtn = new Fl_Button((TINY_SPACE * 2) + MEDIUM_SPACE, SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@square");
-        pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@||");
-        recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@circle");
-        loopBtn = new Fl_Light_Button((TINY_SPACE * 5) + (MEDIUM_SPACE * 4), SMALL_SPACE + TINY_SPACE, MEDIUM_SPACE, SMALL_SPACE, "@reload");
+        playBtn = new Fl_Button(TINY_SPACE, SMALL_SPACE + TINY_SPACE, BUTTON_WIDTH, BUTTON_HEIGHT, "@>");
+        stopBtn = new Fl_Button((TINY_SPACE * 2) + MEDIUM_SPACE, SMALL_SPACE + TINY_SPACE, BUTTON_WIDTH, BUTTON_HEIGHT, "@square");
+        pauseBtn = new Fl_Button((TINY_SPACE * 3) + (MEDIUM_SPACE * 2), SMALL_SPACE + TINY_SPACE, BUTTON_WIDTH, BUTTON_HEIGHT, "@||");
+        recordBtn = new Fl_Button((TINY_SPACE * 4) + (MEDIUM_SPACE * 3), SMALL_SPACE + TINY_SPACE, BUTTON_WIDTH, BUTTON_HEIGHT, "@circle");
+        loopBtn = new Fl_Light_Button((TINY_SPACE * 5) + (MEDIUM_SPACE * 4), SMALL_SPACE + TINY_SPACE, BUTTON_WIDTH, BUTTON_HEIGHT, "@reload");
         loopBtn->selection_color(FL_GREEN);
         // Set the loop button shortcut to the L key (ie: numeric code = 108).
         loopBtn->shortcut(108);
