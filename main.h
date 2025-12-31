@@ -18,6 +18,7 @@
 #include "vu_meter.h"
 #include "document.h"
 #include "audio_settings.h"
+#include "dialogs/new_file.h"
 #include "constants.h"
 #include "../libraries/json.hpp"
 
@@ -36,6 +37,7 @@ class Application : public Fl_Double_Window
     Fl_Button* recordBtn = nullptr;
     Fl_Light_Button* loopBtn = nullptr;
     DialogWindow* dialogWnd = nullptr;
+    NewFileDialog* newFileDlg = nullptr;
     Fl_Native_File_Chooser* fileChooser = nullptr;
     Fl_Group* vuMeters = nullptr;
     VuMeter* vuMeterL = nullptr;

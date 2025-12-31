@@ -39,6 +39,13 @@ void Application::new_cb(Fl_Widget *w, void *data)
 {
     Application* app = (Application*) data;
 
+    if (app->newFileDlg == 0) {
+        app->newFileDlg = new NewFileDialog(app->x() + MODAL_WND_POS, app->y() + MODAL_WND_POS, XLARGE_SPACE, LARGE_SPACE, "New File");
+    }
+
+    int result = app->newFileDlg->runModalNewFile();
+        std::cout << "result: " << result << std::endl;
+
     try {
         app->addDocument();
     }
