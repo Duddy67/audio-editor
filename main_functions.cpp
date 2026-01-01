@@ -171,7 +171,7 @@ Application::AppConfig Application::loadConfig(const std::string& filename)
 /*
  * Adds a new document (ie: audio track + waveform) to edit. 
  */
-void Application::addDocument(const char *filepath /*= nullptr*/)
+void Application::addDocument(TrackOptions options)
 {
     // Height of tab label area.
     const int tabBarHeight = SMALL_SPACE; 
@@ -187,7 +187,7 @@ void Application::addDocument(const char *filepath /*= nullptr*/)
         tabs->w(),
         tabs->h() - tabBarHeight,
         *audioEngine,
-        filepath
+        options
     );
 
     // Link the new tab to the tab closure callback function.
@@ -200,7 +200,7 @@ void Application::addDocument(const char *filepath /*= nullptr*/)
 
     std::string filename;
 
-    if (filepath != nullptr) {
+    if (options.filepath != nullptr) {
         //filename = std::filesystem::path(filepath).filename().string();
         filename = doc->getFileName();
     }

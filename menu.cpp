@@ -29,8 +29,11 @@ void Application::createMenu()
 // "Open" the file
 void Application::open(const char* filename)
 {
+    TrackOptions options;
+    options.filepath = filename;
+
     try {
-        addDocument(filename);
+        addDocument(options);
         printf("Open: '%s'\n", filename);
     }
     catch (const std::runtime_error& e) {

@@ -17,6 +17,13 @@
 class AudioEngine;
 class Application;
 
+struct TrackOptions {
+    // Open file. 
+    const char *filepath = nullptr;
+    // New file.
+    bool stereo = true;
+};
+
 /*
  * The AudioTrack class is a kind of interface allowing the application and the MiniAudio
  * library to communicate with each other.
@@ -99,7 +106,7 @@ class AudioTrack {
       Application& getApplication() const { return engine.getApplication(); }
 
       // Setters.
-      void setNewTrack();
+      void setNewTrack(TrackOptions options);
       void save(const char* filename);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }

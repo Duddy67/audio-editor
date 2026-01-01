@@ -50,7 +50,6 @@ class Application : public Fl_Double_Window
     unsigned int newDocuments = 0;
     bool loop = false;
 
-
     struct AppConfig {
         std::string backend;
         std::string outputDevice;
@@ -80,7 +79,7 @@ class Application : public Fl_Double_Window
         std::string getMessage() { return message; }
         void setMessage(std::string message);
         void displayFileInfo(std::map<std::string, std::string> info);
-        void addDocument(const char *name = nullptr);
+        void addDocument(TrackOptions options);
         void removeDocument(Document* document);
         void removeDocuments();
         std::string truncateText(const std::string &text, int maxWidth, int font, int size);

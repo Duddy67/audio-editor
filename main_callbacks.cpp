@@ -44,11 +44,12 @@ void Application::new_cb(Fl_Widget *w, void *data)
     }
 
     if (app->newFileDlg->runModal() == DIALOG_OK) {
-        auto options = app->newFileDlg->getOptions();
-        std::cout << "result: " << options.stereo << std::endl;
+        auto dialogOptions = app->newFileDlg->getOptions();
+        TrackOptions options;
+        options.stereo = dialogOptions.stereo;
 
         try {
-            app->addDocument();
+            app->addDocument(options);
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to create new document: " << e.what() << std::endl;

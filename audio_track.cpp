@@ -360,11 +360,11 @@ bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<flo
     return true;
 }
 
-void AudioTrack::setNewTrack()
+void AudioTrack::setNewTrack(TrackOptions options)
 {
     newTrack = true;
     // Set the recording format (ie: mono/stereo).
-    stereo = engine.getDefaultInputChannels() == 2;
+    stereo = options.stereo;
 }
 
 /*

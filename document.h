@@ -61,7 +61,7 @@ class Document : public Fl_Group {
 
     public:
 
-        Document(int X, int Y, int W, int H, AudioEngine& e, const char *filepath = nullptr)
+        Document(int X, int Y, int W, int H, AudioEngine& e, TrackOptions options)
             : Fl_Group(X, Y, W, H), engine(e) 
         {
             // Compute tab area.
@@ -73,16 +73,16 @@ class Document : public Fl_Group {
             auto track = std::make_unique<AudioTrack>(engine);
 
             // Load the given audio file.
-            if (filepath != nullptr) {
-                track->loadFromFile(filepath);
+            if (options.filepath != nullptr) {
+                track->loadFromFile(options.filepath);
                 // Set the file name and extension from the file path. 
-                std::filesystem::path p(filepath);
+                std::filesystem::path p(options.filepath);
                 fileName = p.filename();
                 extension = p.extension();
             }
             // New track.
             else {
-                track->setNewTrack();
+                track->setNewTrack(options);
                 created = true;
                 // NB: The temporary file name for this new track (eg: untitled.wav) 
                 //     will be set later in the addDocument function.
