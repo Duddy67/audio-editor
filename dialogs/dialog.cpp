@@ -23,7 +23,7 @@ void Dialog::init() {
  */
 void Dialog::addDefaultButtons() {
     int y = window->h() - BUTTON_HEIGHT- TINY_SPACE;
-
+    // Create buttons.
     okButton = new Fl_Button(window->w() - 2 * BUTTON_WIDTH - 2 * TINY_SPACE, y, BUTTON_WIDTH, BUTTON_HEIGHT, "OK");
     cancelButton = new Fl_Button(window->w() - BUTTON_WIDTH - TINY_SPACE, y, BUTTON_WIDTH, BUTTON_HEIGHT, "Cancel");
 
@@ -48,7 +48,7 @@ DialogResult Dialog::runModal()
     }
 
     //window->clear_modal(); // cleanup modal state
-    return result;         // result could be OK, Cancel, etc.
+    return result;         // OK or Cancel.
 }
 
 void Dialog::onOk() {

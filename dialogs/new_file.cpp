@@ -3,7 +3,6 @@
 NewFileDialog::NewFileDialog(int x, int y, int width, int height, const std::string& title) 
   : Dialog(x, y, width, height, title.c_str())
 {
-    //printf("debog:");
     init();
 }
 
@@ -19,9 +18,10 @@ void NewFileDialog::buildDialog()
     addDefaultButtons();
 }
 
-int NewFileDialog::runModalNewFile()
-{
-    //int mode = stereo->value() ? 1 : 0;
-    //printf("Mode: %i", mode);
-    return runModal();
+void NewFileDialog::onOk() {
+    // Set the option values chosen by the user (ie: stereo/mono).
+    options.stereo = stereo->value() ? true : false;
+
+    Dialog::onOk();
 }
+

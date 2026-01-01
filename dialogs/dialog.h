@@ -8,7 +8,7 @@
 
 enum DialogResult {DIALOG_CANCEL, DIALOG_OK};
 
-// Abstract class meant to be used as basic widget by the dialog windows.
+// Abstract class meant to be used as basic widget by dialog windows.
 class Dialog {
   public:
       Dialog(int x, int y, int width, int height, const std::string& title);

@@ -43,15 +43,18 @@ void Application::new_cb(Fl_Widget *w, void *data)
         app->newFileDlg = new NewFileDialog(app->x() + MODAL_WND_POS, app->y() + MODAL_WND_POS, XLARGE_SPACE, LARGE_SPACE, "New File");
     }
 
-    int result = app->newFileDlg->runModalNewFile();
-        std::cout << "result: " << result << std::endl;
+    if (app->newFileDlg->runModal() == DIALOG_OK) {
+        auto options = app->newFileDlg->getOptions();
+        std::cout << "result: " << options.stereo << std::endl;
 
-    try {
-        app->addDocument();
+        try {
+            app->addDocument();
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to create new document: " << e.what() << std::endl;
+        }
     }
-    catch (const std::runtime_error& e) {
-        std::cerr << "Failed to create new document: " << e.what() << std::endl;
-    }
+
 }
 
 

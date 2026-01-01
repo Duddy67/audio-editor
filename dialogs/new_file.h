@@ -7,16 +7,23 @@
 
 
 class NewFileDialog : public Dialog {
-  public:
-      NewFileDialog(int x, int y, int width, int height, const std::string& title);
-      int runModalNewFile();
-
-  protected:
-      void buildDialog() override;
-
   private:
       Fl_Radio_Round_Button* stereo = nullptr;
       Fl_Radio_Round_Button* mono = nullptr;
+
+      struct NewFileOptions {
+          bool stereo = true;
+      };
+
+      NewFileOptions options;
+
+  public:
+      NewFileDialog(int x, int y, int width, int height, const std::string& title);
+      NewFileOptions getOptions() const { return options; }
+
+  protected:
+      void buildDialog() override;
+      void onOk() override;
 };
 
 #endif
