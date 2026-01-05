@@ -39,7 +39,7 @@ void Application::new_cb(Fl_Widget *w, void *data)
 {
     Application* app = (Application*) data;
 
-    if (app->newFileDlg == 0) {
+    if (app->newFileDlg == nullptr) {
         app->newFileDlg = new NewFileDialog(app->x() + MODAL_WND_POS, app->y() + MODAL_WND_POS, XLARGE_SPACE, LARGE_SPACE, "New File");
     }
 
@@ -55,9 +55,25 @@ void Application::new_cb(Fl_Widget *w, void *data)
             std::cerr << "Failed to create new document: " << e.what() << std::endl;
         }
     }
-
 }
 
+void Application::settings_cb(Fl_Widget *w, void *data)
+{
+    Application* app = (Application*) data;
+
+    if (app->settingsDlg == nullptr) {
+        app->settingsDlg = new SettingsDialog(app->x() + MODAL_WND_POS, app->y() + MODAL_WND_POS,
+                                              XLARGE_SPACE + MEDIUM_SPACE, LARGE_SPACE + MEDIUM_SPACE, "Settings", app);
+    }
+
+    if (app->settingsDlg->runModal() == DIALOG_OK) {
+        auto config = app->loadConfig(CONFIG_FILENAME);
+        config.backend = app->settingsDlg->getBackend().text();
+        config.outputDevice = app->settingsDlg->getOutput().text();
+        config.inputDevice = app->settingsDlg->getInput().text();
+        app->saveConfig(config, CONFIG_FILENAME);
+    }
+}
 
 void Application::playButton_cb(Fl_Widget* w, void* data)
 {

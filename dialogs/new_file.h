@@ -18,7 +18,7 @@ class NewFileDialog : public Dialog {
       NewFileOptions options;
 
   public:
-      NewFileDialog(int x, int y, int width, int height, const std::string& title);
+      NewFileDialog(int x, int y, int width, int height, const char* title);
       NewFileOptions getOptions() const { return options; }
 
   protected:

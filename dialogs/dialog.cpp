@@ -1,9 +1,9 @@
 #include "dialog.h"
 
-Dialog::Dialog(int x, int y, int width, int height, const std::string& title)
+Dialog::Dialog(int x, int y, int width, int height, const char* title)
 {
     // Create the window that contains the dialog.
-    window = new Fl_Window(x, y, width, height, title.c_str());
+    window = new Fl_Window(x, y, width, height, title);
 }
 
 Dialog::~Dialog() = default;
@@ -35,20 +35,25 @@ void Dialog::addDefaultButtons() {
     cancelButton->callback([](Fl_Widget*, void* userdata) {
         static_cast<Dialog*>(userdata)->onCancel();
     }, this);
+
+    // Let derived class modify buttons or add new ones.
+    onButtonsCreated();
 }
 
 DialogResult Dialog::runModal()
 {
-    window->set_modal();   // make this window modal
+    // Make this window modal.
+    window->set_modal();   
     window->show();
 
     // Process events until the dialog is hidden
     while (window->shown()) {
-        Fl::wait();  // handle FLTK events
+        // Handle FLTK events.
+        Fl::wait();  
     }
 
-    //window->clear_modal(); // cleanup modal state
-    return result;         // OK or Cancel.
+    // OK or Cancel.
+    return result;         
 }
 
 void Dialog::onOk() {

@@ -1,6 +1,6 @@
-SRC = main.cpp menu.cpp dialog_wnd.cpp main_callbacks.cpp main_functions.cpp \
-      audio_engine.cpp audio_track.cpp audio_settings.cpp waveform.cpp dialogs/dialog.cpp \
-      dialogs/new_file.cpp
+SRC = main.cpp menu.cpp main_callbacks.cpp main_functions.cpp \
+      audio_engine.cpp audio_track.cpp waveform.cpp dialogs/dialog.cpp \
+      dialogs/new_file.cpp dialogs/settings.cpp
 
 CXX = g++
 CXXFLAGS = -Wall $(shell fltk-config --cxxflags)

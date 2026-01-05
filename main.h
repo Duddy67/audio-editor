@@ -12,13 +12,12 @@
 #include <FL/fl_draw.H>
 #include <errno.h>
 #include <cstdlib>
-#include "dialog_wnd.h"
 #include "tabs.h"
 #include "audio_engine.h"
 #include "vu_meter.h"
 #include "document.h"
-#include "audio_settings.h"
 #include "dialogs/new_file.h"
+#include "dialogs/settings.h"
 #include "constants.h"
 #include "../libraries/json.hpp"
 
@@ -36,13 +35,12 @@ class Application : public Fl_Double_Window
     Fl_Button* pauseBtn = nullptr;
     Fl_Button* recordBtn = nullptr;
     Fl_Light_Button* loopBtn = nullptr;
-    DialogWindow* dialogWnd = nullptr;
     NewFileDialog* newFileDlg = nullptr;
+    SettingsDialog* settingsDlg = nullptr;
     Fl_Native_File_Chooser* fileChooser = nullptr;
     Fl_Group* vuMeters = nullptr;
     VuMeter* vuMeterL = nullptr;
     VuMeter* vuMeterR = nullptr;
-    AudioSettings* audioSettings = nullptr;
     AudioEngine* audioEngine = nullptr;
     Tabs* tabs = nullptr;
     std::string message;
@@ -64,7 +62,6 @@ class Application : public Fl_Double_Window
 
         Application(int w, int h, const char* l, int argc, char* argv[]);
         ~Application() {
-            delete audioSettings;
             delete audioEngine;
         }
 
@@ -111,9 +108,9 @@ class Application : public Fl_Double_Window
         static void noEscapeKey_cb(Fl_Widget* w, void* data);
         static void dialog_cb(Fl_Widget* w, void* data);
         static void file_chooser_cb(Fl_Widget *w, void *data);
-        static void audio_settings_cb(Fl_Widget *w, void *data);
         static void open_cb(Fl_Widget* w, void* data);
         static void new_cb(Fl_Widget* w, void* data);
+        static void settings_cb(Fl_Widget* w, void* data);
         static void save_cb(Fl_Widget* w, void* data);
         static void saveas_cb(Fl_Widget* w, void* data);
         static void cancel_audio_settings_cb(Fl_Widget *w, void *data);

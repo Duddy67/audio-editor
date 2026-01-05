@@ -11,7 +11,7 @@ enum DialogResult {DIALOG_CANCEL, DIALOG_OK};
 // Abstract class meant to be used as basic widget by dialog windows.
 class Dialog {
   public:
-      Dialog(int x, int y, int width, int height, const std::string& title);
+      Dialog(int x, int y, int width, int height, const char* title);
       virtual ~Dialog();
 
       void init();
@@ -34,6 +34,8 @@ class Dialog {
       void addDefaultButtons();
       // To be implemented by derived classes
       virtual void buildDialog() = 0; 
+      // Hook for derived class.
+      virtual void onButtonsCreated() {} 
       Fl_Window& getWindow() const { return *window; } 
 };
 

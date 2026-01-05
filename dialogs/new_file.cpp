@@ -1,7 +1,7 @@
 #include "new_file.h"
 
-NewFileDialog::NewFileDialog(int x, int y, int width, int height, const std::string& title) 
-  : Dialog(x, y, width, height, title.c_str())
+NewFileDialog::NewFileDialog(int x, int y, int width, int height, const char* title) 
+  : Dialog(x, y, width, height, title)
 {
     init();
 }
