@@ -126,7 +126,8 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
 
 void AudioTrack::prepareRecording()
 {
-    ma_uint32 numChannels = isStereo() ? 2 : 1;
+    // Always record stereo.
+    ma_uint32 numChannels = 2;
     // Compute capacity in frames (frames == samples per channel).
     ma_uint32 capacityFrames = INITIAL_BUFFER_SIZE * engine.getDefaultOutputSampleRate();
 
@@ -179,6 +180,7 @@ void AudioTrack::stop()
         // Return possible unused memory (allocated through "reserve") to the system.
         leftSamples.shrink_to_fit();
         rightSamples.shrink_to_fit();
+
         // Stop drawing waveform.
         waveform->stopLiveUpdate();
     }
@@ -201,8 +203,8 @@ void AudioTrack::record()
 
 void AudioTrack::drainAndMergeRingBuffer()
 {
-    const bool stereo = isStereo();
-    const ma_uint32 numChannels = isStereo() ? 2 : 1;
+    // Always recording stereo.
+    const ma_uint32 numChannels = 2;
 
     // --- Step 1: Check how many frames are available in the PCM ring buffer ---
     ma_uint32 framesToRead = ma_pcm_rb_available_read(&captureRing);
@@ -229,21 +231,30 @@ void AudioTrack::drainAndMergeRingBuffer()
     static thread_local std::vector<float> newLeft;
     static thread_local std::vector<float> newRight;
 
-    // --- Step 4: Deinterleave directly (SIMD-friendly pattern) if stereo ---
-    if (stereo) {
-        // Stereo: deinterleave
-        newLeft.resize(framesToRead);
-        newRight.resize(framesToRead);
-        const float* src = interleaved.data();
+    // --- Step 4: Deinterleave directly (SIMD-friendly pattern) ---
+    newLeft.resize(framesToRead);
+    newRight.resize(framesToRead);
+    const float* src = interleaved.data();
+
+    if (isStereo()) {
+        // Stereo: deinterleave.
         for (ma_uint32 i = 0; i < framesToRead; ++i) {
             newLeft[i]  = src[i * 2 + 0];
             newRight[i] = src[i * 2 + 1];
         }
     }
+    // Mono 
     else {
-        // Mono: directly copy (no deinterleave)
-        newLeft.resize(framesToRead);
-        std::memcpy(newLeft.data(), interleaved.data(), framesToRead * sizeof(float));
+        for (ma_uint32 i = 0; i < framesToRead; ++i) {
+            // First deinterleave.
+            const float L = src[i * 2 + 0];
+            const float R = src[i * 2 + 1];
+            // Then average stereo capture in left channel.
+            newLeft[i] = 0.5f * (L + R);
+        }
+
+        // Mirror for playback.
+        newRight = newLeft; 
     }
 
     // --- Step 5: Merge (Punch-In Aware) ---
@@ -257,10 +268,7 @@ void AudioTrack::drainAndMergeRingBuffer()
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
         leftSamples.reserve(newCapacity);
-
-        if (stereo) {
-            rightSamples.reserve(newCapacity);
-        }
+        rightSamples.reserve(newCapacity);
     }
 
     // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
@@ -270,9 +278,7 @@ void AudioTrack::drainAndMergeRingBuffer()
 
         // Overwrite the existing region.
         std::copy_n(newLeft.begin(), overwriteCount, leftSamples.begin() + writeIndex);
-        if (stereo) {
-            std::copy_n(newRight.begin(), overwriteCount, rightSamples.begin() + writeIndex);
-        }
+        std::copy_n(newRight.begin(), overwriteCount, rightSamples.begin() + writeIndex);
 
         // If there are still extra frames beyond oldLength, append them.
         if (overwriteCount < framesToRead) {
@@ -280,19 +286,15 @@ void AudioTrack::drainAndMergeRingBuffer()
             leftSamples.insert(leftSamples.end(),
                                newLeft.begin() + overwriteCount,
                                newLeft.begin() + overwriteCount + appendCount);
-            if (stereo) {
-                rightSamples.insert(rightSamples.end(),
-                                    newRight.begin() + overwriteCount,
-                                    newRight.begin() + overwriteCount + appendCount);
-            }
+            rightSamples.insert(rightSamples.end(),
+                                newRight.begin() + overwriteCount,
+                                newRight.begin() + overwriteCount + appendCount);
         }
     }
     else {
         // Entirely beyond old length → just append.
         leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
-        if (stereo) {
-            rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
-        }
+        rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
     }
 
     // --- Update write cursor to the end of newly written region ---
@@ -363,7 +365,7 @@ bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<flo
 void AudioTrack::setNewTrack(TrackOptions options)
 {
     newTrack = true;
-    // Set the recording format (ie: mono/stereo).
+    // Set the track recording format (ie: mono/stereo).
     stereo = options.stereo;
 }
 
@@ -443,7 +445,8 @@ bool AudioTrack::decodeFile()
 
     if (stereo) {
         // Split into left/right channels
-        leftSamples.clear();  rightSamples.clear();
+        leftSamples.clear(); 
+        rightSamples.clear();
 
         for (int i = 0; i < totalFrames; ++i) {
             leftSamples.push_back(tempData[i * 2]);

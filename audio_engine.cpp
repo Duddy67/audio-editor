@@ -53,7 +53,8 @@ void AudioEngine::initializeOutputDevice() {
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.pDeviceID = &outputDeviceID;
     config.playback.format = defaultOutputFormat;
-    config.playback.channels = defaultOutputChannels;
+    // Always playback stereo.
+    config.playback.channels = 2;
     config.sampleRate = defaultOutputSampleRate;
     config.dataCallback = data_callback;
     config.pUserData = this;
@@ -71,6 +72,7 @@ void AudioEngine::initializeInputDevice()
     ma_device_config config = ma_device_config_init(ma_device_type_capture);
     config.capture.pDeviceID = &inputDeviceID;
     config.capture.format = ma_format_f32;
+    // Always record stereo.
     config.capture.channels = 2;
     config.sampleRate = defaultOutputSampleRate;
     config.dataCallback = data_callback;

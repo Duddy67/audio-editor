@@ -44,8 +44,6 @@ class AudioEngine {
         // The unique id assigned to each track.
         unsigned int trackId = 1;
         const ma_format defaultOutputFormat = ma_format_f32;
-        const ma_uint32 defaultOutputChannels = 2;
-        const ma_uint32 defaultInputChannels = 2;
         const ma_uint32 defaultOutputSampleRate = 44100;
         std::vector<std::string> supportedFormats = {".wav", ".WAV",".mp3", ".MP3", ".flac", ".FLAC", ".ogg", ".OGG"};
         // Used with vu-meters.
@@ -93,8 +91,6 @@ class AudioEngine {
         std::vector<std::string> getSupportedFormats() { return supportedFormats; }
         bool isContextInitialized() { return contextInitialized; }
         ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
-        ma_uint32 getDefaultOutputChannels() { return defaultOutputChannels; }
-        ma_uint32 getDefaultInputChannels() { return defaultInputChannels; }
         ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
         float getCurrentLevelL() const { return currentLevelL.load(); }
         float getCurrentLevelR() const { return currentLevelR.load(); }
