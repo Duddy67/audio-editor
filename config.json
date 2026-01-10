@@ -1,5 +1,0 @@
-{
-    "backend": "ALSA",
-    "inputDevice": "Playback/recording through the PulseAudio sound server",
-    "outputDevice": "Playback/recording through the PulseAudio sound server"
-}
