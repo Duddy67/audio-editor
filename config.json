@@ -1,5 +1,5 @@
 {
-    "backend": "JACK",
-    "inputDevice": "Default Capture Device",
-    "outputDevice": "Default Playback Device"
+    "backend": "ALSA",
+    "inputDevice": "Playback/recording through the PulseAudio sound server",
+    "outputDevice": "Playback/recording through the PulseAudio sound server"
 }

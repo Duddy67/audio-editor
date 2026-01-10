@@ -498,14 +498,21 @@ int WaveformView::handle(int event) {
                 int mouseX = Fl::event_x();
                 int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
 
-                // The mouse is over the left selection edge.
-                if (sample == selectionStartSample) {
+                // Check if mouse is near selection boundaries (with some tolerance).
+
+                // Pixels tolerance.
+                int tolerance = 3; 
+                bool nearStart = abs(sample - selectionStartSample) * zoomLevel < tolerance;
+                bool nearEnd = abs(sample - selectionEndSample) * zoomLevel < tolerance;
+
+                // The mouse is over the left selection boundaries.
+                if (nearStart) {
                     window()->cursor(FL_CURSOR_WE);
                     selectionHandle = LEFT;
                     return 1;
                 }
-                // The mouse is over the right selection edge.
-                else if (sample == selectionEndSample) {
+                // The mouse is over the right selection boundaries.
+                else if (nearEnd) {
                     window()->cursor(FL_CURSOR_WE);
                     selectionHandle = RIGHT;
                     return 1;
