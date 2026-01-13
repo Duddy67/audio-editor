@@ -21,7 +21,6 @@ class Document : public Fl_Group {
         std::string extension;
 
         void renderTrackWaveform() {
-            //auto& track = getTrack();
             AudioTrack& track = engine.getTrack(trackId);
 
             // Compute waveform area leaving space for scrollbar.
@@ -32,8 +31,8 @@ class Document : public Fl_Group {
 
             // Parent Document.
             begin();
-            // Create the WaveformView as a child of Document.
-            track.renderWaveform(wf_x, wf_y, wf_w, wf_h);
+            // Create the track's visual widgets (waveform, marking...) as a children of Document.
+            track.render(wf_x, wf_y, wf_w, wf_h);
 
             Fl_Scrollbar* scrollbar = new Fl_Scrollbar(wf_x, wf_y + wf_h + SCROLLBAR_MARGIN, width, SCROLLBAR_HEIGHT);
             scrollbar->type(FL_HORIZONTAL);
@@ -48,8 +47,8 @@ class Document : public Fl_Group {
 
             track.getWaveform().setScrollbar(scrollbar);
 
-            // Create a dummy box that represents the waveform’s resize area
-            Fl_Box* resize_box = new Fl_Box(wf_x, wf_y, wf_w, SCROLLBAR_HEIGHT);
+            // Important:  Create a dummy box that represents the waveform’s resize area
+            Fl_Box* resize_box = new Fl_Box(wf_x, wf_y + MARKING_AREA_HEIGHT, wf_w, SCROLLBAR_HEIGHT + MARKING_AREA_HEIGHT);
             this->resizable(resize_box);
 
             // Done adding children.
@@ -70,6 +69,7 @@ class Document : public Fl_Group {
             width = W - 20;
             height = H - 100;
 
+            // Create a new track.
             auto track = std::make_unique<AudioTrack>(engine);
 
             // Load the given audio file.

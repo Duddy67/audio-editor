@@ -82,7 +82,7 @@ class Application : public Fl_Double_Window
         std::string truncateText(const std::string &text, int maxWidth, int font, int size);
         size_t getNbDocuments() { return documents.size(); }
         void hideTabs() { tabs->hide(); }
-        AudioTrack& getActiveTrack();
+        Document& getActiveDocument();
         void initAudioSystem();
         AudioEngine& getAudioEngine() { return *audioEngine; }
         VuMeter& getVuMeterL() const { return *vuMeterL; }
@@ -125,6 +125,7 @@ class Application : public Fl_Double_Window
         static void recordButton_cb(Fl_Widget* w, void* data);
         static void loopButton_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
+        static void insert_marker_cb(Fl_Widget* w, void* data);
 };
 
 #endif

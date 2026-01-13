@@ -14,6 +14,7 @@ void Application::createMenu()
     menu->add("Edit/&Past", FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
     menu->add("Edit/&Cut", FL_CTRL + 'x',0, 0, 0);
     menu->add("Edit/&Toolbar", 0,0, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
+    menu->add("Edit/_&Insert Marker", 0, insert_marker_cb, (void*) this);
     menu->add("Edit/_&Settings", 0, settings_cb, (void*) this);
     menu->add("Help", 0, 0, 0, FL_SUBMENU);
     menu->add("Help/Index", 0, 0, 0, 0);

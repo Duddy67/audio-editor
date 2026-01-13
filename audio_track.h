@@ -1,6 +1,7 @@
 #ifndef AUDIO_TRACK_H
 #define AUDIO_TRACK_H
 
+#include <FL/Fl_Group.H>
 #include <string>
 #include <iostream>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include "../libraries/miniaudio.h"
 #include "waveform.h"
 #include "audio_engine.h"
+#include "marking.h"
 
 // Forward declarations.
 class AudioEngine;
@@ -61,6 +63,7 @@ class AudioTrack {
         std::atomic<bool> eof{false};
         OriginalFileFormat originalFileFormat;
         std::unique_ptr<WaveformView> waveform;  
+        std::unique_ptr<Marking> marking;  
         bool newTrack = false;
         // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
@@ -85,7 +88,7 @@ class AudioTrack {
       void mixInto(float* output, int frameCount);
       void recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels);
       void prepareRecording();
-      void renderWaveform(int x, int y, int w, int h);
+      void render(int x, int y, int w, int h);
 
       // Getters.
       std::map<std::string, std::string> getOriginalFileFormat();
@@ -100,6 +103,7 @@ class AudioTrack {
       std::vector<float> getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
       WaveformView& getWaveform() { return *waveform.get(); }
+      Marking& getMarking() { return *marking.get(); }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);

@@ -180,7 +180,7 @@ void Application::addDocument(TrackOptions options)
     tabs->begin();
 
     auto doc = new Document(
-        // Same x as tabs.
+        // Same coordinates as tabs.
         tabs->x(),                
         // Push down for tab bar.
         tabs->y() + tabBarHeight, 
@@ -304,14 +304,14 @@ void Application::removeDocuments()
 }
 
 /*
- * Returns the track corresponding to the active document (ie: tab).
+ * Returns the active document (ie: tab).
  */
-AudioTrack& Application::getActiveTrack()
+Document& Application::getActiveDocument()
 {
     auto tabs = getTabs();
     auto document = static_cast<Document*>(tabs->value());
 
-    return document->getTrack();
+    return *document;
 }
 
 void Application::setMessage(std::string message)

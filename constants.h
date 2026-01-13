@@ -15,6 +15,7 @@ constexpr unsigned int TEXT_SIZE = 13;
 constexpr unsigned int SCROLLBAR_HEIGHT = 15;
 constexpr unsigned int SCROLLBAR_MARGIN = 10;
 constexpr unsigned int INITIAL_BUFFER_SIZE = 10; // In seconds
+constexpr unsigned int MARKING_AREA_HEIGHT = 40;
 constexpr float VU_METER_DECAY_TIME = 1.0f;
 constexpr const char* CONFIG_FILENAME = "config.json";
 

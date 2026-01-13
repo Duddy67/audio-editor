@@ -521,9 +521,13 @@ bool AudioTrack::storeOriginalFileFormat(const char* filename)
     return true;
 }
 
-void AudioTrack::renderWaveform(int x, int y, int w, int h) 
+/*
+ * Create widgets used to visualize audio data such as waveforms, markers... 
+ */
+void AudioTrack::render(int x, int y, int w, int h) 
 {
-    waveform = std::make_unique<WaveformView>(x, y, w, h, *this);
+    marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
+    waveform = std::make_unique<WaveformView>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);
     waveform->take_focus();    
     waveform->setStereoMode(isStereo());    
     waveform->setStereoSamples(getLeftSamples(), getRightSamples());

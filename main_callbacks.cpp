@@ -82,11 +82,11 @@ void Application::playButton_cb(Fl_Widget* w, void* data)
     // Check first a tab (ie: document) is active.
     if (app->tabs->value()) {
         try {
-            auto& track = app->getActiveTrack();
+            auto& track = app->getActiveDocument().getTrack();
             app->playTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
         }
     }
 }
@@ -97,11 +97,11 @@ void Application::stopButton_cb(Fl_Widget* w, void* data)
 
     if (app->tabs->value()) {
         try {
-            auto& track = app->getActiveTrack();
+            auto& track = app->getActiveDocument().getTrack();
             app->stopTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
         }
     }
 }
@@ -112,11 +112,11 @@ void Application::pauseButton_cb(Fl_Widget* w, void* data)
 
     if (app->tabs->value()) {
         try {
-            auto& track = app->getActiveTrack();
+            auto& track = app->getActiveDocument().getTrack();
             app->pauseTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
         }
     }
 }
@@ -127,11 +127,11 @@ void Application::recordButton_cb(Fl_Widget* w, void* data)
 
     if (app->tabs->value()) {
         try {
-            auto& track = app->getActiveTrack();
+            auto& track = app->getActiveDocument().getTrack();
             app->recordTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active track: " << e.what() << std::endl;
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
         }
 
     }
@@ -155,7 +155,7 @@ void Application::update_vu_cb(void* data)
     float peakR = app->getAudioEngine().getCurrentPeakR();
 
     // If playback has stopped, force levels and peaks to decay toward zero.
-    if (!app->getActiveTrack().isPlaying()) {
+    if (!app->getActiveDocument().getTrack().isPlaying()) {
         levelL *= 0.9f;
         levelR *= 0.9f;
         // Accumulate vu-meters decay time.
@@ -176,4 +176,19 @@ void Application::update_vu_cb(void* data)
     app->getVuMeterR().setLevel(levelR, peakR);
 
     Fl::repeat_timeout(0.05, update_vu_cb, data); // 20 FPS
+}
+
+void Application::insert_marker_cb(Fl_Widget* w, void* data)
+{
+    Application* app = (Application*) data;
+
+    if (app->tabs->value()) {
+        try {
+            auto& track = app->getActiveDocument().getTrack();
+            track.getMarking().insertMarker(track.getCurrentSample());
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+        }
+    }
 }

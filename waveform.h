@@ -10,6 +10,7 @@
 
 // Forward declaration.
 class AudioTrack;
+class Marking;
 
 class WaveformView : public Fl_Gl_Window {
         std::vector<float> leftSamples;
@@ -32,6 +33,7 @@ class WaveformView : public Fl_Gl_Window {
         int lastSyncedSample = 0;
         int recordingStartSample = 0;
         AudioTrack& track;
+        Marking& marking;
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
         bool isSelecting = false;
@@ -48,8 +50,8 @@ class WaveformView : public Fl_Gl_Window {
         int handle(int event) override;
 
     public:
-        WaveformView(int X, int Y, int W, int H, AudioTrack& t)
-            : Fl_Gl_Window(X, Y, W, H), track(t) {
+        WaveformView(int X, int Y, int W, int H, AudioTrack& t, Marking& m)
+            : Fl_Gl_Window(X, Y, W, H), track(t), marking(m) {
             end();
         }
 
