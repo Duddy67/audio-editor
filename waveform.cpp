@@ -372,6 +372,22 @@ void WaveformView::draw() {
             glEnd();
         }
     }
+
+    // --- Draw markers (if any) ---
+    for (size_t i = 0; i < marking.getMarkers().size(); i++) {
+        sampleToDraw = marking.getMarkers()[i].position;
+        /*std::cout << "id: " << marking.getMarkers()[i].id << std::endl;
+        std::cout << "position: " << marking.getMarkers()[i].position << std::endl;
+        std::cout << "name: " << marking.getMarkers()[i].name << std::endl;*/
+        float x = (sampleToDraw - scrollOffset) * zoomLevel;
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glLineWidth(1.0f);
+        glBegin(GL_LINES);
+        glVertex2f(x, 0);
+        glVertex2f(x, h());
+
+        glEnd();
+    }
 }
 
 int WaveformView::handle(int event) {

@@ -11,11 +11,11 @@ struct Marker {
     std::string name;
     unsigned int id = 0;
     int position = -1;
+    //Fl_Box* label = nullptr;
 };
 
 class Marking : public Fl_Box {
-        int xPos, yPos, width, height;
-        std::vector<std::unique_ptr<Marker>> markers;  
+        std::vector<Marker> markers;  
 
         unsigned int getNewMarkerId();
 
@@ -24,17 +24,15 @@ class Marking : public Fl_Box {
         Marking(int X, int Y, int W, int H)
             : Fl_Box(X, Y, W, H, 0) 
         {
-            // Compute tab area.
-            xPos = X + 10;
-            yPos = Y + 10;
-            width = W - 20;
-            height = H - 100;
-
+            Fl_Box* label = new Fl_Box(X + 10, Y + 10, 100, 20, "label");
+            label->color(FL_GREEN);
+            label->box(FL_DOWN_BOX);
             box(FL_DOWN_BOX);
         }
 
-        std::vector<Marker> getMarkers();
+        std::vector<Marker> getMarkers() { return markers; }
         void insertMarker(int position);
+        void deleteMarker(unsigned int id);
 };
 
 #endif // MARKING_H

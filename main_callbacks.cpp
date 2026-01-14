@@ -186,6 +186,7 @@ void Application::insert_marker_cb(Fl_Widget* w, void* data)
         try {
             auto& track = app->getActiveDocument().getTrack();
             track.getMarking().insertMarker(track.getCurrentSample());
+            track.getWaveform().redraw();
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get active document: " << e.what() << std::endl;
