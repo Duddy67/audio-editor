@@ -375,11 +375,16 @@ void WaveformView::draw() {
 
     // --- Draw markers (if any) ---
     for (size_t i = 0; i < marking.getMarkers().size(); i++) {
-        sampleToDraw = marking.getMarkers()[i].position;
-        /*std::cout << "id: " << marking.getMarkers()[i].id << std::endl;
-        std::cout << "position: " << marking.getMarkers()[i].position << std::endl;
+        //sampleToDraw = marking.getMarkers()[i].samplePosition;
+        sampleToDraw = marking.getMarkers()[i]->getSamplePosition();
+        //std::cout << "x: " << marking.getMarkers()[i].label->x() << std::endl;
+        /*std::cout << "position: " << marking.getMarkers()[i].position << std::endl;
         std::cout << "name: " << marking.getMarkers()[i].name << std::endl;*/
         float x = (sampleToDraw - scrollOffset) * zoomLevel;
+        // Realign marker's label horizontally up in the marking area.
+        //marking.getMarkers()[i].label->xAlign((int) x);
+        marking.getMarkers()[i]->xAlign((int) x);
+
         glColor3f(0.0f, 1.0f, 0.0f);
         glLineWidth(1.0f);
         glBegin(GL_LINES);
@@ -387,6 +392,8 @@ void WaveformView::draw() {
         glVertex2f(x, h());
 
         glEnd();
+        // Refresh the marking area.
+        marking.redraw();
     }
 }
 
@@ -430,6 +437,7 @@ int WaveformView::handle(int event) {
 
                 // Clamp within sample range
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
+//std::cout << "mouseX: " << mouseX << " sample: " << sample << std::endl; // For debog purpose
 
                 setPlaybackSample(sample);
                 cursorSamplePosition = sample;

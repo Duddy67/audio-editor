@@ -7,8 +7,9 @@
 #include <cmath>
 #include <iostream>
 #include "constants.h"
+#include "marking/marking.h"
 
-// Forward declaration.
+// Forward declarations.
 class AudioTrack;
 class Marking;
 
@@ -53,6 +54,8 @@ class WaveformView : public Fl_Gl_Window {
         WaveformView(int X, int Y, int W, int H, AudioTrack& t, Marking& m)
             : Fl_Gl_Window(X, Y, W, H), track(t), marking(m) {
             end();
+
+            marking.init(this);
         }
 
         std::function<void(int)> onSeekCallback;

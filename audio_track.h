@@ -13,7 +13,7 @@
 #include "../libraries/miniaudio.h"
 #include "waveform.h"
 #include "audio_engine.h"
-#include "marking.h"
+#include "marking/marking.h"
 
 // Forward declarations.
 class AudioEngine;

@@ -64,9 +64,9 @@ class Document : public Fl_Group {
             : Fl_Group(X, Y, W, H), engine(e) 
         {
             // Compute tab area.
-            xPos = X + 10;
-            yPos = Y + 10;
-            width = W - 20;
+            xPos = X + TAB_BORDER_THICKNESS;
+            yPos = Y + TAB_BORDER_THICKNESS;
+            width = W - (TAB_BORDER_THICKNESS * 2);
             height = H - 100;
 
             // Create a new track.
