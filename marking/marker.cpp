@@ -2,26 +2,21 @@
 #include "../audio_track.h"
 
 /*
- * Realigns label horizontally. 
+ * Realigns the marker horizontally. 
  */
-void Marker::xAlign(int x) 
+void Marker::alignX(int x) 
 {
-    position(marking.x() + x, marking.y() + 20);
-    redraw();
+    position(marking.x() + x, marking.y() + (MARKING_AREA_HEIGHT - MARKER_HEIGHT));
 }
 
 int Marker::getNewSamplePosition(int newX)
 {
-    int sample = marking.getWaveform().getScrollOffset() + static_cast<int>(newX / marking.getWaveform().getZoomLevel());
+    // Get the new sample position out of the new x value, the scroll offset and the zoom level. 
+    int samplePos = marking.getWaveform().getScrollOffset() + static_cast<int>((newX - TAB_BORDER_THICKNESS) / marking.getWaveform().getZoomLevel());
     // Clamp within sample range
-    sample = std::clamp(sample, 0, (int)marking.getWaveform().getTrack().getLeftSamples().size() - 1);
+    samplePos = std::clamp(samplePos, 0, (int)marking.getWaveform().getTrack().getLeftSamples().size() - 1);
 
-std::cout << "newX" << newX << std::endl; // For debog purpose
-    if (sample != samplePosition) {
-        samplePosition = sample;
-    }
-
-    return samplePosition;
+    return samplePos;
 }
 
 int Marker::handle(int event) {
@@ -30,9 +25,8 @@ int Marker::handle(int event) {
         case FL_PUSH:
             if (Fl::event_button() == FL_LEFT_MOUSE) {
                 dragging = true;
-                dragX = Fl::event_x();
-            //int newX = x() + (Fl::event_x() - dragX) - TAB_BORDER_THICKNESS;
-            //std::cout << "dragX: " << dragX << " newX" << newX << std::endl; // For debog purpose
+                dragStartX = Fl::event_x();
+
                 return 1;
             }
 
@@ -40,18 +34,19 @@ int Marker::handle(int event) {
 
         case FL_DRAG:
             if (dragging) {
-                int newX = x() + (Fl::event_x() - dragX);
+                int newX = x() + (Fl::event_x() - dragStartX);
                 int minX = marking.x();
                 int maxX = marking.x() + marking.w() - w();
                 newX = std::max(minX, std::min(newX, maxX));
+
+                // Update positions.
                 position(newX, y());
-                dragX = Fl::event_x();
-                //dragY = Fl::event_y();
+                dragStartX = Fl::event_x();
+                samplePosition = getNewSamplePosition(newX);
+
+                // Update widgets.
                 marking.redraw();
-            std::cout << "newX: " << newX << std::endl; // For debog purpose
-                //samplePosition = getNewSamplePosition(newX);
-                /*getNewSamplePosition(newX);
-                marking.getWaveform().redraw();*/
+                marking.getWaveform().redraw();
 
                 return 1;
             }

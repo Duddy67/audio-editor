@@ -15,7 +15,7 @@ class Marker : public Fl_Box {
         Marking& marking;
         int samplePosition = -1;
         bool dragging = false;
-        int dragX;
+        int dragStartX;
 
         int getNewSamplePosition(int x);
 
@@ -29,10 +29,11 @@ class Marker : public Fl_Box {
         }
 
         void setSamplePosition(int position) { samplePosition = position; }
-        void xAlign(int x);
+        void alignX(int x);
         int handle(int event) override;
         unsigned int getId() { return id; }
         int getSamplePosition() { return samplePosition; }
+        bool isDragging() const { return dragging; }
 };
 
 #endif // MARKER_H

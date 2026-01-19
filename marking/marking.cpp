@@ -1,4 +1,5 @@
 #include "marking.h"
+#include "../audio_track.h"
 
 
 void Marking::init(WaveformView* w)
@@ -21,8 +22,10 @@ unsigned int Marking::getNewMarkerId()
 
 void Marking::insertMarker(int samplePosition)
 {
-    Marker* marker = new Marker(0, 0, MARKER_LABEL_WIDTH, 20, "Label", getNewMarkerId(), *this);
+    Marker* marker = new Marker(0, 0, MARKER_WIDTH, MARKER_HEIGHT, "Label", getNewMarkerId(), *this);
     marker->setSamplePosition(samplePosition);
+    float x = (samplePosition - pWaveform->getScrollOffset()) * pWaveform->getZoomLevel();
+    marker->alignX((int) x);
     // Add the new marker widget to the parent marking widget.
     this->add(marker);
     // Store the new marker.

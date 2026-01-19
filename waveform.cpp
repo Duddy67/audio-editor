@@ -375,23 +375,21 @@ void WaveformView::draw() {
 
     // --- Draw markers (if any) ---
     for (size_t i = 0; i < marking.getMarkers().size(); i++) {
-        //sampleToDraw = marking.getMarkers()[i].samplePosition;
         sampleToDraw = marking.getMarkers()[i]->getSamplePosition();
-        //std::cout << "x: " << marking.getMarkers()[i].label->x() << std::endl;
-        /*std::cout << "position: " << marking.getMarkers()[i].position << std::endl;
-        std::cout << "name: " << marking.getMarkers()[i].name << std::endl;*/
         float x = (sampleToDraw - scrollOffset) * zoomLevel;
-        // Realign marker's label horizontally up in the marking area.
-        //marking.getMarkers()[i].label->xAlign((int) x);
-        marking.getMarkers()[i]->xAlign((int) x);
+
+        if (!marking.getMarkers()[i]->isDragging()) {
+            // Realign marker's label horizontally up in the marking area.
+            marking.getMarkers()[i]->alignX((int) x);
+        }
 
         glColor3f(0.0f, 1.0f, 0.0f);
         glLineWidth(1.0f);
         glBegin(GL_LINES);
         glVertex2f(x, 0);
         glVertex2f(x, h());
-
         glEnd();
+
         // Refresh the marking area.
         marking.redraw();
     }
