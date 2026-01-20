@@ -142,6 +142,19 @@ bool WaveformView::selection() {
     return false;
 }
 
+/*
+ * Computes the last drawn x position.
+ */
+float WaveformView::getLastDrawnX() 
+{
+    int totalSamples = leftSamples.size();
+    int visibleSamples = visibleSamplesCount();
+    int endSample = scrollOffset + visibleSamples;
+
+    // Compute and return last drawn x position.
+    return (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
+}
+
 void WaveformView::draw() {
     if (!valid()) {
         glLoadIdentity();
@@ -255,12 +268,7 @@ void WaveformView::draw() {
     };
 
     // If waveform doesn't fill the full width, paint the rest in grey
-    int totalSamples = leftSamples.size();
-    //int visibleSamples = static_cast<int>(w() / zoomLevel);
-    int visibleSamples = visibleSamplesCount();
-    int endSample = scrollOffset + visibleSamples;
-    // compute last drawn x position
-    float lastX = (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
+    float lastX = getLastDrawnX();
 
     if (lastX < (float)w()) {
         glBegin(GL_QUADS);

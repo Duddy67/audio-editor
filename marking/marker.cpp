@@ -34,17 +34,33 @@ int Marker::handle(int event) {
 
         case FL_DRAG:
             if (dragging) {
+                // Calculate new position.
+                // Fl::event_x() gives current mouse X in screen coordinates.
+                // x() is current widget X in screen coordinates.
+                // (Fl::event_x() - dragStartX) = how much mouse moved since start.
                 int newX = x() + (Fl::event_x() - dragStartX);
+
+                // ----- Constrain movement to parent bounds -----
                 int minX = marking.x();
                 int maxX = marking.x() + marking.w() - w();
+                // Clamp newX between minX and maxX.
                 newX = std::max(minX, std::min(newX, maxX));
+
+                // Waveform area width is smaller than main window width. 
+                if (newX > (int)marking.getWaveform().getLastDrawnX() + (int)TAB_BORDER_THICKNESS) {
+                    // Prevent dragging marker beyond the waveform width.
+                    return 1;
+                }
 
                 // Update positions.
                 position(newX, y());
-                dragStartX = Fl::event_x();
                 samplePosition = getNewSamplePosition(newX);
 
-                // Update widgets.
+                // Update dragStart for next FL_DRAG event.
+                // This makes movement relative to last position, not initial.
+                dragStartX = Fl::event_x();
+
+                // Refresh widgets (ie: schedule widget for repainting).
                 marking.redraw();
                 marking.getWaveform().redraw();
 

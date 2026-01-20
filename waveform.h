@@ -76,6 +76,7 @@ class WaveformView : public Fl_Gl_Window {
         int getSelectionStartSample() const { return selectionStartSample; }
         int getSelectionEndSample() const { return selectionEndSample; }
         int getCursorSamplePosition() const { return cursorSamplePosition; }
+        float getLastDrawnX();
 
         // Setters.
 
