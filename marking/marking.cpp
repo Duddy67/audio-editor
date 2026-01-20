@@ -22,7 +22,11 @@ unsigned int Marking::getNewMarkerId()
 
 void Marking::insertMarker(int samplePosition)
 {
-    Marker* marker = new Marker(0, 0, MARKER_WIDTH, MARKER_HEIGHT, "Label", getNewMarkerId(), *this);
+    unsigned int newId = getNewMarkerId();
+    Marker* marker = new Marker(0, 0, MARKER_WIDTH, MARKER_HEIGHT, 0, newId, *this);
+
+    std::string label = "Mark " + std::to_string(newId);
+    marker->copy_label(label.c_str());
     marker->setSamplePosition(samplePosition);
     float x = (samplePosition - pWaveform->getScrollOffset()) * pWaveform->getZoomLevel();
     marker->alignX((int) x);
