@@ -1,5 +1,5 @@
 #include "marking.h"
-#include "../audio_track.h"
+#include "../audio_track.h" // Holds waveform.h
 
 /*
  * Realigns the marker horizontally. 
@@ -24,6 +24,25 @@ int Marker::handle(int event) {
     switch(event) {
         case FL_PUSH:
             if (Fl::event_button() == FL_LEFT_MOUSE) {
+                // Check for double click.
+                if (Fl::event_clicks() > 0) {
+                    // Create the dialog if it doesn't exist yet.
+                    if (renamingDlg == nullptr) {
+                        renamingDlg = new RenamingDialog(x(), y(), XLARGE_SPACE, SMALL_SPACE + MEDIUM_SPACE, "Rename marker");
+                        renamingDlg->hideScrollbar();
+                    }
+
+                    // Set the current name.
+                    renamingDlg->setInitialName(label());
+
+                    if (renamingDlg->runModal() == DIALOG_OK) {
+                        // Get back the new name as label. 
+                        label(renamingDlg->getNewName());
+                    }
+
+                    return 1;
+                }
+
                 dragging = true;
                 dragStartX = Fl::event_x();
 

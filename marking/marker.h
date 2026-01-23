@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <FL/Fl_Box.H>
+#include "../dialogs/renaming.h"
 #include "../constants.h"
 
 // Forward declaration.
@@ -16,6 +17,7 @@ class Marker : public Fl_Box {
         int samplePosition = -1;
         bool dragging = false;
         int dragStartX;
+        RenamingDialog* renamingDlg = nullptr;
 
         int getNewSamplePosition(int x);
 
