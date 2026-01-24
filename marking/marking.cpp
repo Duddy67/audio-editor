@@ -30,10 +30,32 @@ void Marking::insertMarker(int samplePosition)
     marker->setSamplePosition(samplePosition);
     float x = (samplePosition - pWaveform->getScrollOffset()) * pWaveform->getZoomLevel();
     marker->alignX((int) x);
-    // Add the new marker widget to the parent marking widget.
-    this->add(marker);
+    // Add the new marker to the parent widget.
+    add(marker);
     // Store the new marker.
     markers.push_back(marker);
 
-    this->redraw();
+    redraw();
+}
+
+/*
+ * Deletes a marker by the given id.
+ */
+void Marking::deleteMarker(unsigned int id)
+{
+  for (size_t i = 0; i < markers.size(); i++) {
+      if (id == markers[i]->getId()) {
+          // Remove the marker from the parent widget.
+          remove(markers[i]);
+          // Schedules the marker widget for deletion at the next call to the event loop.
+          Fl::delete_widget(markers[i]);
+          // Remove the marker from the marker list.
+          markers.erase(markers.begin() + i);
+
+          redraw();
+          pWaveform->redraw();
+
+          return;
+      }
+  }
 }

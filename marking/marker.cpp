@@ -1,5 +1,5 @@
-#include "marking.h"
 #include "../audio_track.h" // Holds waveform.h
+#include "marking.h"
 
 /*
  * Realigns the marker horizontally. 
@@ -17,6 +17,18 @@ int Marker::getNewSamplePosition(int newX)
     samplePos = std::clamp(samplePos, 0, (int)marking.getWaveform().getTrack().getLeftSamples().size() - 1);
 
     return samplePos;
+}
+
+void Marker::createMenu()
+{
+    menu = new Fl_Menu_Button(0, 0, XLARGE_SPACE, SMALL_SPACE, "Marker menu");
+    menu->type(Fl_Menu_Button::POPUP3);
+    // Create the "delete" menu entry.
+    menu->add("Delete", 0, [](Fl_Widget*, void* data) {
+                                Marker* marker = static_cast<Marker*>(data);
+                                // Delete this marker through parent widget (ie: Marking widget).
+                                marker->marking.deleteMarker(marker->id);
+                            }, (void*) this);
 }
 
 int Marker::handle(int event) {
@@ -45,6 +57,18 @@ int Marker::handle(int event) {
 
                 dragging = true;
                 dragStartX = Fl::event_x();
+
+                return 1;
+            }
+
+            if (Fl::event_button() == FL_RIGHT_MOUSE) {
+                // Make sure the popup menu exists.
+                if (menu == nullptr) {
+                    createMenu();
+                }
+ 
+                // Show menu.
+                menu->popup();
 
                 return 1;
             }

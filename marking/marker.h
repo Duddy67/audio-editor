@@ -1,10 +1,10 @@
 #ifndef MARKER_H
 #define MARKER_H
 
-#include <vector>
 #include <iostream>
 #include <cmath>
 #include <FL/Fl_Box.H>
+#include <FL/Fl_Menu_Button.H>
 #include "../dialogs/renaming.h"
 #include "../constants.h"
 
@@ -18,8 +18,10 @@ class Marker : public Fl_Box {
         bool dragging = false;
         int dragStartX;
         RenamingDialog* renamingDlg = nullptr;
+        Fl_Menu_Button* menu = nullptr;
 
         int getNewSamplePosition(int x);
+        void createMenu();
 
     public:
 
