@@ -37,6 +37,6 @@ class SettingsDialog : public Dialog
       void onCancel() override;
 };
 
-#endif
+#endif // SETTINGS_H
 
 

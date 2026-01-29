@@ -51,6 +51,8 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
             vuMeterL->type(FL_HORIZONTAL);
             vuMeterR->type(FL_HORIZONTAL);
         vuMeters->end();
+
+        time = new Time((TINY_SPACE * 8) + (MEDIUM_SPACE * 10), SMALL_SPACE + TINY_SPACE, LARGE_SPACE, SMALL_SPACE, "00:00:00");
     toolbar->end();
 
     // Create tabs container

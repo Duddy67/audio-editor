@@ -1,3 +1,6 @@
+#ifndef WAVEFORM_H
+#define WAVEFORM_H
+
 #include <GL/gl.h>
 #include <FL/Fl.H>
 #include <FL/Fl_Gl_Window.H>
@@ -90,3 +93,4 @@ class WaveformView : public Fl_Gl_Window {
         void setStereoMode(bool stereo) { isStereo = stereo; }
 };
 
+#endif // WAVEFORM_H

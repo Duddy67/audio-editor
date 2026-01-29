@@ -35,7 +35,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
         // Increment the sample index (ie: ++).
-        int idx = playbackSampleIndex.fetch_add(1);
+        int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
 
         // End of audio file.
         if (idx >= totalFrames) {
@@ -519,6 +519,11 @@ bool AudioTrack::storeOriginalFileFormat(const char* filename)
     ma_decoder_uninit(&decoderProbe);
 
     return true;
+}
+
+void AudioTrack::updateTime()
+{
+    getApplication().getTime().update(playbackSampleIndex.load());
 }
 
 /*

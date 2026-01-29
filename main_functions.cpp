@@ -118,8 +118,10 @@ void Application::initAudioSystem()
         return;
     }
 
-    //audioEngine->printAllDevices();
+    // Set sample rate for time computing.
+    time->setSampleRate(audioEngine->getDefaultOutputSampleRate());
 
+    //audioEngine->printAllDevices(); // For debug purpose.
     std::cout << "=== Audio system initialized ===" << std::endl;
 }
 
@@ -436,7 +438,10 @@ void Application::playTrack(AudioTrack& track)
 
         getButton("record").deactivate();
         startVuMeters();
+        // Launch cursor timer.
         Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+        //
+        Fl::add_timeout(0.01, time_cb, this); 
     }
     else {
         waveform.resetCursor();

@@ -26,4 +26,4 @@ class NewFileDialog : public Dialog {
       void onOk() override;
 };
 
-#endif
+#endif // NEW_FILE_H

@@ -12,13 +12,14 @@
 #include <FL/fl_draw.H>
 #include <errno.h>
 #include <cstdlib>
+#include "constants.h"
 #include "tabs.h"
 #include "audio_engine.h"
 #include "vu_meter.h"
+#include "time.h"
 #include "document.h"
 #include "dialogs/new_file.h"
 #include "dialogs/settings.h"
-#include "constants.h"
 #include "../libraries/json.hpp"
 
 using json = nlohmann::json;
@@ -41,6 +42,7 @@ class Application : public Fl_Double_Window
     Fl_Group* vuMeters = nullptr;
     VuMeter* vuMeterL = nullptr;
     VuMeter* vuMeterR = nullptr;
+    Time* time = nullptr;
     AudioEngine* audioEngine = nullptr;
     Tabs* tabs = nullptr;
     std::string message;
@@ -87,6 +89,7 @@ class Application : public Fl_Double_Window
         AudioEngine& getAudioEngine() { return *audioEngine; }
         VuMeter& getVuMeterL() const { return *vuMeterL; }
         VuMeter& getVuMeterR() const { return *vuMeterR; }
+        Time& getTime() const { return *time; }
         std::string escapeMenuText(const std::string& input);
         Fl_Button& getButton(const char* name);
         void documentHasChanged(unsigned int trackId);
@@ -126,6 +129,7 @@ class Application : public Fl_Double_Window
         static void loopButton_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
         static void insert_marker_cb(Fl_Widget* w, void* data);
+        static void time_cb(void* data);
 };
 
 #endif

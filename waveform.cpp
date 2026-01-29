@@ -443,12 +443,12 @@ int WaveformView::handle(int event) {
 
                 // Clamp within sample range
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
-//std::cout << "mouseX: " << mouseX << " sample: " << sample << std::endl; // For debog purpose
 
                 setPlaybackSample(sample);
                 cursorSamplePosition = sample;
                 // Tell the audio system to seek too.
                 track.setPlaybackSampleIndex(sample);
+                track.updateTime();
 
                 // Start a new selection.
                 if (!isSelecting && selectionHandle == NONE && !track.isPlaying() && !track.isRecording()) {

@@ -27,4 +27,8 @@ typedef enum direction {
     NONE, LEFT, RIGHT, UP, DOWN
 }Direction;
 
+typedef enum timeFormat {
+    HH_MM_SS_SSS, MM_SS_SSS, SS_SSS
+}TimeFormat;
+
 #endif

@@ -1,3 +1,6 @@
+#ifndef VU_METER_H
+#define VU_METER_H
+
 #include <FL/Fl.H>
 #include <FL/Fl_Widget.H>
 #include <FL/fl_draw.H>
@@ -110,3 +113,5 @@ class VuMeter : public Fl_Widget {
             fl_rect(x(), y(), w(), h());
         }
 };
+
+#endif // VU_METER_H

@@ -49,7 +49,7 @@ class AudioTrack {
         std::vector<float> rightSamples;
         int totalFrames = 0;
         bool stereo = true;
-        std::atomic<int> playbackSampleIndex{0};
+        std::atomic<uint64_t> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
@@ -98,7 +98,7 @@ class AudioTrack {
       bool isRecording() const { return recording.load(); }
       bool isEndOfFile() const { return eof.load(); }
       bool isNewTrack() const { return newTrack; }
-      int getCurrentSample() const { return playbackSampleIndex.load(); }
+      uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
       std::vector<float> getLeftSamples() { return leftSamples; }
       std::vector<float> getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
@@ -108,6 +108,7 @@ class AudioTrack {
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
+      void updateTime();
 
       // Setters.
       void setNewTrack(TrackOptions options);

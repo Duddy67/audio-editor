@@ -193,3 +193,24 @@ void Application::insert_marker_cb(Fl_Widget* w, void* data)
         }
     }
 }
+
+void Application::time_cb(void *data)
+{
+    Application* app = (Application*) data;
+
+    if (app->tabs->value()) {
+        try {
+            auto& track = app->getActiveDocument().getTrack();
+
+            if (track.isPlaying()) {
+                track.updateTime();
+                Fl::repeat_timeout(0.01, time_cb, data); 
+            }
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+        }
+    }
+
+}
+
