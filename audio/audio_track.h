@@ -11,7 +11,7 @@
 #include <bits/stdc++.h> // std::map
 #include <time.h>
 #include "../../libraries/miniaudio.h"
-#include "../waveform.h"
+#include "../view/waveform.h"
 #include "audio_engine.h"
 #include "../marking/marking.h"
 

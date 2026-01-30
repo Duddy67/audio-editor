@@ -9,8 +9,8 @@
 #include <functional>
 #include <cmath>
 #include <iostream>
-#include "constants.h"
-#include "marking/marking.h"
+#include "../constants.h"
+#include "../marking/marking.h"
 
 // Forward declarations.
 class AudioTrack;

@@ -1,5 +1,5 @@
-#include "audio/audio_track.h"
-#include "main.h"
+#include "../audio/audio_track.h"
+#include "../main.h"
 
 
 void WaveformView::setStereoSamples(const std::vector<float>& left, const std::vector<float>& right) {
