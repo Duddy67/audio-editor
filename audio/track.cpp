@@ -532,7 +532,7 @@ void Track::updateTime()
 void Track::render(int x, int y, int w, int h) 
 {
     marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
-    waveform = std::make_unique<WaveformView>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);
+    waveform = std::make_unique<Waveform>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);
     waveform->take_focus();    
     waveform->setStereoMode(isStereo());    
     waveform->setStereoSamples(getLeftSamples(), getRightSamples());

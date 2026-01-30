@@ -16,7 +16,7 @@
 class Track;
 class Marking;
 
-class WaveformView : public Fl_Gl_Window {
+class Waveform : public Fl_Gl_Window {
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         Fl_Scrollbar* scrollbar = nullptr;
@@ -54,7 +54,7 @@ class WaveformView : public Fl_Gl_Window {
         int handle(int event) override;
 
     public:
-        WaveformView(int X, int Y, int W, int H, Track& t, Marking& m)
+        Waveform(int X, int Y, int W, int H, Track& t, Marking& m)
             : Fl_Gl_Window(X, Y, W, H), track(t), marking(m) {
             end();
 

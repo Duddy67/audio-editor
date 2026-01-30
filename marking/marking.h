@@ -8,11 +8,11 @@
 #include "marker.h"
 
 // Forward declaration.
-class WaveformView;
+class Waveform;
 
 class Marking : public Fl_Group {
         std::vector<Marker*> markers;  
-        WaveformView* pWaveform = nullptr;  
+        Waveform* pWaveform = nullptr;  
 
         unsigned int getNewMarkerId();
 
@@ -25,8 +25,8 @@ class Marking : public Fl_Group {
             end();
         }
 
-        void init(WaveformView* w);
-        WaveformView& getWaveform() { return *pWaveform; }
+        void init(Waveform* w);
+        Waveform& getWaveform() { return *pWaveform; }
         // Markers can be read but not owned (ie: modified).
         const std::vector<Marker*>& getMarkers() const { return markers; }
         void insertMarker(int samplePosition);

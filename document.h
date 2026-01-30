@@ -41,7 +41,7 @@ class Document : public Fl_Group {
 
             scrollbar->callback([](Fl_Widget* w, void* data) {
                 auto* sb = (Fl_Scrollbar*)w;
-                auto* wf = (WaveformView*)data;
+                auto* wf = (Waveform*)data;
                 wf->setScrollOffset(sb->value());
             }, &track.getWaveform());
 

@@ -2,7 +2,7 @@
 #include "../main.h"
 
 
-void WaveformView::setStereoSamples(const std::vector<float>& left, const std::vector<float>& right) {
+void Waveform::setStereoSamples(const std::vector<float>& left, const std::vector<float>& right) {
     leftSamples = left;
     rightSamples = right;
 
@@ -34,18 +34,18 @@ void WaveformView::setStereoSamples(const std::vector<float>& left, const std::v
     redraw();
 }
 
-void WaveformView::setScrollOffset(int offset) {
+void Waveform::setScrollOffset(int offset) {
     scrollOffset = std::max(0, offset);
     updateScrollbar();
     redraw();
 }
 
-void WaveformView::setScrollbar(Fl_Scrollbar* sb) {
+void Waveform::setScrollbar(Fl_Scrollbar* sb) {
     scrollbar = sb;
     updateScrollbar();
 }
 
-void WaveformView::updateScrollbar() {
+void Waveform::updateScrollbar() {
     if (!scrollbar || leftSamples.empty()) return;
     int visibleSamples = static_cast<int>(w() / zoomLevel);
     int maxOffset = std::max(0, (int)leftSamples.size() - visibleSamples);
@@ -55,7 +55,7 @@ void WaveformView::updateScrollbar() {
     scrollbar->slider_size((float)visibleSamples / leftSamples.size());
 }
 
-void WaveformView::prepareForRecording()
+void Waveform::prepareForRecording()
 {
     scrollOffset = 0;
     recordingStartSample = cursorSamplePosition;
@@ -73,7 +73,7 @@ void WaveformView::prepareForRecording()
     redraw();
 }
 
-void WaveformView::pullNewRecordedSamples()
+void Waveform::pullNewRecordedSamples()
 {
     std::vector<float> newLeft, newRight;
     size_t startIndex, count;
@@ -134,7 +134,7 @@ void WaveformView::pullNewRecordedSamples()
 /*
  * Check whether a selection is currently set.
  */
-bool WaveformView::selection() {
+bool Waveform::selection() {
     if (selectionStartSample >= 0 && selectionEndSample >= 0 && selectionStartSample != selectionEndSample) {
         return true;
     }
@@ -145,7 +145,7 @@ bool WaveformView::selection() {
 /*
  * Computes the last drawn x position.
  */
-float WaveformView::getLastDrawnX() 
+float Waveform::getLastDrawnX() 
 {
     int totalSamples = leftSamples.size();
     int visibleSamples = visibleSamplesCount();
@@ -155,7 +155,7 @@ float WaveformView::getLastDrawnX()
     return (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
 }
 
-void WaveformView::draw() {
+void Waveform::draw() {
     if (!valid()) {
         glLoadIdentity();
         glViewport(0, 0, w(), h());
@@ -403,7 +403,7 @@ void WaveformView::draw() {
     }
 }
 
-int WaveformView::handle(int event) {
+int Waveform::handle(int event) {
     switch (event) {
         case FL_FOCUS:
             //std::cout << "Waveform got focus" << std::endl; // For debog purpose
@@ -612,7 +612,7 @@ int WaveformView::handle(int event) {
     }
 }
 
-void WaveformView::resetCursor()
+void Waveform::resetCursor()
 {
     // Get the cursor's starting point.
     int resetTo = cursorSamplePosition;
@@ -634,7 +634,7 @@ void WaveformView::resetCursor()
 }
 
 // ---- Timer Callback ----
-void WaveformView::update_cursor_timer_cb(void* userdata) {
+void Waveform::update_cursor_timer_cb(void* userdata) {
     auto& track = *(Track*)userdata;  // Dereference to get reference
     auto& waveform = track.getWaveform();
     // Reads from atomic.
@@ -666,7 +666,7 @@ void WaveformView::update_cursor_timer_cb(void* userdata) {
 }
 
 // helper to compute how many samples fit inside the widget width at current zoom
-int WaveformView::visibleSamplesCount() const {
+int Waveform::visibleSamplesCount() const {
     if (zoomLevel <= 0.0f) return (int)leftSamples.size();
     // number of samples that correspond to the width: ceil(w / zoomLevel)
     int vs = static_cast<int>(std::ceil(static_cast<float>(w()) / zoomLevel));
@@ -676,9 +676,9 @@ int WaveformView::visibleSamplesCount() const {
     return vs;
 }
 
-void WaveformView::liveUpdate_cb(void* userdata)
+void Waveform::liveUpdate_cb(void* userdata)
 {
-    WaveformView* self = static_cast<WaveformView*>(userdata);
+    Waveform* self = static_cast<Waveform*>(userdata);
     self->pullNewRecordedSamples();
     self->redraw();
 
@@ -687,7 +687,7 @@ void WaveformView::liveUpdate_cb(void* userdata)
     }
 }
 
-void WaveformView::startLiveUpdate()
+void Waveform::startLiveUpdate()
 {
     if (isLiveUpdating) {
         return;
@@ -698,7 +698,7 @@ void WaveformView::startLiveUpdate()
     Fl::add_timeout(0.30, liveUpdate_cb, this);
 }
 
-void WaveformView::stopLiveUpdate()
+void Waveform::stopLiveUpdate()
 {
     isLiveUpdating = false;
     Fl::remove_timeout(liveUpdate_cb, this);

@@ -62,7 +62,7 @@ class Track {
         // End of file flag.
         std::atomic<bool> eof{false};
         OriginalFileFormat originalFileFormat;
-        std::unique_ptr<WaveformView> waveform;  
+        std::unique_ptr<Waveform> waveform;  
         std::unique_ptr<Marking> marking;  
         bool newTrack = false;
         // Used for GUI.
@@ -102,7 +102,7 @@ class Track {
       std::vector<float> getLeftSamples() { return leftSamples; }
       std::vector<float> getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
-      WaveformView& getWaveform() { return *waveform.get(); }
+      Waveform& getWaveform() { return *waveform.get(); }
       Marking& getMarking() { return *marking.get(); }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }

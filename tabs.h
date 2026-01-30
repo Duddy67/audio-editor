@@ -5,7 +5,7 @@
 
 /*
  * Class that extends the Fl_Tabs widget in order to automatically transfer focus to the
- * child widget (ie: WaveformView) within the tab, which is not performed natively by
+ * child widget (ie: Waveform) within the tab, which is not performed natively by
  * the Fl_Tabs widget.
  */
 

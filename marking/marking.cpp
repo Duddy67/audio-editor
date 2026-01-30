@@ -2,7 +2,7 @@
 #include "../audio/track.h"
 
 
-void Marking::init(WaveformView* w)
+void Marking::init(Waveform* w)
 {
     if (pWaveform == nullptr) {
         pWaveform = w;
