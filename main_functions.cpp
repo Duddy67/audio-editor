@@ -3,7 +3,7 @@
 
 void Application::initBackend()
 {
-    auto backends = getAudioEngine().getBackends();
+    auto backends = getEngine().getBackends();
     auto config = loadConfig(CONFIG_FILENAME);
     unsigned int index = 0;
 
@@ -29,7 +29,7 @@ void Application::initBackend()
     }
 
     // Initialize backend.
-    getAudioEngine().setBackend(config.backend.c_str());
+    getEngine().setBackend(config.backend.c_str());
 }
 
 void Application::initDevices()
@@ -40,7 +40,7 @@ void Application::initDevices()
     // Check for first starting.
     if (config.outputDevice == "") {
         // Privilege duplex devices if available.
-        auto duplexDevices = getAudioEngine().getDuplexDevices();
+        auto duplexDevices = getEngine().getDuplexDevices();
 
         if (duplexDevices.size() != 0) {
             // Search for the device set by the system by default.
@@ -55,7 +55,7 @@ void Application::initDevices()
             config.inputDevice = duplexDevices[index].name;
         }
         else {
-            auto outputDevices = getAudioEngine().getOutputDevices();
+            auto outputDevices = getEngine().getOutputDevices();
             for (size_t i = 0; i < outputDevices.size(); ++i) {
                 if (outputDevices[i].isDefault) {
                     index = i;
@@ -64,7 +64,7 @@ void Application::initDevices()
 
             config.outputDevice = outputDevices[index].name;
 
-            auto inputDevices = getAudioEngine().getInputDevices();
+            auto inputDevices = getEngine().getInputDevices();
             index = 0;
             for (size_t i = 0; i < inputDevices.size(); ++i) {
                 if (inputDevices[i].isDefault) {
@@ -79,27 +79,27 @@ void Application::initDevices()
     }
 
     // Check first if the selected device is duplex. 
-    if (config.outputDevice.compare(config.inputDevice) == 0 && getAudioEngine().isDeviceDuplex(config.outputDevice.c_str())) {
-        getAudioEngine().setDuplexDevice(config.outputDevice.c_str());
-        getAudioEngine().startDuplex();
+    if (config.outputDevice.compare(config.inputDevice) == 0 && getEngine().isDeviceDuplex(config.outputDevice.c_str())) {
+        getEngine().setDuplexDevice(config.outputDevice.c_str());
+        getEngine().startDuplex();
     }
     // If no duplex device, fall back on standard output/input devices.
     else {
-        getAudioEngine().setOutputDevice(config.outputDevice.c_str());
-        getAudioEngine().startPlayback();
-        getAudioEngine().setInputDevice(config.inputDevice.c_str());
-        getAudioEngine().startCapture();
+        getEngine().setOutputDevice(config.outputDevice.c_str());
+        getEngine().startPlayback();
+        getEngine().setInputDevice(config.inputDevice.c_str());
+        getEngine().startCapture();
     }
 }
 
 void Application::initAudioSystem()
 {
     // Create and initialize the audio engine object.
-    audioEngine = new AudioEngine(this);
+    engine = new Engine(this);
 
     try {
         initBackend();
-        std::cout << "Current backend: " << audioEngine->currentBackend() << std::endl;
+        std::cout << "Current backend: " << engine->currentBackend() << std::endl;
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Backend error: " << std::string(e.what()) << std::endl;
@@ -119,9 +119,9 @@ void Application::initAudioSystem()
     }
 
     // Set sample rate for time computing.
-    time->setSampleRate(audioEngine->getDefaultOutputSampleRate());
+    time->setSampleRate(engine->getDefaultOutputSampleRate());
 
-    //audioEngine->printAllDevices(); // For debug purpose.
+    //engine->printAllDevices(); // For debug purpose.
     std::cout << "=== Audio system initialized ===" << std::endl;
 }
 
@@ -188,7 +188,7 @@ void Application::addDocument(TrackOptions options)
         tabs->y() + tabBarHeight, 
         tabs->w(),
         tabs->h() - tabBarHeight,
-        *audioEngine,
+        *engine,
         options
     );
 

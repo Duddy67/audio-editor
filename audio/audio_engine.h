@@ -11,7 +11,7 @@
 class Track;
 class Application;
 
-class AudioEngine {
+class Engine {
         // Structure that holds the backend data.
         struct BackendInfo {
             std::string name;
@@ -62,8 +62,8 @@ class AudioEngine {
         void setCurrentLevel(const float* out, const ma_uint32 frameCount);
 
     public:
-        AudioEngine(Application* app) : pApplication(app) {} 
-        ~AudioEngine();
+        Engine(Application* app) : pApplication(app) {} 
+        ~Engine();
 
         void printAllDevices();
         std::string currentBackend();

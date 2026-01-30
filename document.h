@@ -6,11 +6,11 @@
 #include "audio/track.h"
 
 // Forward declarations.
-class AudioEngine;
+class Engine;
 
 class Document : public Fl_Group {
         int xPos, yPos, width, height;
-        AudioEngine& engine;
+        Engine& engine;
         // Unique track id.
         unsigned int trackId = 0;
         // Track state.
@@ -60,7 +60,7 @@ class Document : public Fl_Group {
 
     public:
 
-        Document(int X, int Y, int W, int H, AudioEngine& e, TrackOptions options)
+        Document(int X, int Y, int W, int H, Engine& e, TrackOptions options)
             : Fl_Group(X, Y, W, H), engine(e) 
         {
             // Compute tab area.

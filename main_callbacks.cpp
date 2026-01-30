@@ -149,10 +149,10 @@ void Application::update_vu_cb(void* data)
 {
     Application* app = (Application*) data;
 
-    float levelL = app->getAudioEngine().getCurrentLevelL();
-    float levelR = app->getAudioEngine().getCurrentLevelR();
-    float peakL = app->getAudioEngine().getCurrentPeakL();
-    float peakR = app->getAudioEngine().getCurrentPeakR();
+    float levelL = app->getEngine().getCurrentLevelL();
+    float levelR = app->getEngine().getCurrentLevelR();
+    float peakL = app->getEngine().getCurrentPeakL();
+    float peakR = app->getEngine().getCurrentPeakR();
 
     // If playback has stopped, force levels and peaks to decay toward zero.
     if (!app->getActiveDocument().getTrack().isPlaying()) {

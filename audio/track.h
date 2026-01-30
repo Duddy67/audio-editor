@@ -16,7 +16,7 @@
 #include "../marking/marking.h"
 
 // Forward declarations.
-class AudioEngine;
+class Engine;
 class Application;
 
 struct TrackOptions {
@@ -44,7 +44,7 @@ class Track {
         ma_context context;
         ma_decoder decoder;
         ma_uint64 frameCount;
-        AudioEngine& engine;
+        Engine& engine;
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
         int totalFrames = 0;
@@ -77,7 +77,7 @@ class Track {
         void workerThreadLoop();
 
     public:
-      Track(AudioEngine& e) : engine(e) {}
+      Track(Engine& e) : engine(e) {}
 
       void loadFromFile(const char *fileName);
       void play();

@@ -31,7 +31,7 @@ void SettingsDialog::buildDialog()
         static_cast<SettingsDialog*>(userdata)->onChangeOutput();
     }, this);
 
-    if (!pApplication->getAudioEngine().isContextInitialized()) {
+    if (!pApplication->getEngine().isContextInitialized()) {
         std::cerr << "Failed to initialize audio system." << std::endl;
     }
     else {
@@ -64,7 +64,7 @@ void SettingsDialog::onCancel()
 void SettingsDialog::buildBackends()
 {
     // Get the required variables.
-    auto backends = pApplication->getAudioEngine().getBackends();
+    auto backends = pApplication->getEngine().getBackends();
     auto config = pApplication->loadConfig(CONFIG_FILENAME);
 
     for (size_t i = 0; i < backends.size(); ++i) {
@@ -80,7 +80,7 @@ void SettingsDialog::buildDevices()
 {
     auto config = pApplication->loadConfig(CONFIG_FILENAME);
 
-    auto outputDevices = pApplication->getAudioEngine().getOutputDevices();
+    auto outputDevices = pApplication->getEngine().getOutputDevices();
     int value = 100, defaultDevice = 0;
     std::string escapedName = ""; 
 
@@ -101,7 +101,7 @@ void SettingsDialog::buildDevices()
     value = (value != 100) ? value : defaultDevice;
     output->value(value);
 
-    auto inputDevices = pApplication->getAudioEngine().getInputDevices();
+    auto inputDevices = pApplication->getEngine().getInputDevices();
     value = 100, defaultDevice = 0;
 
     for (size_t i = 0; i < inputDevices.size(); ++i) {
@@ -131,8 +131,8 @@ void SettingsDialog::onChangeBackend()
 
     try {
         // Reset backend and devices.
-        pApplication->getAudioEngine().setBackend(backend->text());
-        pApplication->getAudioEngine().setOutputDevice(output->text());
+        pApplication->getEngine().setBackend(backend->text());
+        pApplication->getEngine().setOutputDevice(output->text());
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Backend choice error: " << std::string(e.what()) << std::endl;
@@ -153,7 +153,7 @@ void SettingsDialog::onChangeOutput()
 {
     try {
         // Reset the output device.
-        pApplication->getAudioEngine().setOutputDevice(output->text());
+        pApplication->getEngine().setOutputDevice(output->text());
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Output choice error: " << std::string(e.what()) << std::endl;
@@ -183,8 +183,8 @@ void SettingsDialog::cancel()
     // Reset it all to the initial settings set in the config file.
     if (backend->changed() || output->changed()) {
         try {
-            pApplication->getAudioEngine().setBackend(backend->text());
-            pApplication->getAudioEngine().setOutputDevice(output->text());
+            pApplication->getEngine().setBackend(backend->text());
+            pApplication->getEngine().setOutputDevice(output->text());
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Backend choice error: " << std::string(e.what()) << std::endl;

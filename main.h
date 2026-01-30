@@ -43,7 +43,7 @@ class Application : public Fl_Double_Window
     VuMeter* vuMeterL = nullptr;
     VuMeter* vuMeterR = nullptr;
     Time* time = nullptr;
-    AudioEngine* audioEngine = nullptr;
+    Engine* engine = nullptr;
     Tabs* tabs = nullptr;
     std::string message;
     // The number of new documents in tabs.
@@ -64,7 +64,7 @@ class Application : public Fl_Double_Window
 
         Application(int w, int h, const char* l, int argc, char* argv[]);
         ~Application() {
-            delete audioEngine;
+            delete engine;
         }
 
         void createMenu();
@@ -86,7 +86,7 @@ class Application : public Fl_Double_Window
         void hideTabs() { tabs->hide(); }
         Document& getActiveDocument();
         void initAudioSystem();
-        AudioEngine& getAudioEngine() { return *audioEngine; }
+        Engine& getEngine() { return *engine; }
         VuMeter& getVuMeterL() const { return *vuMeterL; }
         VuMeter& getVuMeterR() const { return *vuMeterR; }
         Time& getTime() const { return *time; }

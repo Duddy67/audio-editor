@@ -82,7 +82,7 @@ const char* Application::untitledDefault()
 
 void Application::setSupportedFormats() 
 {
-    std::vector<std::string> formats = getAudioEngine().getSupportedFormats();
+    std::vector<std::string> formats = getEngine().getSupportedFormats();
     unsigned int size = formats.size();
     std::string supportedFormats = "";
 
