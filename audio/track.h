@@ -27,10 +27,10 @@ struct TrackOptions {
 };
 
 /*
- * The AudioTrack class is a kind of interface allowing the application and the MiniAudio
+ * The Track class is a kind of interface allowing the application and the MiniAudio
  * library to communicate with each other.
  */
-class AudioTrack {
+class Track {
     private:
         struct OriginalFileFormat {
             std::string fileName;
@@ -77,7 +77,7 @@ class AudioTrack {
         void workerThreadLoop();
 
     public:
-      AudioTrack(AudioEngine& e) : engine(e) {}
+      Track(AudioEngine& e) : engine(e) {}
 
       void loadFromFile(const char *fileName);
       void play();

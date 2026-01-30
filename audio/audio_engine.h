@@ -8,7 +8,7 @@
 #include "../../libraries/miniaudio.h"
 
 // Forward declarations.
-class AudioTrack;
+class Track;
 class Application;
 
 class AudioEngine {
@@ -40,7 +40,7 @@ class AudioEngine {
         bool inputDeviceInitialized = false;
         bool duplexDeviceInitialized = false;
         // Multiple loaded tracks
-        std::vector<std::unique_ptr<AudioTrack>> tracks;  
+        std::vector<std::unique_ptr<Track>> tracks;  
         // The unique id assigned to each track.
         unsigned int trackId = 1;
         const ma_format defaultOutputFormat = ma_format_f32;
@@ -72,7 +72,7 @@ class AudioEngine {
         void uninitOutput();
         void uninitInput();
         void uninitDuplex();
-        unsigned int addTrack(std::unique_ptr<AudioTrack> track);
+        unsigned int addTrack(std::unique_ptr<Track> track);
         void removeTrack(unsigned int id);
         void startPlayback();
         void stopPlayback();
@@ -96,7 +96,7 @@ class AudioEngine {
         float getCurrentLevelR() const { return currentLevelR.load(); }
         float getCurrentPeakL() const { return currentPeakL.load(); }
         float getCurrentPeakR() const { return currentPeakR.load(); }
-        AudioTrack& getTrack(unsigned int id);
+        Track& getTrack(unsigned int id);
         Application& getApplication() const { return *pApplication; }
 
       // Setters.

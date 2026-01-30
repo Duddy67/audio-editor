@@ -97,10 +97,10 @@ class Application : public Fl_Double_Window
         Document& getDocumentByTrackId(unsigned int trackId);
         void setSupportedFormats();
         void startVuMeters();
-        void playTrack(AudioTrack& track);
-        void stopTrack(AudioTrack& track);
-        void pauseTrack(AudioTrack& track);
-        void recordTrack(AudioTrack& track);
+        void playTrack(Track& track);
+        void stopTrack(Track& track);
+        void pauseTrack(Track& track);
+        void recordTrack(Track& track);
         bool isLooped() const { return loop; }
         int handle(int event) override;
 

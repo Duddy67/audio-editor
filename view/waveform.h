@@ -13,7 +13,7 @@
 #include "../marking/marking.h"
 
 // Forward declarations.
-class AudioTrack;
+class Track;
 class Marking;
 
 class WaveformView : public Fl_Gl_Window {
@@ -36,7 +36,7 @@ class WaveformView : public Fl_Gl_Window {
         int cursorSamplePosition = 0;
         int lastSyncedSample = 0;
         int recordingStartSample = 0;
-        AudioTrack& track;
+        Track& track;
         Marking& marking;
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
@@ -54,7 +54,7 @@ class WaveformView : public Fl_Gl_Window {
         int handle(int event) override;
 
     public:
-        WaveformView(int X, int Y, int W, int H, AudioTrack& t, Marking& m)
+        WaveformView(int X, int Y, int W, int H, Track& t, Marking& m)
             : Fl_Gl_Window(X, Y, W, H), track(t), marking(m) {
             end();
 
@@ -75,7 +75,7 @@ class WaveformView : public Fl_Gl_Window {
         int getScrollOffset() const { return scrollOffset; }
         float getZoomLevel() const { return zoomLevel; }
         int getPlaybackSample() const { return playbackSample; }
-        AudioTrack& getTrack() { return track; }
+        Track& getTrack() { return track; }
         int getSelectionStartSample() const { return selectionStartSample; }
         int getSelectionEndSample() const { return selectionEndSample; }
         int getCursorSamplePosition() const { return cursorSamplePosition; }

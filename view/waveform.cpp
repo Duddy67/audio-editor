@@ -1,4 +1,4 @@
-#include "../audio/audio_track.h"
+#include "../audio/track.h"
 #include "../main.h"
 
 
@@ -635,7 +635,7 @@ void WaveformView::resetCursor()
 
 // ---- Timer Callback ----
 void WaveformView::update_cursor_timer_cb(void* userdata) {
-    auto& track = *(AudioTrack*)userdata;  // Dereference to get reference
+    auto& track = *(Track*)userdata;  // Dereference to get reference
     auto& waveform = track.getWaveform();
     // Reads from atomic.
     int sample = track.getCurrentSample();

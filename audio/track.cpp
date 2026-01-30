@@ -3,7 +3,7 @@
 #include "../../libraries/miniaudio.h"
 
 
-void AudioTrack::setId(unsigned int i)
+void Track::setId(unsigned int i)
 {
     // Make sure ID is initialized only once.
     if (id > 0) {
@@ -17,7 +17,7 @@ void AudioTrack::setId(unsigned int i)
 /*
  * Fills the given output buffer with interleaved stereo samples.
  */
-void AudioTrack::mixInto(float* output, int frameCount) 
+void Track::mixInto(float* output, int frameCount) 
 {
     // Check first if the track is playing.
     if (!playing.load()) {
@@ -77,7 +77,7 @@ void AudioTrack::mixInto(float* output, int frameCount)
     }
 }
 
-void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels)
+void Track::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels)
 {
     // Check first if the track is recording.
     if (!recording.load()) {
@@ -124,7 +124,7 @@ void AudioTrack::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 
     }
 }
 
-void AudioTrack::prepareRecording()
+void Track::prepareRecording()
 {
     // Always record stereo.
     ma_uint32 numChannels = 2;
@@ -157,11 +157,11 @@ void AudioTrack::prepareRecording()
     totalRecordedFrames.store(0, std::memory_order_release);
 }
 
-void AudioTrack::play() { playing.store(true); }
-void AudioTrack::pause() { paused.store(true); }
-void AudioTrack::unpause() { paused.store(false); }
+void Track::play() { playing.store(true); }
+void Track::pause() { paused.store(true); }
+void Track::unpause() { paused.store(false); }
 
-void AudioTrack::stop()
+void Track::stop()
 {
     playing.store(false);
 
@@ -186,7 +186,7 @@ void AudioTrack::stop()
     }
 }
 
-void AudioTrack::record()
+void Track::record()
 {
     prepareRecording();
     // Mark the document as "changed". 
@@ -198,10 +198,10 @@ void AudioTrack::record()
     waveform->startLiveUpdate();
 
     // Start worker thread
-    workerThread = std::thread(&AudioTrack::workerThreadLoop, this);
+    workerThread = std::thread(&Track::workerThreadLoop, this);
 }
 
-void AudioTrack::drainAndMergeRingBuffer()
+void Track::drainAndMergeRingBuffer()
 {
     // Always recording stereo.
     const ma_uint32 numChannels = 2;
@@ -320,7 +320,7 @@ void AudioTrack::drainAndMergeRingBuffer()
     newDataAvailable.store(true, std::memory_order_release);
 }
 
-void AudioTrack::workerThreadLoop()
+void Track::workerThreadLoop()
 {
     // Lower priority to avoid starving GUI
     // (optional, platform-specific)
@@ -338,7 +338,7 @@ void AudioTrack::workerThreadLoop()
 }
 
 // Safe method that copies only new data
-bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount) {
+bool Track::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount) {
     if (!newDataAvailable.load(std::memory_order_acquire)) {
         return false;
     }
@@ -362,7 +362,7 @@ bool AudioTrack::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<flo
     return true;
 }
 
-void AudioTrack::setNewTrack(TrackOptions options)
+void Track::setNewTrack(TrackOptions options)
 {
     newTrack = true;
     // Set the track recording format (ie: mono/stereo).
@@ -372,7 +372,7 @@ void AudioTrack::setNewTrack(TrackOptions options)
 /*
  * Loads a given audio file.
  */
-void AudioTrack::loadFromFile(const char *filename)
+void Track::loadFromFile(const char *filename)
 {
     printf("Load audio file '%s'\n", filename); // Debog.
     // First ensure the file format is supported.
@@ -418,7 +418,7 @@ void AudioTrack::loadFromFile(const char *filename)
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool AudioTrack::decodeFile()
+bool Track::decodeFile()
 {
     frameCount = 0;
 
@@ -463,7 +463,7 @@ bool AudioTrack::decodeFile()
     return true;
 }
 
-void AudioTrack::save(const char* filename)
+void Track::save(const char* filename)
 {
     ma_encoder_config config = ma_encoder_config_init(
         ma_encoding_format_wav,
@@ -499,7 +499,7 @@ void AudioTrack::save(const char* filename)
 /*
  * Probes the original file format and store its data.
  */
-bool AudioTrack::storeOriginalFileFormat(const char* filename)
+bool Track::storeOriginalFileFormat(const char* filename)
 {
     // Initialize a temporary decoder without any config data (ie: NULL).
     ma_decoder decoderProbe;
@@ -521,7 +521,7 @@ bool AudioTrack::storeOriginalFileFormat(const char* filename)
     return true;
 }
 
-void AudioTrack::updateTime()
+void Track::updateTime()
 {
     getApplication().getTime().update(playbackSampleIndex.load());
 }
@@ -529,7 +529,7 @@ void AudioTrack::updateTime()
 /*
  * Create widgets used to visualize audio data such as waveforms, markers... 
  */
-void AudioTrack::render(int x, int y, int w, int h) 
+void Track::render(int x, int y, int w, int h) 
 {
     marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
     waveform = std::make_unique<WaveformView>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);

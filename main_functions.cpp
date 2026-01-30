@@ -419,7 +419,7 @@ void Application::startVuMeters()
     Fl::add_timeout(0.05, update_vu_cb, this);
 }
 
-void Application::playTrack(AudioTrack& track)
+void Application::playTrack(Track& track)
 {
     auto& waveform = track.getWaveform();
 
@@ -448,7 +448,7 @@ void Application::playTrack(AudioTrack& track)
     }
 }
 
-void Application::stopTrack(AudioTrack& track)
+void Application::stopTrack(Track& track)
 {
     auto& waveform = track.getWaveform();
 
@@ -469,7 +469,7 @@ void Application::stopTrack(AudioTrack& track)
     waveform.resetCursor();
 }
 
-void Application::pauseTrack(AudioTrack& track)
+void Application::pauseTrack(Track& track)
 {
     auto& waveform = track.getWaveform();
 
@@ -487,7 +487,7 @@ void Application::pauseTrack(AudioTrack& track)
     }
 }
 
-void Application::recordTrack(AudioTrack& track)
+void Application::recordTrack(Track& track)
 {
     auto& waveform = track.getWaveform();
 

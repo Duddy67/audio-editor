@@ -1,5 +1,5 @@
 #include "audio_engine.h"
-#include "audio_track.h"
+#include "track.h"
 #include <iostream>
 
 /*
@@ -361,7 +361,7 @@ void AudioEngine::stopDuplex()  { ma_device_stop(&duplexDevice); }
 /*
  * Adds a new track to the track list.
  */
-unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
+unsigned int AudioEngine::addTrack(std::unique_ptr<Track> track)
 {
     // Set a brand new id for this track.
     track->setId(trackId++);
@@ -375,7 +375,7 @@ unsigned int AudioEngine::addTrack(std::unique_ptr<AudioTrack> track)
 /*
  * Returns a track by its id.
  */
-AudioTrack& AudioEngine::getTrack(unsigned int id) 
+Track& AudioEngine::getTrack(unsigned int id) 
 {
     for (auto& t : tracks) {
         if (t->getId() == id) {
@@ -392,10 +392,10 @@ AudioTrack& AudioEngine::getTrack(unsigned int id)
 void AudioEngine::removeTrack(unsigned int id)
 {
     auto it = std::find_if(tracks.begin(), tracks.end(),
-    [id](const std::unique_ptr<AudioTrack>& t) { return t->getId() == id; });
+    [id](const std::unique_ptr<Track>& t) { return t->getId() == id; });
 
     if (it != tracks.end()) {
-        // unique_ptr destructor deletes the owned AudioTrack.
+        // unique_ptr destructor deletes the owned Track.
         tracks.erase(it); 
     }
     // No such track. Throw an exception in case some functions need the info.

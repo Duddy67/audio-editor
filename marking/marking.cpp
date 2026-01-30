@@ -1,5 +1,5 @@
 #include "marking.h"
-#include "../audio/audio_track.h"
+#include "../audio/track.h"
 
 
 void Marking::init(WaveformView* w)

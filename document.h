@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
-#include "audio/audio_track.h"
+#include "audio/track.h"
 
 // Forward declarations.
 class AudioEngine;
@@ -21,7 +21,7 @@ class Document : public Fl_Group {
         std::string extension;
 
         void renderTrackWaveform() {
-            AudioTrack& track = engine.getTrack(trackId);
+            Track& track = engine.getTrack(trackId);
 
             // Compute waveform area leaving space for scrollbar.
             int wf_x = xPos;
@@ -70,7 +70,7 @@ class Document : public Fl_Group {
             height = H - 100;
 
             // Create a new track.
-            auto track = std::make_unique<AudioTrack>(engine);
+            auto track = std::make_unique<Track>(engine);
 
             // Load the given audio file.
             if (options.filepath != nullptr) {
@@ -94,7 +94,7 @@ class Document : public Fl_Group {
             renderTrackWaveform();
         }
 
-        AudioTrack& getTrack() { return engine.getTrack(trackId); }
+        Track& getTrack() { return engine.getTrack(trackId); }
         unsigned int getTrackId() const { return trackId; }
         void removeTrack() { engine.removeTrack(trackId); }
         bool isChanged() const { return changed; }
