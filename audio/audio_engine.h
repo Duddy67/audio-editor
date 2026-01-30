@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
-#include "../libraries/miniaudio.h"
+#include "../../libraries/miniaudio.h"
 
 // Forward declarations.
 class AudioTrack;

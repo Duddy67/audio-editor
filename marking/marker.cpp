@@ -1,4 +1,4 @@
-#include "../audio_track.h" // Holds waveform.h
+#include "../audio/audio_track.h" // Holds waveform.h
 #include "marking.h"
 
 /*

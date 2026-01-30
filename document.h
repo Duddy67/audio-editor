@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
-#include "audio_track.h"
+#include "audio/audio_track.h"
 
 // Forward declarations.
 class AudioEngine;

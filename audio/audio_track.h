@@ -10,10 +10,10 @@
 #include <thread>
 #include <bits/stdc++.h> // std::map
 #include <time.h>
-#include "../libraries/miniaudio.h"
-#include "waveform.h"
+#include "../../libraries/miniaudio.h"
+#include "../waveform.h"
 #include "audio_engine.h"
-#include "marking/marking.h"
+#include "../marking/marking.h"
 
 // Forward declarations.
 class AudioEngine;

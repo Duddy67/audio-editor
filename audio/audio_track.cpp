@@ -1,6 +1,6 @@
-#include "main.h"
+#include "../main.h"
 #define MINIAUDIO_IMPLEMENTATION
-#include "../libraries/miniaudio.h"
+#include "../../libraries/miniaudio.h"
 
 
 void AudioTrack::setId(unsigned int i)
