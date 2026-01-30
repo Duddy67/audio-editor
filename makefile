@@ -16,7 +16,7 @@ DIR_OBJS = $(addprefix $(DIR_OBJ), $(OBJS))
 DEPS = $(DIR_OBJS:.o=.d)
 
 # === Target ===
-EXE = audioEditor
+EXE = Editor
 
 # === Build rules ===
 all: $(EXE)
