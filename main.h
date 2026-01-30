@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include "constants.h"
 #include "tabs.h"
-#include "audio/audio_engine.h"
+#include "audio/engine.h"
 #include "widgets/vu_meter.h"
 #include "widgets/time.h"
 #include "document.h"

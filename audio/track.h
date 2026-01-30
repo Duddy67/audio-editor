@@ -12,7 +12,7 @@
 #include <time.h>
 #include "../../libraries/miniaudio.h"
 #include "../view/waveform.h"
-#include "audio_engine.h"
+#include "engine.h"
 #include "../marking/marking.h"
 
 // Forward declarations.
