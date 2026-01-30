@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Menu_Button.H>
-#include "constants.h"
+#include "../constants.h"
 
 
 class Time : public Fl_Box {

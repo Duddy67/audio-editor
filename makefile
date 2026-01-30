@@ -2,7 +2,7 @@
 SRC = main.cpp menu.cpp main_callbacks.cpp main_functions.cpp \
       audio/audio_engine.cpp audio/audio_track.cpp view/waveform.cpp dialogs/dialog.cpp \
       dialogs/new_file.cpp dialogs/settings.cpp marking/marking.cpp \
-      marking/marker.cpp dialogs/renaming.cpp time.cpp
+      marking/marker.cpp dialogs/renaming.cpp widgets/time.cpp
 
 # === Compiler setup ===
 CXX = g++
