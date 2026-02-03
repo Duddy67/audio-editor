@@ -10,12 +10,44 @@ void Application::createMenu()
     menu->add("File/_&Save as", 0, saveas_cb, (void*) this);
     menu->add("File/&Quit", FL_CTRL + 'q',(Fl_Callback*) quit_cb, (void*) this);
     menu->add("Edit", 0, 0, 0, FL_SUBMENU);
+    menu->add("Edit/&Undo", 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      // Check first a tab (ie: document) is active.
+                                      if (app->tabs->value()) {
+                                          try {
+                                              auto& track = app->getActiveDocument().getTrack();
+                                              app->undo(track);
+                                          }
+                                          catch (const std::runtime_error& e) {
+                                              std::cerr << "Failed to get active document: " << e.what() << std::endl;
+                                          }
+                                      }
+                                  }, (void*) this);
+    menu->add("Edit/&Redo", 0, 0, 0, 0);
     menu->add("Edit/&Copy", FL_CTRL + 'c',0, 0, 0);
     menu->add("Edit/&Past", FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
     menu->add("Edit/&Cut", FL_CTRL + 'x',0, 0, 0);
     menu->add("Edit/&Toolbar", 0,0, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
     menu->add("Edit/_&Insert Marker", 0, insert_marker_cb, (void*) this);
     menu->add("Edit/_&Settings", 0, settings_cb, (void*) this);
+    menu->add("Process", 0, 0, 0, FL_SUBMENU);
+    menu->add("Process/&Mute", 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      // Check first a tab (ie: document) is active.
+                                      if (app->tabs->value()) {
+                                          try {
+                                              auto& track = app->getActiveDocument().getTrack();
+                                              app->onMute(track);
+                                          }
+                                          catch (const std::runtime_error& e) {
+                                              std::cerr << "Failed to get active document: " << e.what() << std::endl;
+                                          }
+                                      }
+                                  }, (void*) this);
+    menu->add("Process/&Normalize", 0,0, 0, 0);
+    menu->add("Process/&Volume", 0,0, 0, 0);
+    menu->add("Process/&Fade in", 0,0, 0, 0);
+    menu->add("Process/&Fade out", 0,0, 0, 0);
     menu->add("Help", 0, 0, 0, FL_SUBMENU);
     menu->add("Help/Index", 0, 0, 0, 0);
     menu->add("Help/About", 0, 0, 0, 0);

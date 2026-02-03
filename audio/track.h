@@ -99,8 +99,8 @@ class Track {
       bool isEndOfFile() const { return eof.load(); }
       bool isNewTrack() const { return newTrack; }
       uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
-      std::vector<float> getLeftSamples() { return leftSamples; }
-      std::vector<float> getRightSamples() { return rightSamples; }
+      std::vector<float>& getLeftSamples() { return leftSamples; }
+      std::vector<float>& getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
       Waveform& getWaveform() { return *waveform.get(); }
       Marking& getMarking() { return *marking.get(); }

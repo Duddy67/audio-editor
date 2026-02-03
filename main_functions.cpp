@@ -1,4 +1,5 @@
 #include "main.h"
+#include "audio/editing/mute.h"
 #include <cstdlib>
 
 void Application::initBackend()
@@ -120,6 +121,7 @@ void Application::initAudioSystem()
 
     // Set sample rate for time computing.
     time->setSampleRate(engine->getDefaultOutputSampleRate());
+    editHistory = new EditHistory();
 
     //engine->printAllDevices(); // For debug purpose.
     std::cout << "=== Audio system initialized ===" << std::endl;
@@ -479,7 +481,7 @@ void Application::pauseTrack(Track& track)
     }
     else if (track.isPaused() && !track.isPlaying()) {
         // Resume from where playback paused
-        int resumeSample = waveform.getPlaybackSample();
+        int resumeSample = waveform.getCursorSamplePosition();
         track.setPlaybackSampleIndex(resumeSample);
         track.unpause();
         track.play();
@@ -497,6 +499,35 @@ void Application::recordTrack(Track& track)
         getButton("play").deactivate();
         Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
     }
+}
+
+void Application::undo(Track& track)
+{
+    getEditHistory().undo(track);
+    auto& waveform = track.getWaveform();
+    waveform.redraw();
+}
+
+///// Processes /////
+
+void Application::onMute(Track& track)
+{
+    // Get the current selection.
+    auto& waveform = track.getWaveform();
+    int start = waveform.getSelectionStartSample();
+    int end = waveform.getSelectionEndSample();
+
+    if (start >= end) {
+        return; 
+    }
+
+    auto muteCmd = std::make_unique<Mute>(start, end);
+    getEditHistory().apply(std::move(muteCmd), track);
+
+    waveform.redraw();
+
+    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Undo");
+    menuItem->activate();
 }
 
 int Application::handle(int event) {

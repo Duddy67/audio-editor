@@ -29,11 +29,11 @@ class Waveform : public Fl_Gl_Window {
         // Pixels per sample.
         float zoomLevel = 1.0f;
         int scrollOffset = 0;
-        // -1 = not playing
-        int playbackSample = -1;
         bool isStereo = true;
-        // Starting position of the cursor. It can be manually moved.
+        // Current position of the cursor. It can be manually moved.
         int cursorSamplePosition = 0;
+        // Inintial position of the cursor.
+        int initialSamplePosition = 0;
         int lastSyncedSample = 0;
         int recordingStartSample = 0;
         Track& track;
@@ -74,23 +74,23 @@ class Waveform : public Fl_Gl_Window {
 
         int getScrollOffset() const { return scrollOffset; }
         float getZoomLevel() const { return zoomLevel; }
-        int getPlaybackSample() const { return playbackSample; }
         Track& getTrack() { return track; }
         int getSelectionStartSample() const { return selectionStartSample; }
         int getSelectionEndSample() const { return selectionEndSample; }
         int getCursorSamplePosition() const { return cursorSamplePosition; }
         float getLastDrawnX();
+        std::vector<float>& getLeftSamples() { return leftSamples; }
+        std::vector<float>& getRightSamples() { return rightSamples; }
 
         // Setters.
 
         void setStereoSamples(const std::vector<float>& left, const std::vector<float>& right);
         void setScrollOffset(int offset);
         void setScrollbar(Fl_Scrollbar* sb);
-        void setPlaybackSample(int sample) {
-            playbackSample = sample;
-            redraw();
-        }
+        void setCursorSamplePosition(int sample) { cursorSamplePosition = sample; }
         void setStereoMode(bool stereo) { isStereo = stereo; }
+        void setSelectionStartSample(int start) { selectionStartSample = start; }
+        void setSelectionEndSample(int end) { selectionEndSample = end; }
 };
 
 #endif // WAVEFORM_H

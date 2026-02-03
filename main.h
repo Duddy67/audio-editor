@@ -18,6 +18,7 @@
 #include "widgets/vu_meter.h"
 #include "widgets/time.h"
 #include "document.h"
+#include "audio/editing/edit_history.h"
 #include "dialogs/new_file.h"
 #include "dialogs/settings.h"
 #include "../libraries/json.hpp"
@@ -44,6 +45,7 @@ class Application : public Fl_Double_Window
     VuMeter* vuMeterR = nullptr;
     Time* time = nullptr;
     Engine* engine = nullptr;
+    EditHistory* editHistory = nullptr; 
     Tabs* tabs = nullptr;
     std::string message;
     // The number of new documents in tabs.
@@ -90,6 +92,7 @@ class Application : public Fl_Double_Window
         VuMeter& getVuMeterL() const { return *vuMeterL; }
         VuMeter& getVuMeterR() const { return *vuMeterR; }
         Time& getTime() const { return *time; }
+        EditHistory& getEditHistory() const { return *editHistory; }
         std::string escapeMenuText(const std::string& input);
         Fl_Button& getButton(const char* name);
         void documentHasChanged(unsigned int trackId);
@@ -103,6 +106,8 @@ class Application : public Fl_Double_Window
         void recordTrack(Track& track);
         bool isLooped() const { return loop; }
         int handle(int event) override;
+        void onMute(Track& track);
+        void undo(Track& track);
 
         Fl_Tabs* getTabs() const { return tabs; }
 

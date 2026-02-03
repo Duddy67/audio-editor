@@ -16,6 +16,10 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     menu->textsize(TEXT_SIZE);
     menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Toolbar");
     menuItem->clear();
+    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Undo");
+    menuItem->deactivate();
+    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Redo");
+    menuItem->deactivate();
 
     toolbar = new Fl_Group(0, SMALL_SPACE, w, SMALL_SPACE + (TINY_SPACE * 2));
         toolbar->box(FL_FLAT_BOX);

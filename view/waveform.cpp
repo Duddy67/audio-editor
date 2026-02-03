@@ -356,12 +356,9 @@ void Waveform::draw() {
     if (track.isRecording()) {
         sampleToDraw = track.getCaptureWriteIndex();
     }
-    else if (track.isPlaying() || track.isPaused()) {
-        // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused).
-        sampleToDraw = playbackSample;
-    }
+    // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused) 
+    // or has been manually moved (eg: mouse click, Home key...).
     else {
-        // The cursor has been manually moved (eg: mouse click, Home key...).
         sampleToDraw = cursorSamplePosition;
     }
 
@@ -444,7 +441,7 @@ int Waveform::handle(int event) {
                 // Clamp within sample range
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
 
-                setPlaybackSample(sample);
+                initialSamplePosition = sample;
                 cursorSamplePosition = sample;
                 // Tell the audio system to seek too.
                 track.setPlaybackSampleIndex(sample);
@@ -461,6 +458,8 @@ int Waveform::handle(int event) {
                 if (selectionHandle != NONE) {
                     isSelecting = true;
                 }
+
+                redraw();
 
                 // Event handled - Stop propagation.
                 return 1;
@@ -482,7 +481,6 @@ int Waveform::handle(int event) {
                     }
 
                     // Always placing the cursor at the start of the selection.
-                    setPlaybackSample(selectionStartSample);
                     cursorSamplePosition = selectionStartSample;
                     // Tell the audio system to seek too.
                     track.setPlaybackSampleIndex(selectionStartSample);
@@ -581,8 +579,9 @@ int Waveform::handle(int event) {
             else if (key == FL_Home) {
                 // Process only when playback is stopped.
                 if (!track.isPlaying()) {
-                    // Reset the audio cursor to the start position.
+                    // Set positions to the start.
                     cursorSamplePosition = 0;
+                    initialSamplePosition = 0;
                     resetCursor();
 
                     return 1;
@@ -593,8 +592,9 @@ int Waveform::handle(int event) {
             else if (key == FL_End) {
                 // Process only when playback is stopped.
                 if (!track.isPlaying()) {
-                    // Take the audio cursor to the end position.
+                    // Set positions to the end.
                     cursorSamplePosition = static_cast<int>(leftSamples.size()) - 1;
+                    initialSamplePosition = static_cast<int>(leftSamples.size()) - 1;
                     resetCursor();
 
                     return 1;
@@ -614,8 +614,8 @@ int Waveform::handle(int event) {
 
 void Waveform::resetCursor()
 {
-    // Get the cursor's starting point.
-    int resetTo = cursorSamplePosition;
+    // Get the cursor's initial position.
+    int resetTo = initialSamplePosition;
     // Reset the cursor to its initial audio position.
     track.setPlaybackSampleIndex(resetTo);
 
@@ -640,7 +640,7 @@ void Waveform::update_cursor_timer_cb(void* userdata) {
     // Reads from atomic.
     int sample = track.getCurrentSample();
     // Synchronize view with audio. 
-    waveform.setPlaybackSample(sample);
+    waveform.setCursorSamplePosition(sample);
 
     // --- Smart auto-scroll ---
     // Auto-scroll the view if cursor gets near right edge
@@ -658,6 +658,8 @@ void Waveform::update_cursor_timer_cb(void* userdata) {
 
     // Assuming left and right channels are the same length.
     int totalSamples = static_cast<int>(track.getLeftSamples().size());
+
+    waveform.redraw();
 
     if (sample < totalSamples && track.isPlaying()) {
         // ~60 FPS
