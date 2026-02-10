@@ -18,7 +18,6 @@
 #include "widgets/vu_meter.h"
 #include "widgets/time.h"
 #include "document.h"
-#include "audio/editing/edit_history.h"
 #include "dialogs/new_file.h"
 #include "dialogs/settings.h"
 #include "../libraries/json.hpp"
@@ -29,7 +28,8 @@ class Application : public Fl_Double_Window
 {
     std::vector<Document*> documents;
     Fl_Menu_Bar* menu = nullptr;
-    Fl_Menu_Item* menuItem = nullptr;
+    Fl_Menu_Item* undoMenuItem = nullptr;
+    Fl_Menu_Item* redoMenuItem = nullptr;
     Fl_Group* toolbar = nullptr;
     Fl_Multiline_Output* fileInfo = nullptr;
     Fl_Button* playBtn = nullptr;
@@ -45,8 +45,10 @@ class Application : public Fl_Double_Window
     VuMeter* vuMeterR = nullptr;
     Time* time = nullptr;
     Engine* engine = nullptr;
-    EditHistory* editHistory = nullptr; 
     Tabs* tabs = nullptr;
+    // Stores menu item labels to prevent trash characters (eg: ^$¨)
+    // when updating labels.
+    std::map<Fl_Menu_Item*, std::string> menuItemLabels;
     std::string message;
     // The number of new documents in tabs.
     unsigned int newDocuments = 0;
@@ -92,7 +94,6 @@ class Application : public Fl_Double_Window
         VuMeter& getVuMeterL() const { return *vuMeterL; }
         VuMeter& getVuMeterR() const { return *vuMeterR; }
         Time& getTime() const { return *time; }
-        EditHistory& getEditHistory() const { return *editHistory; }
         std::string escapeMenuText(const std::string& input);
         Fl_Button& getButton(const char* name);
         void documentHasChanged(unsigned int trackId);
@@ -107,8 +108,16 @@ class Application : public Fl_Double_Window
         bool isLooped() const { return loop; }
         int handle(int event) override;
         void onMute(Track& track);
-        void undo(Track& track);
-
+        void onFadeIn(Track& track);
+        void onFadeOut(Track& track);
+        void onUndo(Track& track);
+        void onRedo(Track& track);
+        void audioEdit(EditID id);
+        const Selection getSelection(Track& track);
+        void updateMenuItem(MenuItemID menuID, Action action, const std::string& label = "");
+        const std::string* getMenuItemLabel(Fl_Menu_Item* item) const;
+        void setMenuItemLabel(Fl_Menu_Item* item, const std::string& label) { menuItemLabels[item] = label; }
+        Fl_Menu_Item* getMenuItem(MenuItemID menuItemID);
         Fl_Tabs* getTabs() const { return tabs; }
 
         // Call back functions.

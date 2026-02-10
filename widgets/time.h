@@ -57,7 +57,7 @@ class Time : public Fl_Box {
 
     public:
 
-        Time(int X, int Y, int W, int H, const char* L, TimeFormat tf = MM_SS_SSS)
+        Time(int X, int Y, int W, int H, const char* L, TimeFormat tf = TimeFormat::MM_SS_SSS)
             : Fl_Box(X, Y, W, H, L), timeFormat(tf)
         {
             color(FL_WHITE);

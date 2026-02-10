@@ -41,7 +41,7 @@ class Waveform : public Fl_Gl_Window {
         int visibleSamplesCount() const;
         bool isLiveUpdating = false;
         bool isSelecting = false;
-        Direction selectionHandle = NONE;
+        Direction selectionHandle = Direction::NONE;
         int selectionStartSample = -1;
         int selectionEndSample = -1;
 

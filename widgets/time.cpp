@@ -8,7 +8,7 @@ void Time::update(uint64_t sample)
     char buffer[32];
 
     switch (timeFormat) {
-        case HH_MM_SS_SSS:
+      case TimeFormat::HH_MM_SS_SSS:
             snprintf(buffer, sizeof(buffer), "%02lu h %02lu m %02lu.%03lu s\n",
                    t.hours(),
                    t.minutes(),
@@ -16,14 +16,14 @@ void Time::update(uint64_t sample)
                    t.milliseconds());
             break;
 
-        case MM_SS_SSS:
+      case TimeFormat::MM_SS_SSS:
             snprintf(buffer, sizeof(buffer), "%02lu m %02lu.%03lu s\n",
                    t.minutes(),
                    t.secondsPart(),
                    t.milliseconds());
             break;
 
-        case SS_SSS:
+      case TimeFormat::SS_SSS:
             snprintf(buffer, sizeof(buffer), "%02lu.%03lu s\n",
                    t.secondsPart(),
                    t.milliseconds());
@@ -45,17 +45,17 @@ void Time::createMenu()
     menu->add("hours:minutes:seconds:millisesconds", 0, [](Fl_Widget*, void* data) {
                                 Time* time = static_cast<Time*>(data);
                                 // 
-                                time->setFormat(HH_MM_SS_SSS);
+                                time->setFormat(TimeFormat::HH_MM_SS_SSS);
                             }, (void*) this);
     menu->add("minutes:seconds:millisesconds", 0, [](Fl_Widget*, void* data) {
                                 Time* time = static_cast<Time*>(data);
                                 // 
-                                time->setFormat(MM_SS_SSS);
+                                time->setFormat(TimeFormat::MM_SS_SSS);
                             }, (void*) this);
     menu->add("seconds:millisesconds", 0, [](Fl_Widget*, void* data) {
                                 Time* time = static_cast<Time*>(data);
                                 // 
-                                time->setFormat(SS_SSS);
+                                time->setFormat(TimeFormat::SS_SSS);
                             }, (void*) this);
 }
 

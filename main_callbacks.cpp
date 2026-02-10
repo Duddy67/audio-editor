@@ -86,7 +86,7 @@ void Application::playButton_cb(Fl_Widget* w, void* data)
             app->playTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
     }
 }
@@ -101,7 +101,7 @@ void Application::stopButton_cb(Fl_Widget* w, void* data)
             app->stopTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
     }
 }
@@ -116,7 +116,7 @@ void Application::pauseButton_cb(Fl_Widget* w, void* data)
             app->pauseTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
     }
 }
@@ -131,7 +131,7 @@ void Application::recordButton_cb(Fl_Widget* w, void* data)
             app->recordTrack(track);
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
 
     }
@@ -189,7 +189,7 @@ void Application::insert_marker_cb(Fl_Widget* w, void* data)
             track.getWaveform().redraw();
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
     }
 }
@@ -208,7 +208,7 @@ void Application::time_cb(void *data)
             }
         }
         catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get active document: " << e.what() << std::endl;
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
         }
     }
 

@@ -3,51 +3,41 @@
 
 void Application::createMenu()
 {
-    menu->add("File", 0, 0, 0, FL_SUBMENU);
-    menu->add("File/&New", FL_ALT + 'n', new_cb, (void*) this);
-    menu->add("File/Open", 0, open_cb, (void*) this);
-    menu->add("File/&Save", 0, save_cb, (void*) this);
-    menu->add("File/_&Save as", 0, saveas_cb, (void*) this);
-    menu->add("File/&Quit", FL_CTRL + 'q',(Fl_Callback*) quit_cb, (void*) this);
-    menu->add("Edit", 0, 0, 0, FL_SUBMENU);
-    menu->add("Edit/&Undo", 0, [](Fl_Widget* w, void* userData) { 
+    menu->add(MenuLabels[MenuItemID::FILE_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
+    menu->add(MenuLabels[MenuItemID::FILE_NEW].c_str(), FL_ALT + 'n', new_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::FILE_OPEN].c_str(), 0, open_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::FILE_SAVE].c_str(), 0, save_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::FILE_SAVE_AS].c_str(), 0, saveas_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::FILE_QUIT].c_str(), FL_CTRL + 'q',(Fl_Callback*) quit_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::EDIT_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
+    menu->add(MenuLabels[MenuItemID::EDIT_UNDO].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      // Check first a tab (ie: document) is active.
-                                      if (app->tabs->value()) {
-                                          try {
-                                              auto& track = app->getActiveDocument().getTrack();
-                                              app->undo(track);
-                                          }
-                                          catch (const std::runtime_error& e) {
-                                              std::cerr << "Failed to get active document: " << e.what() << std::endl;
-                                          }
-                                      }
+                                      app->audioEdit(EditID::UNDO);
                                   }, (void*) this);
-    menu->add("Edit/&Redo", 0, 0, 0, 0);
-    menu->add("Edit/&Copy", FL_CTRL + 'c',0, 0, 0);
-    menu->add("Edit/&Past", FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
-    menu->add("Edit/&Cut", FL_CTRL + 'x',0, 0, 0);
-    menu->add("Edit/&Toolbar", 0,0, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
-    menu->add("Edit/_&Insert Marker", 0, insert_marker_cb, (void*) this);
-    menu->add("Edit/_&Settings", 0, settings_cb, (void*) this);
-    menu->add("Process", 0, 0, 0, FL_SUBMENU);
-    menu->add("Process/&Mute", 0, [](Fl_Widget* w, void* userData) { 
+    menu->add(MenuLabels[MenuItemID::EDIT_REDO].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      // Check first a tab (ie: document) is active.
-                                      if (app->tabs->value()) {
-                                          try {
-                                              auto& track = app->getActiveDocument().getTrack();
-                                              app->onMute(track);
-                                          }
-                                          catch (const std::runtime_error& e) {
-                                              std::cerr << "Failed to get active document: " << e.what() << std::endl;
-                                          }
-                                      }
+                                      app->audioEdit(EditID::REDO);
                                   }, (void*) this);
-    menu->add("Process/&Normalize", 0,0, 0, 0);
-    menu->add("Process/&Volume", 0,0, 0, 0);
-    menu->add("Process/&Fade in", 0,0, 0, 0);
-    menu->add("Process/&Fade out", 0,0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::EDIT_COPY].c_str(), FL_CTRL + 'c',0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::EDIT_PAST].c_str(), FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
+    menu->add(MenuLabels[MenuItemID::EDIT_CUT].c_str(), FL_CTRL + 'x',0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::EDIT_INSERT_MARKER].c_str(), 0, insert_marker_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::EDIT_SETTINGS].c_str(), 0, settings_cb, (void*) this);
+    menu->add(MenuLabels[MenuItemID::PROCESS_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
+    menu->add(MenuLabels[MenuItemID::PROCESS_MUTE].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->audioEdit(EditID::MUTE);
+                                  }, (void*) this);
+    menu->add(MenuLabels[MenuItemID::PROCESS_NORMALIZE].c_str(), 0,0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::PROCESS_VOLUME].c_str(), 0,0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::PROCESS_FADE_IN].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->audioEdit(EditID::FADE_IN);
+                                  }, (void*) this);
+    menu->add(MenuLabels[MenuItemID::PROCESS_FADE_OUT].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->audioEdit(EditID::FADE_OUT);
+                                  }, (void*) this);
     menu->add("Help", 0, 0, 0, FL_SUBMENU);
     menu->add("Help/Index", 0, 0, 0, 0);
     menu->add("Help/About", 0, 0, 0, 0);
@@ -131,6 +121,114 @@ void Application::setSupportedFormats()
     /*filter("Wav\t*.wav\n"
            "MP3\t*.mp3\n");*/
     fileChooser->filter(supportedFormats.c_str());
+}
+
+const std::string* Application::getMenuItemLabel(Fl_Menu_Item* item) const
+{
+    auto it = menuItemLabels.find(item);
+    return it != menuItemLabels.end() ? &it->second : nullptr;
+}
+
+Fl_Menu_Item* Application::getMenuItem(MenuItemID menuItemID)
+{
+    switch (menuItemID) {
+      case MenuItemID::EDIT_UNDO:
+          return undoMenuItem;
+        break;
+
+      case MenuItemID::EDIT_REDO:
+          return redoMenuItem;
+        break;
+
+      default:
+         return nullptr;
+    }
+}
+
+void Application::updateMenuItem(MenuItemID menuID, Action action, const std::string& label /*= ""*/)
+{
+    Fl_Menu_Item* item;
+
+    if ((item = getMenuItem(menuID)) != nullptr) {
+        switch (action) {
+          case Action::ACTIVATE:
+              item->activate();
+            break;
+
+          case Action::DEACTIVATE:
+              item->deactivate();
+            break;
+          
+          default:
+              return;
+        }
+
+        if (!label.empty()) {
+            // Store string to keep a Fl_Menu_Item valid pointer.
+            // Note: Get only the substring after the slash. 
+            setMenuItemLabel(getMenuItem(menuID), label.substr(label.find("/") + 1));
+            item->label(getMenuItemLabel(item)->c_str());
+        }
+    }
+}
+
+/*
+ * Maps the edit menu item to the according functions.
+ */
+void Application::audioEdit(EditID id)
+{
+    // Check first a tab (ie: document) is active.
+    if (tabs->value()) {
+        try {
+            auto& track = getActiveDocument().getTrack();
+
+            switch (id) {
+                case EditID::MUTE:
+                    onMute(track);
+                    break;
+
+                case EditID::FADE_IN:
+                    onFadeIn(track);
+                    break;
+
+                case EditID::FADE_OUT:
+                    onFadeOut(track);
+                    break;
+
+                case EditID::NORMALIZE:
+                    break;
+
+                case EditID::VOLUME:
+                    break;
+
+                case EditID::COPY:
+                    break;
+
+                case EditID::PAST:
+                    break;
+
+                case EditID::CUT:
+                    break;
+
+                case EditID::UNDO:
+                    onUndo(track);
+                    break;
+
+                case EditID::REDO:
+                    onRedo(track);
+                    break;
+
+                case EditID::NONE:
+                    break;
+            }
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Failed to get track: " << e.what() << std::endl;
+        }
+    }
+    else {
+        std::cout << "No active document." << std::endl;
+    }
 }
 
 //================== Callback functions called from menu  =========================

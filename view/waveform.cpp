@@ -448,14 +448,14 @@ int Waveform::handle(int event) {
                 track.updateTime();
 
                 // Start a new selection.
-                if (!isSelecting && selectionHandle == NONE && !track.isPlaying() && !track.isRecording()) {
+                if (!isSelecting && selectionHandle == Direction::NONE && !track.isPlaying() && !track.isRecording()) {
                     selectionStartSample = sample;
                     selectionEndSample = sample;
                     isSelecting = true;
                 }
 
                 // Keep current selection alive while it's modified. 
-                if (selectionHandle != NONE) {
+                if (selectionHandle != Direction::NONE) {
                     isSelecting = true;
                 }
 
@@ -487,7 +487,7 @@ int Waveform::handle(int event) {
 
                     // The user is done selecting.
                     isSelecting = false;
-                    selectionHandle = NONE;
+                    selectionHandle = Direction::NONE;
 
                     return 1;
                 }
@@ -505,7 +505,7 @@ int Waveform::handle(int event) {
                 sample = std::clamp(sample, 0, (int)leftSamples.size() - 1);
 
                 // Check for selection.
-                if (selectionHandle == LEFT) {
+                if (selectionHandle == Direction::LEFT) {
                     selectionStartSample = sample;
                 }
                 // RIGHT or NONE.
@@ -536,19 +536,19 @@ int Waveform::handle(int event) {
                 // The mouse is over the left selection boundaries.
                 if (nearStart) {
                     window()->cursor(FL_CURSOR_WE);
-                    selectionHandle = LEFT;
+                    selectionHandle = Direction::LEFT;
                     return 1;
                 }
                 // The mouse is over the right selection boundaries.
                 else if (nearEnd) {
                     window()->cursor(FL_CURSOR_WE);
-                    selectionHandle = RIGHT;
+                    selectionHandle = Direction::RIGHT;
                     return 1;
                 }
                 // The mouse is elsewhere in the window.
                 else {
                     window()->cursor(FL_CURSOR_DEFAULT);
-                    selectionHandle = NONE;
+                    selectionHandle = Direction::NONE;
                     return 0;
                 }
             }

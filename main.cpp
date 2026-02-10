@@ -14,12 +14,11 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     menu->box(FL_THIN_UP_BOX);
     createMenu();
     menu->textsize(TEXT_SIZE);
-    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Toolbar");
-    menuItem->clear();
-    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Undo");
-    menuItem->deactivate();
-    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Redo");
-    menuItem->deactivate();
+
+    undoMenuItem = (Fl_Menu_Item *)menu->find_item(MenuLabels[MenuItemID::EDIT_UNDO].c_str());
+    undoMenuItem->deactivate();
+    redoMenuItem = (Fl_Menu_Item *)menu->find_item(MenuLabels[MenuItemID::EDIT_REDO].c_str());
+    redoMenuItem->deactivate();
 
     toolbar = new Fl_Group(0, SMALL_SPACE, w, SMALL_SPACE + (TINY_SPACE * 2));
         toolbar->box(FL_FLAT_BOX);

@@ -12,6 +12,7 @@ class EditCommand {
 
         virtual void apply(Track& track) = 0;
         virtual void undo(Track& track) = 0;
+        virtual EditID editID() = 0;
 };
 
 #endif // EDIT_COMMAND_H

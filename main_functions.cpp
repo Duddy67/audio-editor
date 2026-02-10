@@ -1,5 +1,7 @@
 #include "main.h"
 #include "audio/editing/mute.h"
+#include "audio/editing/fade_in.h"
+#include "audio/editing/fade_out.h"
 #include <cstdlib>
 
 void Application::initBackend()
@@ -121,7 +123,6 @@ void Application::initAudioSystem()
 
     // Set sample rate for time computing.
     time->setSampleRate(engine->getDefaultOutputSampleRate());
-    editHistory = new EditHistory();
 
     //engine->printAllDevices(); // For debug purpose.
     std::cout << "=== Audio system initialized ===" << std::endl;
@@ -501,33 +502,128 @@ void Application::recordTrack(Track& track)
     }
 }
 
-void Application::undo(Track& track)
-{
-    getEditHistory().undo(track);
-    auto& waveform = track.getWaveform();
-    waveform.redraw();
-}
-
-///// Processes /////
-
-void Application::onMute(Track& track)
+const Selection Application::getSelection(Track& track)
 {
     // Get the current selection.
     auto& waveform = track.getWaveform();
     int start = waveform.getSelectionStartSample();
     int end = waveform.getSelectionEndSample();
+    int totalSamples = static_cast<int>(track.getLeftSamples().size());
 
-    if (start >= end) {
+    // Make sure selection is valid.
+    if (start >= end || start > totalSamples || end > totalSamples) {
+        Selection selection = {0, 0};
+        return selection; 
+    }
+
+    Selection selection = {start, end};
+    return selection;
+}
+
+void Application::onUndo(Track& track)
+{
+    auto& editHistory = getActiveDocument().getEditHistory();
+    editHistory.undo(track);
+    auto& waveform = track.getWaveform();
+    waveform.redraw();
+    std::string label = "";
+
+    // No more edit command left.
+    if (editHistory.getLastUndo() == EditID::NONE) {
+        label = MenuLabels[MenuItemID::EDIT_UNDO];
+        updateMenuItem(MenuItemID::EDIT_UNDO, Action::DEACTIVATE, label);
+    }
+    else {
+        label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[editHistory.getLastUndo()]; 
+        updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, label);
+    }
+
+    label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[editHistory.getLastRedo()]; 
+    updateMenuItem(MenuItemID::EDIT_REDO, Action::ACTIVATE, label);
+}
+
+void Application::onRedo(Track& track)
+{
+    auto& editHistory = getActiveDocument().getEditHistory();
+    editHistory.redo(track);
+    auto& waveform = track.getWaveform();
+    waveform.redraw();
+    std::string label = "";
+
+    if (editHistory.getLastRedo() == EditID::NONE) {
+        label = MenuLabels[MenuItemID::EDIT_REDO];
+        updateMenuItem(MenuItemID::EDIT_REDO, Action::DEACTIVATE, label);
+    }
+    else {
+        label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[editHistory.getLastRedo()]; 
+        updateMenuItem(MenuItemID::EDIT_REDO, Action::ACTIVATE, label);
+    }
+
+    label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[editHistory.getLastUndo()]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, label);
+}
+
+///// Editing /////
+
+void Application::onMute(Track& track)
+{
+    // Get the current selection.
+    auto selection = getSelection(track);
+
+    if (selection.start >= selection.end) {
         return; 
     }
 
-    auto muteCmd = std::make_unique<Mute>(start, end);
-    getEditHistory().apply(std::move(muteCmd), track);
+    auto muteCmd = std::make_unique<Mute>(selection.start, selection.end);
+    // Get the history from the track's parent document.
+    auto& editHistory = getActiveDocument().getEditHistory();
+    editHistory.apply(std::move(muteCmd), track);
+    track.getWaveform().redraw();
 
-    waveform.redraw();
+    //
+    std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::MUTE]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
+}
 
-    menuItem = (Fl_Menu_Item *)menu->find_item("Edit/&Undo");
-    menuItem->activate();
+void Application::onFadeIn(Track& track)
+{
+    // Get the current selection.
+    auto selection = getSelection(track);
+
+    if (selection.start == 0 && selection.end == 0) {
+        return; 
+    }
+
+    auto fadeInCmd = std::make_unique<FadeIn>(selection.start, selection.end);
+    // Get the history from the track's parent document.
+    auto& editHistory = getActiveDocument().getEditHistory();
+    editHistory.apply(std::move(fadeInCmd), track);
+    track.getWaveform().redraw();
+
+    std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_IN]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
+}
+
+void Application::onFadeOut(Track& track)
+{
+    // Get the current selection.
+    auto selection = getSelection(track);
+
+    if (selection.start >= selection.end) {
+        return; 
+    }
+
+    // Create a new fade out command process.
+    auto fadeOutCmd = std::make_unique<FadeOut>(selection.start, selection.end);
+    // Get the history from the track's parent document.
+    auto& editHistory = getActiveDocument().getEditHistory();
+    // Apply the command.
+    editHistory.apply(std::move(fadeOutCmd), track);
+    track.getWaveform().redraw();
+
+    // Update the Undo menu item accordingly.
+    std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_OUT]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
 }
 
 int Application::handle(int event) {
