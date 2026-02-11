@@ -219,7 +219,7 @@ void Application::audioEdit(EditID id)
                     break;
 
                 case EditID::NONE:
-                    break;
+                    return;
             }
         }
         catch (const std::runtime_error& e) {

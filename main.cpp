@@ -15,6 +15,8 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
     createMenu();
     menu->textsize(TEXT_SIZE);
 
+    // Set menu item pointers.
+    // Note: It's much easier to access menu items later than to rely on the find_item function.
     undoMenuItem = (Fl_Menu_Item *)menu->find_item(MenuLabels[MenuItemID::EDIT_UNDO].c_str());
     undoMenuItem->deactivate();
     redoMenuItem = (Fl_Menu_Item *)menu->find_item(MenuLabels[MenuItemID::EDIT_REDO].c_str());

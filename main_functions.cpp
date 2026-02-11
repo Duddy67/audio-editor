@@ -1,7 +1,7 @@
 #include "main.h"
-#include "audio/editing/mute.h"
-#include "audio/editing/fade_in.h"
-#include "audio/editing/fade_out.h"
+#include "audio/edit/mute.h"
+#include "audio/edit/fade_in.h"
+#include "audio/edit/fade_out.h"
 #include <cstdlib>
 
 void Application::initBackend()
@@ -522,44 +522,44 @@ const Selection Application::getSelection(Track& track)
 
 void Application::onUndo(Track& track)
 {
-    auto& editHistory = getActiveDocument().getEditHistory();
-    editHistory.undo(track);
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    audioHistory.undo(track);
     auto& waveform = track.getWaveform();
     waveform.redraw();
     std::string label = "";
 
     // No more edit command left.
-    if (editHistory.getLastUndo() == EditID::NONE) {
+    if (audioHistory.getLastUndo() == EditID::NONE) {
         label = MenuLabels[MenuItemID::EDIT_UNDO];
         updateMenuItem(MenuItemID::EDIT_UNDO, Action::DEACTIVATE, label);
     }
     else {
-        label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[editHistory.getLastUndo()]; 
+        label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[audioHistory.getLastUndo()]; 
         updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, label);
     }
 
-    label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[editHistory.getLastRedo()]; 
+    label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[audioHistory.getLastRedo()]; 
     updateMenuItem(MenuItemID::EDIT_REDO, Action::ACTIVATE, label);
 }
 
 void Application::onRedo(Track& track)
 {
-    auto& editHistory = getActiveDocument().getEditHistory();
-    editHistory.redo(track);
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    audioHistory.redo(track);
     auto& waveform = track.getWaveform();
     waveform.redraw();
     std::string label = "";
 
-    if (editHistory.getLastRedo() == EditID::NONE) {
+    if (audioHistory.getLastRedo() == EditID::NONE) {
         label = MenuLabels[MenuItemID::EDIT_REDO];
         updateMenuItem(MenuItemID::EDIT_REDO, Action::DEACTIVATE, label);
     }
     else {
-        label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[editHistory.getLastRedo()]; 
+        label = MenuLabels[MenuItemID::EDIT_REDO] + " " + EditLabels[audioHistory.getLastRedo()]; 
         updateMenuItem(MenuItemID::EDIT_REDO, Action::ACTIVATE, label);
     }
 
-    label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[editHistory.getLastUndo()]; 
+    label = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[audioHistory.getLastUndo()]; 
     updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, label);
 }
 
@@ -576,8 +576,8 @@ void Application::onMute(Track& track)
 
     auto muteCmd = std::make_unique<Mute>(selection.start, selection.end);
     // Get the history from the track's parent document.
-    auto& editHistory = getActiveDocument().getEditHistory();
-    editHistory.apply(std::move(muteCmd), track);
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    audioHistory.apply(std::move(muteCmd), track);
     track.getWaveform().redraw();
 
     //
@@ -596,8 +596,8 @@ void Application::onFadeIn(Track& track)
 
     auto fadeInCmd = std::make_unique<FadeIn>(selection.start, selection.end);
     // Get the history from the track's parent document.
-    auto& editHistory = getActiveDocument().getEditHistory();
-    editHistory.apply(std::move(fadeInCmd), track);
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    audioHistory.apply(std::move(fadeInCmd), track);
     track.getWaveform().redraw();
 
     std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_IN]; 
@@ -616,9 +616,9 @@ void Application::onFadeOut(Track& track)
     // Create a new fade out command process.
     auto fadeOutCmd = std::make_unique<FadeOut>(selection.start, selection.end);
     // Get the history from the track's parent document.
-    auto& editHistory = getActiveDocument().getEditHistory();
+    auto& audioHistory = getActiveDocument().getAudioHistory();
     // Apply the command.
-    editHistory.apply(std::move(fadeOutCmd), track);
+    audioHistory.apply(std::move(fadeOutCmd), track);
     track.getWaveform().redraw();
 
     // Update the Undo menu item accordingly.

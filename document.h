@@ -4,7 +4,8 @@
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
 #include "audio/track.h"
-#include "audio/editing/edit_history.h"
+#include "audio/edit/history.h"
+using AudioHistory = audio::edit::History;
 
 // Forward declarations.
 class Engine;
@@ -13,7 +14,7 @@ class Engine;
 class Document : public Fl_Group {
         int xPos, yPos, width, height;
         Engine& engine;
-        EditHistory* editHistory = nullptr;
+        AudioHistory* audioHistory = nullptr;
         // Unique track id.
         unsigned int trackId = 0;
         // Track state.
@@ -94,7 +95,7 @@ class Document : public Fl_Group {
             // Add the new track and transfer ownership.
             trackId = engine.addTrack(std::move(track));
 
-            editHistory = new EditHistory();
+            audioHistory = new AudioHistory();
 
             renderTrackWaveform();
         }
@@ -106,7 +107,7 @@ class Document : public Fl_Group {
         bool isNew() const { return created; }
         std::string getFileName() const { return fileName; }
         std::string getFileExtension() const { return extension; }
-        EditHistory& getEditHistory() const { return *editHistory; }
+        AudioHistory& getAudioHistory() const { return *audioHistory; }
 
         void setFileName(const char* filename) {
             fileName = filename;

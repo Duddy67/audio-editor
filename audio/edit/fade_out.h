@@ -1,12 +1,15 @@
-#ifndef FADE_IN_H
-#define FADE_IN_H
+#ifndef FADE_OUT_H
+#define FADE_OUT_H
 
 #include <vector>
-#include "edit_command.h"
+#include "command.h"
 
-class FadeIn: public EditCommand {
+/*
+ * Creates a fade out edit command pattern/object.
+ */
+class FadeOut: public Command {
     public:
-        FadeIn(int start, int end)
+        FadeOut(int start, int end)
             : startSample(start), endSample(end) {}
 
         void apply(Track& track) override
@@ -22,9 +25,12 @@ class FadeIn: public EditCommand {
 
             int length = endSample - startSample;
 
+            // Compute a linear gain ramp going from 1.0 to 0.0.
             for (int i = 0; i < length; ++i) {
-                float gain = static_cast<float>(i) / (length - 1);
+                float gain = 1.0f - static_cast<float>(i) / (length - 1);
                 int idx = startSample + i;
+
+                // Multiply samples by the newly computed gain ramp.
 
                 // Audio
                 track.getLeftSamples()[idx]  *= gain;
@@ -57,7 +63,7 @@ class FadeIn: public EditCommand {
         }
 
         // Returns the edit command identifier.
-        EditID editID() { return EditID::FADE_IN; }
+        EditID editID() { return EditID::FADE_OUT; }
 
     private:
 
@@ -67,4 +73,4 @@ class FadeIn: public EditCommand {
         std::vector<float> backupRight;
 };
 
-#endif // FADE_IN_H
+#endif // FADE_OUt_H

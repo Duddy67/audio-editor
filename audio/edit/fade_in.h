@@ -1,12 +1,15 @@
-#ifndef MUTE_H
-#define MUTE_H
+#ifndef FADE_IN_H
+#define FADE_IN_H
 
 #include <vector>
-#include "edit_command.h"
+#include "command.h"
 
-class Mute : public EditCommand {
+/*
+ * Creates a fade in edit command pattern/object.
+ */
+class FadeIn: public Command {
     public:
-        Mute(int start, int end)
+        FadeIn(int start, int end)
             : startSample(start), endSample(end) {}
 
         void apply(Track& track) override
@@ -20,14 +23,21 @@ class Mute : public EditCommand {
             // The sample vectors used to draw audio waveforms has to be modified as well.
             auto& waveform = track.getWaveform();
 
-            // Mute samples.
-            for (int i = startSample; i < endSample; i++) {
+            int length = endSample - startSample;
+
+            // Compute a linear gain ramp going from 0.0 to 1.0.
+            for (int i = 0; i < length; ++i) {
+                float gain = static_cast<float>(i) / (length - 1);
+                int idx = startSample + i;
+
+                // Multiply samples by the newly computed gain ramp.
+
                 // Audio
-                track.getLeftSamples()[i] = 0.0f;
-                track.getRightSamples()[i] = 0.0f;
+                track.getLeftSamples()[idx]  *= gain;
+                track.getRightSamples()[idx] *= gain;
                 // View
-                waveform.getLeftSamples()[i] = 0.0f;
-                waveform.getRightSamples()[i] = 0.0f;
+                waveform.getLeftSamples()[idx] *= gain;
+                waveform.getRightSamples()[idx] *= gain;
             }
         }
 
@@ -53,13 +63,14 @@ class Mute : public EditCommand {
         }
 
         // Returns the edit command identifier.
-        EditID editID() { return EditID::MUTE; }
+        EditID editID() { return EditID::FADE_IN; }
 
     private:
+
         int startSample;
         int endSample;
         std::vector<float> backupLeft;
         std::vector<float> backupRight;
 };
 
-#endif // MUTE_H
+#endif // FADE_IN_H
