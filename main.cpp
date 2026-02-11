@@ -34,11 +34,26 @@ Application::Application(int w, int h, const char *l, int argc, char *argv[]) : 
         // Set the loop button shortcut to the L key (ie: numeric code = 108).
         loopBtn->shortcut(108);
 
-        playBtn->callback(playButton_cb, this);
-        stopBtn->callback(stopButton_cb, this);
-        pauseBtn->callback(pauseButton_cb, this);
-        recordBtn->callback(recordButton_cb, this);
-        loopBtn->callback(loopButton_cb, this);
+        playBtn->callback([](Fl_Widget* w, void* userData) {
+                              Application* app = static_cast<Application*>(userData);
+                              app->onTransport(TransportID::PLAY);
+                          }, (void*) this);
+        stopBtn->callback([](Fl_Widget* w, void* userData) {
+                              Application* app = static_cast<Application*>(userData);
+                              app->onTransport(TransportID::STOP);
+                          }, (void*) this);
+        pauseBtn->callback([](Fl_Widget* w, void* userData) {
+                              Application* app = static_cast<Application*>(userData);
+                              app->onTransport(TransportID::PAUSE);
+                          }, (void*) this);
+        recordBtn->callback([](Fl_Widget* w, void* userData) {
+                              Application* app = static_cast<Application*>(userData);
+                              app->onTransport(TransportID::RECORD);
+                          }, (void*) this);
+        loopBtn->callback([](Fl_Widget* w, void* userData) {
+                              Application* app = static_cast<Application*>(userData);
+                              app->onTransport(TransportID::LOOP);
+                          }, (void*) this);
 
         // Disable keyboard focus on buttons
         playBtn->clear_visible_focus();

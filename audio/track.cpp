@@ -46,7 +46,7 @@ void Track::mixInto(float* output, int frameCount)
             else {
                 eof.store(true);
                 // Stop playback.
-                getApplication().stopTrack(*this);
+                getApplication().onStop(*this);
             }
 
             // Exit the loop and function.
@@ -61,7 +61,7 @@ void Track::mixInto(float* output, int frameCount)
             }
             else {
                 // Stop playback.
-                getApplication().stopTrack(*this);
+                getApplication().onStop(*this);
             }
 
             // Exit the loop and function.

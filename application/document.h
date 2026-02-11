@@ -3,8 +3,8 @@
 
 #include <filesystem>
 #include <FL/Fl_Scrollbar.H>
-#include "audio/track.h"
-#include "audio/edit/history.h"
+#include "../audio/track.h"
+#include "../audio/edit/history.h"
 using AudioHistory = audio::edit::History;
 
 // Forward declarations.

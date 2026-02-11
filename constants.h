@@ -27,20 +27,23 @@ constexpr const char* CONFIG_FILENAME = "config.json";
 
 // --- Custom types ---
 
-enum class Direction {LEFT, RIGHT, UP, DOWN, NONE};
+enum class Direction { LEFT, RIGHT, UP, DOWN, NONE };
 
-enum class TimeFormat {HH_MM_SS_SSS, MM_SS_SSS, SS_SSS};
+enum class TimeFormat { HH_MM_SS_SSS, MM_SS_SSS, SS_SSS };
 
 enum class EditID {
     MUTE, FADE_IN, FADE_OUT, NORMALIZE,
-    VOLUME, COPY, PAST, CUT, UNDO, REDO, NONE
+    VOLUME, COPY, PAST, CUT, DELETE, 
+    UNDO, REDO, NONE
 };
+
+enum class TransportID { PLAY, STOP, PAUSE, RECORD, LOOP };
 
 enum class Action {ACTIVATE, DEACTIVATE};
 
 enum class MenuItemID {
     FILE_SUB, FILE_NEW, FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_QUIT, EDIT_SUB,
-    EDIT_UNDO, EDIT_REDO, EDIT_COPY, EDIT_PAST, EDIT_CUT, EDIT_INSERT_MARKER,
+    EDIT_UNDO, EDIT_REDO, EDIT_DELETE, EDIT_COPY, EDIT_PAST, EDIT_CUT, EDIT_INSERT_MARKER,
     EDIT_SETTINGS, PROCESS_SUB, PROCESS_MUTE, PROCESS_NORMALIZE, PROCESS_VOLUME,
     PROCESS_FADE_IN, PROCESS_FADE_OUT
 };
@@ -66,6 +69,7 @@ inline std::map<MenuItemID, std::string> MenuLabels {
     {MenuItemID::EDIT_SUB, "Edit"},
     {MenuItemID::EDIT_UNDO, "Edit/&Undo"},
     {MenuItemID::EDIT_REDO, "Edit/&Redo"},
+    {MenuItemID::EDIT_DELETE, "Edit/Delete"},
     {MenuItemID::EDIT_COPY, "Edit/&Copy"},
     {MenuItemID::EDIT_PAST, "Edit/&Past"},
     {MenuItemID::EDIT_CUT, "Edit/&Cut"},

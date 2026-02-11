@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../main.h"
 
 
 void Application::createMenu()
@@ -12,11 +12,15 @@ void Application::createMenu()
     menu->add(MenuLabels[MenuItemID::EDIT_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
     menu->add(MenuLabels[MenuItemID::EDIT_UNDO].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      app->audioEdit(EditID::UNDO);
+                                      app->onMenuEdit(EditID::UNDO);
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_REDO].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      app->audioEdit(EditID::REDO);
+                                      app->onMenuEdit(EditID::REDO);
+                                  }, (void*) this);
+    menu->add(MenuLabels[MenuItemID::EDIT_DELETE].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->onMenuEdit(EditID::DELETE);
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_COPY].c_str(), FL_CTRL + 'c',0, 0, 0);
     menu->add(MenuLabels[MenuItemID::EDIT_PAST].c_str(), FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
@@ -26,17 +30,17 @@ void Application::createMenu()
     menu->add(MenuLabels[MenuItemID::PROCESS_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
     menu->add(MenuLabels[MenuItemID::PROCESS_MUTE].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      app->audioEdit(EditID::MUTE);
+                                      app->onMenuEdit(EditID::MUTE);
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::PROCESS_NORMALIZE].c_str(), 0,0, 0, 0);
     menu->add(MenuLabels[MenuItemID::PROCESS_VOLUME].c_str(), 0,0, 0, 0);
     menu->add(MenuLabels[MenuItemID::PROCESS_FADE_IN].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      app->audioEdit(EditID::FADE_IN);
+                                      app->onMenuEdit(EditID::FADE_IN);
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::PROCESS_FADE_OUT].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
-                                      app->audioEdit(EditID::FADE_OUT);
+                                      app->onMenuEdit(EditID::FADE_OUT);
                                   }, (void*) this);
     menu->add("Help", 0, 0, 0, FL_SUBMENU);
     menu->add("Help/Index", 0, 0, 0, 0);
@@ -173,9 +177,9 @@ void Application::updateMenuItem(MenuItemID menuID, Action action, const std::st
 }
 
 /*
- * Maps the edit menu item to the according functions.
+ * Maps the edit menu item clicked to the according functions.
  */
-void Application::audioEdit(EditID id)
+void Application::onMenuEdit(EditID id)
 {
     // Check first a tab (ie: document) is active.
     if (tabs->value()) {
@@ -199,6 +203,10 @@ void Application::audioEdit(EditID id)
                     break;
 
                 case EditID::VOLUME:
+                    break;
+
+                case EditID::DELETE:
+                    onDelete(track);
                     break;
 
                 case EditID::COPY:

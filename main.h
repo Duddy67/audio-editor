@@ -13,11 +13,11 @@
 #include <errno.h>
 #include <cstdlib>
 #include "constants.h"
-#include "tabs.h"
+#include "application/tabs.h"
 #include "audio/engine.h"
 #include "widgets/vu_meter.h"
 #include "widgets/time.h"
-#include "document.h"
+#include "application/document.h"
 #include "dialogs/new_file.h"
 #include "dialogs/settings.h"
 #include "../libraries/json.hpp"
@@ -101,10 +101,12 @@ class Application : public Fl_Double_Window
         Document& getDocumentByTrackId(unsigned int trackId);
         void setSupportedFormats();
         void startVuMeters();
-        void playTrack(Track& track);
-        void stopTrack(Track& track);
-        void pauseTrack(Track& track);
-        void recordTrack(Track& track);
+        void onTransport(TransportID id);
+        void onPlay(Track& track);
+        void onStop(Track& track);
+        void onPause(Track& track);
+        void onRecord(Track& track);
+        void onLoop();
         bool isLooped() const { return loop; }
         int handle(int event) override;
         void onMute(Track& track);
@@ -112,7 +114,8 @@ class Application : public Fl_Double_Window
         void onFadeOut(Track& track);
         void onUndo(Track& track);
         void onRedo(Track& track);
-        void audioEdit(EditID id);
+        void onDelete(Track& track);
+        void onMenuEdit(EditID id);
         const Selection getSelection(Track& track);
         void updateMenuItem(MenuItemID menuID, Action action, const std::string& label = "");
         const std::string* getMenuItemLabel(Fl_Menu_Item* item) const;
@@ -136,11 +139,6 @@ class Application : public Fl_Double_Window
         static void output_choice_cb(Fl_Widget *w, void *data);
         static void ok_cb(Fl_Widget* w, void* data);
         static void cancel_cb(Fl_Widget* w, void* data);
-        static void playButton_cb(Fl_Widget* w, void* data);
-        static void stopButton_cb(Fl_Widget* w, void* data);
-        static void pauseButton_cb(Fl_Widget* w, void* data);
-        static void recordButton_cb(Fl_Widget* w, void* data);
-        static void loopButton_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
         static void insert_marker_cb(Fl_Widget* w, void* data);
         static void time_cb(void* data);

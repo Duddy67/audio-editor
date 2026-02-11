@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../main.h"
 
 /*
  * Prevents the escape key to close the application. 
@@ -73,76 +73,6 @@ void Application::settings_cb(Fl_Widget *w, void *data)
         config.inputDevice = app->settingsDlg->getInput().text();
         app->saveConfig(config, CONFIG_FILENAME);
     }
-}
-
-void Application::playButton_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    // Check first a tab (ie: document) is active.
-    if (app->tabs->value()) {
-        try {
-            auto& track = app->getActiveDocument().getTrack();
-            app->playTrack(track);
-        }
-        catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get track: " << e.what() << std::endl;
-        }
-    }
-}
-
-void Application::stopButton_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    if (app->tabs->value()) {
-        try {
-            auto& track = app->getActiveDocument().getTrack();
-            app->stopTrack(track);
-        }
-        catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get track: " << e.what() << std::endl;
-        }
-    }
-}
-
-void Application::pauseButton_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    if (app->tabs->value()) {
-        try {
-            auto& track = app->getActiveDocument().getTrack();
-            app->pauseTrack(track);
-        }
-        catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get track: " << e.what() << std::endl;
-        }
-    }
-}
-
-void Application::recordButton_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    if (app->tabs->value()) {
-        try {
-            auto& track = app->getActiveDocument().getTrack();
-            app->recordTrack(track);
-        }
-        catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get track: " << e.what() << std::endl;
-        }
-
-    }
-}
-
-void Application::loopButton_cb(Fl_Widget* w, void* data)
-{
-    Application* app = (Application*) data;
-
-    // Toggle the loop flag.
-    app->loop = app->loop ? false : true;
 }
 
 void Application::update_vu_cb(void* data)

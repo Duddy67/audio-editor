@@ -563,16 +563,16 @@ int Waveform::handle(int event) {
             if (key == ' ') {
                 // Toggle start/stop.
                 if (track.isPlaying()) {
-                    track.getApplication().stopTrack(track);
+                    track.getApplication().onStop(track);
                 }
                 else {
-                    track.getApplication().playTrack(track);
+                    track.getApplication().onPlay(track);
                 }
                    
                 return 1;
             }
             else if (key == FL_Pause) {
-                track.getApplication().pauseTrack(track);
+                track.getApplication().onPause(track);
 
                 return 1;
             }
