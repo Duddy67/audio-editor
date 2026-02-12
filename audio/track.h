@@ -1,5 +1,5 @@
-#ifndef AUDIO_TRACK_H
-#define AUDIO_TRACK_H
+#ifndef TRACK_H
+#define TRACK_H
 
 #include <FL/Fl_Group.H>
 #include <string>
@@ -118,5 +118,5 @@ class Track {
       void resetEndOfFile() { eof.store(false); }
 };
 
-#endif // AUDIO_TRACK_H
+#endif // TRACK_H
 

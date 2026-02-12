@@ -1,5 +1,5 @@
-#ifndef AUDIO_ENGINE_H
-#define AUDIO_ENGINE_H
+#ifndef ENGINE_H
+#define ENGINE_H
 
 #include <iostream>
 #include <vector>
@@ -99,11 +99,11 @@ class Engine {
         Track& getTrack(unsigned int id);
         Application& getApplication() const { return *pApplication; }
 
-      // Setters.
-      void setBackend(const char *name);
-      void setOutputDevice(const char *name = nullptr);
-      void setInputDevice(const char *name = nullptr);
-      void setDuplexDevice(const char *name = nullptr);
+        // Setters.
+        void setBackend(const char *name);
+        void setOutputDevice(const char *name = nullptr);
+        void setInputDevice(const char *name = nullptr);
+        void setDuplexDevice(const char *name = nullptr);
 };
 
-#endif // AUDIO_ENGINE_H
+#endif // ENGINE_H
