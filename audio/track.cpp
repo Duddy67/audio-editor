@@ -38,7 +38,7 @@ void Track::mixInto(float* output, int frameCount)
         int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
 
         // End of audio file.
-        if (idx >= totalFrames) {
+        if (idx >= buffer->getTotalFrames()) {
             if (getApplication().isLooped()) {
                 // Go back to the cursor's current position.
                 playbackSampleIndex.store(getWaveform().getCursorSamplePosition(), std::memory_order_relaxed);
@@ -302,7 +302,7 @@ void Track::drainAndMergeRingBuffer()
 
     // --- Step 7: Update stats and GUI ---
     totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
-    totalFrames = leftSamples.size();
+    //totalFrames = leftSamples.size();
 
     // --- Step 8: Update dirty range atomically (for GUI) ---
     size_t prevStart = dirtyStart.load(std::memory_order_acquire);
@@ -369,10 +369,19 @@ void Track::setNewTrack(TrackOptions options)
     stereo = options.stereo;
 }
 
+void Track::loadFromFile(const char *filename)
+{
+    FileIO loader;
+    loader.load(filename, *this);
+
+    // Reset index.
+    playbackSampleIndex.store(0, std::memory_order_relaxed);
+}
+
 /*
  * Loads a given audio file.
  */
-void Track::loadFromFile(const char *filename)
+/*void Track::loadFromFile(const char *filename)
 {
     printf("Load audio file '%s'\n", filename); // Debog.
     // First ensure the file format is supported.
@@ -413,12 +422,12 @@ void Track::loadFromFile(const char *filename)
     playbackSampleIndex.store(0, std::memory_order_relaxed);
 
     ma_decoder_uninit(&decoder);
-}
+}*/
 
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool Track::decodeFile()
+/*bool Track::decodeFile()
 {
     frameCount = 0;
 
@@ -461,9 +470,9 @@ bool Track::decodeFile()
     }
 
     return true;
-}
+}*/
 
-void Track::save(const char* filename)
+/*void Track::save(const char* filename)
 {
     ma_encoder_config config = ma_encoder_config_init(
         ma_encoding_format_wav,
@@ -494,12 +503,12 @@ void Track::save(const char* filename)
     ma_encoder_uninit(&encoder);
 
     printf("Wrote %llu frames to %s\n", framesWritten, filename);
-}
+}*/
 
 /*
  * Probes the original file format and store its data.
  */
-bool Track::storeOriginalFileFormat(const char* filename)
+/*bool Track::storeOriginalFileFormat(const char* filename)
 {
     // Initialize a temporary decoder without any config data (ie: NULL).
     ma_decoder decoderProbe;
@@ -519,7 +528,7 @@ bool Track::storeOriginalFileFormat(const char* filename)
     ma_decoder_uninit(&decoderProbe);
 
     return true;
-}
+}*/
 
 void Track::updateTime()
 {

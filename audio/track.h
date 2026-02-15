@@ -13,6 +13,8 @@
 #include "../../libraries/miniaudio.h"
 #include "../view/waveform.h"
 #include "engine.h"
+#include "file_io.h"
+#include "buffer.h"
 #include "../marking/marking.h"
 
 // Forward declarations.
@@ -32,23 +34,25 @@ struct TrackOptions {
  */
 class Track {
     private:
-        struct OriginalFileFormat {
+        /*struct OriginalFileFormat {
             std::string fileName;
             ma_uint32 outputChannels;
             ma_uint32 outputSampleRate;
             ma_format outputFormat;
-        };
+        };*/
 
         // Track unique id. 0 = invalid.
         unsigned int id = 0;
-        ma_context context;
-        ma_decoder decoder;
+        //ma_context context;
+        //ma_decoder decoder;
         ma_uint64 frameCount;
         Engine& engine;
-        std::vector<float> leftSamples;
-        std::vector<float> rightSamples;
-        int totalFrames = 0;
-        bool stereo = true;
+        //FileIO* fileIO = nullptr;
+        std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
+        //std::vector<float> leftSamples;
+        //std::vector<float> rightSamples;
+        //int totalFrames = 0;
+        //bool stereo = true;
         std::atomic<uint64_t> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
@@ -61,7 +65,7 @@ class Track {
         std::atomic<bool> workerRunning{false};
         // End of file flag.
         std::atomic<bool> eof{false};
-        OriginalFileFormat originalFileFormat;
+        //OriginalFileFormat originalFileFormat;
         std::unique_ptr<Waveform> waveform;  
         std::unique_ptr<Marking> marking;  
         bool newTrack = false;
@@ -70,9 +74,9 @@ class Track {
         std::atomic<size_t> dirtyStart{SIZE_MAX};
         std::atomic<size_t> dirtyEnd{0};
 
-        bool storeOriginalFileFormat(const char* filename);
+        //bool storeOriginalFileFormat(const char* filename);
         void uninit();
-        bool decodeFile();
+        //bool decodeFile();
         void drainAndMergeRingBuffer();
         void workerThreadLoop();
 
@@ -91,16 +95,16 @@ class Track {
       void render(int x, int y, int w, int h);
 
       // Getters.
-      std::map<std::string, std::string> getOriginalFileFormat();
-      bool isStereo() { return stereo; }
+      //std::map<std::string, std::string> getOriginalFileFormat();
+      //bool isStereo() { return stereo; }
       bool isPlaying() const { return playing.load(); }
       bool isPaused() const { return paused.load(); }
       bool isRecording() const { return recording.load(); }
       bool isEndOfFile() const { return eof.load(); }
       bool isNewTrack() const { return newTrack; }
       uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
-      std::vector<float>& getLeftSamples() { return leftSamples; }
-      std::vector<float>& getRightSamples() { return rightSamples; }
+      //std::vector<float>& getLeftSamples() { return leftSamples; }
+      //std::vector<float>& getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
       Waveform& getWaveform() { return *waveform.get(); }
       Marking& getMarking() { return *marking.get(); }
@@ -110,9 +114,11 @@ class Track {
       Application& getApplication() const { return engine.getApplication(); }
       void updateTime();
 
+      const Engine& getEngine() { return engine; }
+
       // Setters.
       void setNewTrack(TrackOptions options);
-      void save(const char* filename);
+      //void save(const char* filename);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
       void resetEndOfFile() { eof.store(false); }

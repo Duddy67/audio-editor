@@ -1,8 +1,8 @@
 # === Project sources ===
 SRC = main.cpp application/menu.cpp application/menu_edit.cpp application/callbacks.cpp application/functions.cpp \
       application/document.cpp application/init.cpp application/transport.cpp audio/engine.cpp audio/track.cpp \
-      view/waveform.cpp dialogs/dialog.cpp dialogs/new_file.cpp dialogs/settings.cpp marking/marking.cpp \
-      marking/marker.cpp dialogs/renaming.cpp widgets/time.cpp
+      audio/buffer.cpp audio/file_io.cpp view/waveform.cpp dialogs/dialog.cpp dialogs/new_file.cpp \
+      dialogs/settings.cpp marking/marking.cpp marking/marker.cpp dialogs/renaming.cpp widgets/time.cpp
 
 # === Compiler setup ===
 CXX = g++
