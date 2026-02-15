@@ -1,4 +1,5 @@
 #include "file_io.h"
+#include "track.h"
 
 /*
  * Loads a given audio file.
@@ -51,7 +52,7 @@ void FileIO::load(const char *filename, Track& track)
  */
 bool FileIO::decode(Track& track)
 {
-    frameCount = 0;
+    ma_uint64 frameCount = 0;
 
     if (ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount) != MA_SUCCESS) {
         std::cerr << "Failed to get length" << std::endl;
@@ -71,8 +72,8 @@ bool FileIO::decode(Track& track)
     }
 
     // Check whether the file is stereo.
-    stereo = decoder.outputChannels == 2;
-    totalFrames = static_cast<size_t>(framesRead);
+    //stereo = decoder.outputChannels == 2;
+    ma_uint64 totalFrames = static_cast<size_t>(framesRead);
     auto& buffer = track.getBuffer();
 
     // Write audio data into buffer.
@@ -83,7 +84,7 @@ bool FileIO::decode(Track& track)
     return true;
 }
 
-void FileIO::save(const char* filename)
+void FileIO::save(const char* filename, Track& track)
 {
     ma_encoder_config config = ma_encoder_config_init(
         ma_encoding_format_wav,
@@ -98,13 +99,8 @@ void FileIO::save(const char* filename)
         return;
     }
 
-    // Interleave the samples
-    size_t frameCount = leftSamples.size();
-    std::vector<float> interleaved(frameCount * 2);
-    for (size_t i = 0; i < frameCount; ++i) {
-        interleaved[i * 2 + 0] = leftSamples[i];
-        interleaved[i * 2 + 1] = rightSamples[i];
-    }
+    auto& interleaved = track.getBuffer().interleaveSamples();
+    size_t frameCount = track.getBuffer().getLeftSamples().size();
 
     // Write audio data
     ma_uint64 framesWritten = 0;
@@ -140,3 +136,12 @@ bool FileIO::setFormat(const char* filename, Format& format)
 
     return true;
 }
+
+void FileIO::setNewFileFormat(Format& format, bool stereo, Track& track)
+{
+    auto& engine = track.getEngine();
+    format.outputChannels = stereo ? 2 : 1;
+    format.outputSampleRate = engine.getDefaultOutputSampleRate();
+    format.outputFormat = engine.getDefaultOutputFormat();
+}
+

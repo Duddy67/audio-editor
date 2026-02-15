@@ -2,6 +2,12 @@
 #define FILE_IO_H
 
 #include <vector>
+#include <bits/stdc++.h> // std::map
+#include "buffer.h"
+
+// Forward declarations.
+class Buffer;
+class Track;
 
 class FileIO {
     private:
@@ -15,7 +21,6 @@ class FileIO {
 
         Buffer& buffer;
         ma_decoder decoder;
-        std::atomic<bool> eof{false};
         OriginalFileFormat originalFileFormat;
 
         bool storeOriginalFileFormat(const char* filename);
@@ -24,11 +29,12 @@ class FileIO {
     public:
         FileIO(Buffer& b) : buffer(b) {}
 
-        void load(const char *fileName);
+        void load(const char *fileName, Track& track);
+        bool decode(Track& track);
         std::map<std::string, std::string> getOriginalFileFormat();
-        bool isEndOfFile() const { return eof.load(); }
-        void resetEndOfFile() { eof.store(false); }
-        void save(const char* filename);
+        void save(const char* filename, Track& track);
+        bool setFormat(const char* filename, Format& format);
+        void setNewFileFormat(Format& format, bool stereo, Track& track);
 };
 
 #endif // FILE_IO_H

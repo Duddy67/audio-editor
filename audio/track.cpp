@@ -1,4 +1,5 @@
 #include "../main.h"
+#include "file_io.h"
 #define MINIAUDIO_IMPLEMENTATION
 #include "../../libraries/miniaudio.h"
 
@@ -70,10 +71,13 @@ void Track::mixInto(float* output, int frameCount)
 
         // --- Copy audio data to output device. ---
 
+        auto& left = buffer->getLeftSamples();
+        auto& right = buffer->getRightSamples();
+
         // Left
-        output[i * 2] += leftSamples[idx];   
+        output[i * 2] += left[idx];   
         // Right
-        output[i * 2 + 1] += rightSamples[idx];  
+        output[i * 2 + 1] += right[idx];  
     }
 }
 
@@ -178,8 +182,8 @@ void Track::stop()
         // Done using the ring buffer.
         ma_pcm_rb_uninit(&captureRing);
         // Return possible unused memory (allocated through "reserve") to the system.
-        leftSamples.shrink_to_fit();
-        rightSamples.shrink_to_fit();
+        buffer->getLeftSamples().shrink_to_fit();
+        buffer->getRightSamples().shrink_to_fit();
 
         // Stop drawing waveform.
         waveform->stopLiveUpdate();
@@ -236,7 +240,7 @@ void Track::drainAndMergeRingBuffer()
     newRight.resize(framesToRead);
     const float* src = interleaved.data();
 
-    if (isStereo()) {
+    if (buffer->isStereo()) {
         // Stereo: deinterleave.
         for (ma_uint32 i = 0; i < framesToRead; ++i) {
             newLeft[i]  = src[i * 2 + 0];
@@ -258,6 +262,8 @@ void Track::drainAndMergeRingBuffer()
     }
 
     // --- Step 5: Merge (Punch-In Aware) ---
+    auto& leftSamples = buffer->getLeftSamples();
+    auto& rightSamples = buffer->getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
     size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
@@ -267,8 +273,9 @@ void Track::drainAndMergeRingBuffer()
     // vector memory allocations causing audio glitches.
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        leftSamples.reserve(newCapacity);
-        rightSamples.reserve(newCapacity);
+        //leftSamples.reserve(newCapacity);
+        //rightSamples.reserve(newCapacity);
+        buffer->reserve(newCapacity);
     }
 
     // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
@@ -344,6 +351,8 @@ bool Track::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& 
     }
 
     // Atomically grab and reset dirty range
+    auto& leftSamples = buffer->getLeftSamples();
+    auto& rightSamples = buffer->getRightSamples();
     size_t start = dirtyStart.exchange(SIZE_MAX, std::memory_order_acq_rel);
     size_t end   = dirtyEnd.exchange(0, std::memory_order_acq_rel);
     newDataAvailable.store(false, std::memory_order_release);
@@ -366,12 +375,14 @@ void Track::setNewTrack(TrackOptions options)
 {
     newTrack = true;
     // Set the track recording format (ie: mono/stereo).
-    stereo = options.stereo;
+    //stereo = options.stereo;
+    auto file = FileIO(*buffer);
+    file.setNewFileFormat(buffer->getFormat(), options.stereo, *this);
 }
 
 void Track::loadFromFile(const char *filename)
 {
-    FileIO loader;
+    auto loader = FileIO(*buffer);
     loader.load(filename, *this);
 
     // Reset index.
@@ -472,6 +483,12 @@ void Track::loadFromFile(const char *filename)
     return true;
 }*/
 
+void Track::save(const char* filename)
+{
+    auto file = FileIO(*buffer);
+    file.save(filename, *this);
+}
+
 /*void Track::save(const char* filename)
 {
     ma_encoder_config config = ma_encoder_config_init(
@@ -543,7 +560,7 @@ void Track::render(int x, int y, int w, int h)
     marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
     waveform = std::make_unique<Waveform>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);
     waveform->take_focus();    
-    waveform->setStereoMode(isStereo());    
+    waveform->setStereoMode(buffer->isStereo());    
     waveform->setStereoSamples(getLeftSamples(), getRightSamples());
 }
 

@@ -1,10 +1,9 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
+#include "../../libraries/miniaudio.h"
 #include <vector>
-
-class Buffer {
-    private:
+#include <string>
 
         // The original file format. 
         struct Format {
@@ -13,9 +12,13 @@ class Buffer {
             ma_uint32 outputSampleRate;
             ma_format outputFormat;
         };
+class Buffer {
+    private:
+
 
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
+        std::vector<float> interleaved;
         int totalFrames = 0;
         Format format;
 
@@ -27,9 +30,10 @@ class Buffer {
         ma_uint32 getSampleRate() { return format.outputSampleRate; }
         void clear();
         void reserve(size_t frames);
-        void fillFromInterleaved(const float data, size_t frames);
+        void fillFromInterleaved(std::vector<float>& data, size_t frames);
         Format& getFormat() { return format; }
         int getTotalFrames() { return totalFrames; }
+        std::vector<float>& interleaveSamples();
 };
 
 #endif // BUFFER_H

@@ -8,7 +8,6 @@
 #include <atomic>
 #include <vector>
 #include <thread>
-#include <bits/stdc++.h> // std::map
 #include <time.h>
 #include "../../libraries/miniaudio.h"
 #include "../view/waveform.h"
@@ -47,7 +46,6 @@ class Track {
         //ma_decoder decoder;
         ma_uint64 frameCount;
         Engine& engine;
-        //FileIO* fileIO = nullptr;
         std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
         //std::vector<float> leftSamples;
         //std::vector<float> rightSamples;
@@ -103,8 +101,6 @@ class Track {
       bool isEndOfFile() const { return eof.load(); }
       bool isNewTrack() const { return newTrack; }
       uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
-      //std::vector<float>& getLeftSamples() { return leftSamples; }
-      //std::vector<float>& getRightSamples() { return rightSamples; }
       unsigned int getId() const { return id; }
       Waveform& getWaveform() { return *waveform.get(); }
       Marking& getMarking() { return *marking.get(); }
@@ -113,15 +109,21 @@ class Track {
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
       void updateTime();
-
-      const Engine& getEngine() { return engine; }
+      Engine& getEngine() { return engine; }
+      Buffer& getBuffer() { return *buffer; }
 
       // Setters.
       void setNewTrack(TrackOptions options);
-      //void save(const char* filename);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
       void resetEndOfFile() { eof.store(false); }
+
+      ////// Facade ////////
+
+      std::vector<float>& getLeftSamples() { return buffer->getLeftSamples(); }
+      std::vector<float>& getRightSamples() { return buffer->getRightSamples(); }
+      void save(const char* filename);
+      bool isStereo() { return buffer->isStereo(); }
 };
 
 #endif // TRACK_H
