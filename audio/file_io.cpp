@@ -4,7 +4,7 @@
 /*
  * Loads a given audio file.
  */
-void FileIO::load(const char *filename, Track& track)
+void FileIO::load(const char *filename)
 {
     printf("Load audio file '%s'\n", filename); // Debog.
     auto& engine = track.getEngine();
@@ -34,13 +34,13 @@ void FileIO::load(const char *filename, Track& track)
     }
 
     // Then initialize decoder with format conversion (except for output channels).
-    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), originalFileFormat.outputChannels, engine.getDefaultOutputSampleRate());
+    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), buffer.getFormat().outputChannels, engine.getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
         throw std::runtime_error("Failed to initialize decoder with conversion.");
     }
 
-    if (!decode(track)) {
+    if (!decode()) {
         throw std::runtime_error("Failed to decode file.");
     }
 
@@ -50,7 +50,7 @@ void FileIO::load(const char *filename, Track& track)
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool FileIO::decode(Track& track)
+bool FileIO::decode()
 {
     ma_uint64 frameCount = 0;
 
@@ -72,7 +72,6 @@ bool FileIO::decode(Track& track)
     }
 
     // Check whether the file is stereo.
-    //stereo = decoder.outputChannels == 2;
     ma_uint64 totalFrames = static_cast<size_t>(framesRead);
     auto& buffer = track.getBuffer();
 
@@ -84,7 +83,7 @@ bool FileIO::decode(Track& track)
     return true;
 }
 
-void FileIO::save(const char* filename, Track& track)
+void FileIO::save(const char* filename)
 {
     ma_encoder_config config = ma_encoder_config_init(
         ma_encoding_format_wav,
@@ -137,7 +136,7 @@ bool FileIO::setFormat(const char* filename, Format& format)
     return true;
 }
 
-void FileIO::setNewFileFormat(Format& format, bool stereo, Track& track)
+void FileIO::setNewFileFormat(Format& format, bool stereo)
 {
     auto& engine = track.getEngine();
     format.outputChannels = stereo ? 2 : 1;

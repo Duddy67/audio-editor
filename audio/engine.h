@@ -88,10 +88,10 @@ class Engine {
         std::vector<DeviceInfo> getOutputDevices();
         std::vector<DeviceInfo> getInputDevices();
         std::vector<DeviceInfo> getDuplexDevices();
-        std::vector<std::string> getSupportedFormats() { return supportedFormats; }
+        std::vector<std::string> getSupportedFormats() const { return supportedFormats; }
         bool isContextInitialized() { return contextInitialized; }
-        ma_format getDefaultOutputFormat() { return defaultOutputFormat; }
-        ma_uint32 getDefaultOutputSampleRate() { return defaultOutputSampleRate; }
+        ma_format getDefaultOutputFormat() const { return defaultOutputFormat; }
+        ma_uint32 getDefaultOutputSampleRate() const { return defaultOutputSampleRate; }
         float getCurrentLevelL() const { return currentLevelL.load(); }
         float getCurrentLevelR() const { return currentLevelR.load(); }
         float getCurrentPeakL() const { return currentPeakL.load(); }

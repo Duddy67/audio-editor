@@ -36,7 +36,7 @@ void Track::mixInto(float* output, int frameCount)
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
         // Increment the sample index (ie: ++).
-        int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
+        unsigned int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
 
         // End of audio file.
         if (idx >= buffer->getTotalFrames()) {
@@ -55,7 +55,7 @@ void Track::mixInto(float* output, int frameCount)
         }
 
         // Playback has reached the end of the current selection.
-        if (getWaveform().selection() && idx >= getWaveform().getSelectionEndSample()) {
+        if (getWaveform().selection() && idx >= static_cast<unsigned int>(getWaveform().getSelectionEndSample())) {
             if (getApplication().isLooped()) {
                 // Go back to the start of the selection.
                 playbackSampleIndex.store(getWaveform().getSelectionStartSample(), std::memory_order_relaxed);
@@ -376,14 +376,14 @@ void Track::setNewTrack(TrackOptions options)
     newTrack = true;
     // Set the track recording format (ie: mono/stereo).
     //stereo = options.stereo;
-    auto file = FileIO(*buffer);
-    file.setNewFileFormat(buffer->getFormat(), options.stereo, *this);
+    auto file = FileIO(*this);
+    file.setNewFileFormat(buffer->getFormat(), options.stereo);
 }
 
 void Track::loadFromFile(const char *filename)
 {
-    auto loader = FileIO(*buffer);
-    loader.load(filename, *this);
+    auto loader = FileIO(*this);
+    loader.load(filename);
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);
@@ -485,8 +485,8 @@ void Track::loadFromFile(const char *filename)
 
 void Track::save(const char* filename)
 {
-    auto file = FileIO(*buffer);
-    file.save(filename, *this);
+    auto file = FileIO(*this);
+    file.save(filename);
 }
 
 /*void Track::save(const char* filename)

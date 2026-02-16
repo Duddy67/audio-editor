@@ -5,36 +5,26 @@
 #include <bits/stdc++.h> // std::map
 #include "buffer.h"
 
-// Forward declarations.
-class Buffer;
+// Forward declaration.
 class Track;
+struct Format;
 
 class FileIO {
     private:
 
-        struct OriginalFileFormat {
-            std::string fileName;
-            ma_uint32 outputChannels;
-            ma_uint32 outputSampleRate;
-            ma_format outputFormat;
-        };
-
-        Buffer& buffer;
+        Track& track;
         ma_decoder decoder;
-        OriginalFileFormat originalFileFormat;
-
-        bool storeOriginalFileFormat(const char* filename);
         bool decode();
 
     public:
-        FileIO(Buffer& b) : buffer(b) {}
 
-        void load(const char *fileName, Track& track);
-        bool decode(Track& track);
+        FileIO(Track& t) : track(t) {}
+
+        void load(const char *fileName);
         std::map<std::string, std::string> getOriginalFileFormat();
-        void save(const char* filename, Track& track);
+        void save(const char* filename);
         bool setFormat(const char* filename, Format& format);
-        void setNewFileFormat(Format& format, bool stereo, Track& track);
+        void setNewFileFormat(Format& format, bool stereo);
 };
 
 #endif // FILE_IO_H
