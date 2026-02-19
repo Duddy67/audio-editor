@@ -4,12 +4,9 @@
 /*
  * Loads a given audio file.
  */
-void FileIO::load(const char *filename)
+void FileIO::load(const char *filename, Buffer& buffer, const Engine& engine)
 {
     printf("Load audio file '%s'\n", filename); // Debog.
-    auto& engine = track.getEngine();
-    auto& buffer = track.getBuffer();
-
     // First ensure the file format is supported.
     std::string fileFormat = std::filesystem::path(filename).extension();
     std::vector<std::string> supportedFormats = engine.getSupportedFormats();
@@ -40,7 +37,7 @@ void FileIO::load(const char *filename)
         throw std::runtime_error("Failed to initialize decoder with conversion.");
     }
 
-    if (!decode()) {
+    if (!decode(buffer)) {
         throw std::runtime_error("Failed to decode file.");
     }
 
@@ -50,7 +47,7 @@ void FileIO::load(const char *filename)
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool FileIO::decode()
+bool FileIO::decode(Buffer& buffer)
 {
     ma_uint64 frameCount = 0;
 
@@ -73,7 +70,6 @@ bool FileIO::decode()
 
     // Check whether the file is stereo.
     ma_uint64 totalFrames = static_cast<size_t>(framesRead);
-    auto& buffer = track.getBuffer();
 
     // Write audio data into buffer.
     buffer.clear();
@@ -83,7 +79,7 @@ bool FileIO::decode()
     return true;
 }
 
-void FileIO::save(const char* filename)
+void FileIO::save(const char* filename, Buffer& buffer)
 {
     ma_encoder_config config = ma_encoder_config_init(
         ma_encoding_format_wav,
@@ -98,8 +94,9 @@ void FileIO::save(const char* filename)
         return;
     }
 
-    auto& interleaved = track.getBuffer().interleaveSamples();
-    size_t frameCount = track.getBuffer().getLeftSamples().size();
+    std::vector<float> interleaved;
+    buffer.interleaveSamples(interleaved);
+    size_t frameCount = buffer.getLeftSamples().size();
 
     // Write audio data
     ma_uint64 framesWritten = 0;
@@ -136,9 +133,8 @@ bool FileIO::setFormat(const char* filename, Format& format)
     return true;
 }
 
-void FileIO::setNewFileFormat(Format& format, bool stereo)
+void FileIO::setNewFileFormat(Format& format, bool stereo, const Engine& engine)
 {
-    auto& engine = track.getEngine();
     format.outputChannels = stereo ? 2 : 1;
     format.outputSampleRate = engine.getDefaultOutputSampleRate();
     format.outputFormat = engine.getDefaultOutputFormat();

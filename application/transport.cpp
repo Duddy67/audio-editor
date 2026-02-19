@@ -43,7 +43,7 @@ void Application::onTransport(TransportID id)
 
 void Application::onPlay(Track& track)
 {
-    auto& waveform = track.getWaveform();
+    auto& waveform = track.getGUI().getWaveform();
 
     // Cannot play while recording.
     if (track.isRecording()) {
@@ -72,7 +72,7 @@ void Application::onPlay(Track& track)
 
 void Application::onStop(Track& track)
 {
-    auto& waveform = track.getWaveform();
+    auto& waveform = track.getGUI().getWaveform();
 
     if (track.isPlaying() || track.isRecording()) {
         bool stoppedRecording = track.isRecording();
@@ -93,7 +93,7 @@ void Application::onStop(Track& track)
 
 void Application::onPause(Track& track)
 {
-    auto& waveform = track.getWaveform();
+    auto& waveform = track.getGUI().getWaveform();
 
     if (track.isPlaying()) {
         track.stop();
@@ -111,7 +111,7 @@ void Application::onPause(Track& track)
 
 void Application::onRecord(Track& track)
 {
-    auto& waveform = track.getWaveform();
+    auto& waveform = track.getGUI().getWaveform();
 
     // Check the app can record.
     if (!track.isPlaying() && !track.isRecording()) {

@@ -47,9 +47,9 @@ class Document : public Fl_Group {
                 auto* sb = (Fl_Scrollbar*)w;
                 auto* wf = (Waveform*)data;
                 wf->setScrollOffset(sb->value());
-            }, &track.getWaveform());
+            }, &track.getGUI().getWaveform());
 
-            track.getWaveform().setScrollbar(scrollbar);
+            track.getGUI().getWaveform().setScrollbar(scrollbar);
 
             // Important:  Create a dummy box that represents the waveform’s resize area
             Fl_Box* resize_box = new Fl_Box(wf_x, wf_y + MARKING_AREA_HEIGHT, wf_w, SCROLLBAR_HEIGHT + MARKING_AREA_HEIGHT);
@@ -58,8 +58,8 @@ class Document : public Fl_Group {
             // Done adding children.
             end();
 
-            track.getWaveform().show();
-            track.getWaveform().redraw();
+            track.getGUI().getWaveform().show();
+            track.getGUI().getWaveform().redraw();
         }
 
     public:

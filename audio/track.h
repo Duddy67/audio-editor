@@ -14,6 +14,7 @@
 #include "engine.h"
 #include "file_io.h"
 #include "buffer.h"
+#include "gui.h"
 #include "../marking/marking.h"
 
 // Forward declarations.
@@ -39,6 +40,7 @@ class Track {
         ma_uint64 frameCount;
         Engine& engine;
         std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
+        std::unique_ptr<GUI> gui;
         std::atomic<uint64_t> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
@@ -51,13 +53,9 @@ class Track {
         std::atomic<bool> workerRunning{false};
         // End of file flag.
         std::atomic<bool> eof{false};
-        std::unique_ptr<Waveform> waveform;  
-        std::unique_ptr<Marking> marking;  
         bool newTrack = false;
         // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
-        std::atomic<size_t> dirtyStart{SIZE_MAX};
-        std::atomic<size_t> dirtyEnd{0};
 
         void uninit();
         void drainAndMergeRingBuffer();
@@ -75,7 +73,7 @@ class Track {
       void mixInto(float* output, int frameCount);
       void recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels);
       void prepareRecording();
-      void render(int x, int y, int w, int h);
+      void updateTime();
 
       // Getters.
       bool isPlaying() const { return playing.load(); }
@@ -85,15 +83,14 @@ class Track {
       bool isNewTrack() const { return newTrack; }
       uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
       unsigned int getId() const { return id; }
-      Waveform& getWaveform() { return *waveform.get(); }
-      Marking& getMarking() { return *marking.get(); }
+      std::atomic<bool>& getNewDataAvailableFlag() { return newDataAvailable; }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
-      void updateTime();
       const Engine& getEngine() { return engine; }
       Buffer& getBuffer() { return *buffer; }
+      GUI& getGUI() { return *gui; }
 
       // Setters.
       void setNewTrack(TrackOptions options);
@@ -107,6 +104,7 @@ class Track {
       std::vector<float>& getRightSamples() { return buffer->getRightSamples(); }
       void save(const char* filename);
       bool isStereo() { return buffer->isStereo(); }
+      void render(int x, int y, int w, int h);
 };
 
 #endif // TRACK_H

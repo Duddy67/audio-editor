@@ -17,7 +17,7 @@ void Buffer::fillFromInterleaved(const std::vector<float>& data, size_t frames)
     }
 }
 
-std::vector<float>& Buffer::interleaveSamples()
+void Buffer::interleaveSamples(std::vector<float>& interleaved)
 {
     // Interleave the samples
     interleaved.clear();
@@ -28,8 +28,6 @@ std::vector<float>& Buffer::interleaveSamples()
         interleaved[i * 2 + 0] = leftSamples[i];
         interleaved[i * 2 + 1] = rightSamples[i];
     }
-
-    return interleaved;
 }
 
 void Buffer::clear()

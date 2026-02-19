@@ -78,7 +78,7 @@ void Waveform::pullNewRecordedSamples()
     std::vector<float> newLeft, newRight;
     size_t startIndex, count;
 
-    if (track.getNewSamplesCopy(newLeft, newRight, startIndex, count)) {
+    if (track.getGUI().getNewSamplesCopy(newLeft, newRight, startIndex, count)) {
         if (count == 0) return;
 
         size_t requiredSize = startIndex + count;
@@ -636,7 +636,7 @@ void Waveform::resetCursor()
 // ---- Timer Callback ----
 void Waveform::update_cursor_timer_cb(void* userdata) {
     auto& track = *(Track*)userdata;  // Dereference to get reference
-    auto& waveform = track.getWaveform();
+    auto& waveform = track.getGUI().getWaveform();
     // Reads from atomic.
     int sample = track.getCurrentSample();
     // Synchronize view with audio. 

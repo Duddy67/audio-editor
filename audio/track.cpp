@@ -37,12 +37,13 @@ void Track::mixInto(float* output, int frameCount)
     for (int i = 0; i < frameCount; ++i) {
         // Increment the sample index (ie: ++).
         unsigned int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
+        auto& waveform = getGUI().getWaveform();
 
         // End of audio file.
         if (idx >= buffer->getTotalFrames()) {
             if (getApplication().isLooped()) {
                 // Go back to the cursor's current position.
-                playbackSampleIndex.store(getWaveform().getCursorSamplePosition(), std::memory_order_relaxed);
+                playbackSampleIndex.store(waveform.getCursorSamplePosition(), std::memory_order_relaxed);
             }
             else {
                 eof.store(true);
@@ -55,10 +56,10 @@ void Track::mixInto(float* output, int frameCount)
         }
 
         // Playback has reached the end of the current selection.
-        if (getWaveform().selection() && idx >= static_cast<unsigned int>(getWaveform().getSelectionEndSample())) {
+        if (waveform.selection() && idx >= static_cast<unsigned int>(waveform.getSelectionEndSample())) {
             if (getApplication().isLooped()) {
                 // Go back to the start of the selection.
-                playbackSampleIndex.store(getWaveform().getSelectionStartSample(), std::memory_order_relaxed);
+                playbackSampleIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
             }
             else {
                 // Stop playback.
@@ -186,7 +187,7 @@ void Track::stop()
         buffer->getRightSamples().shrink_to_fit();
 
         // Stop drawing waveform.
-        waveform->stopLiveUpdate();
+        gui->getWaveform().stopLiveUpdate();
     }
 }
 
@@ -199,7 +200,7 @@ void Track::record()
     recording.store(true);
     workerRunning.store(true);
     // Start drawing waveform.
-    waveform->startLiveUpdate();
+    gui->getWaveform().startLiveUpdate();
 
     // Start worker thread
     workerThread = std::thread(&Track::workerThreadLoop, this);
@@ -273,8 +274,6 @@ void Track::drainAndMergeRingBuffer()
     // vector memory allocations causing audio glitches.
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        //leftSamples.reserve(newCapacity);
-        //rightSamples.reserve(newCapacity);
         buffer->reserve(newCapacity);
     }
 
@@ -309,19 +308,18 @@ void Track::drainAndMergeRingBuffer()
 
     // --- Step 7: Update stats and GUI ---
     totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
-    //totalFrames = leftSamples.size();
 
     // --- Step 8: Update dirty range atomically (for GUI) ---
-    size_t prevStart = dirtyStart.load(std::memory_order_acquire);
-    size_t prevEnd   = dirtyEnd.load(std::memory_order_acquire);
+    size_t prevStart = gui->getDirtyStart().load(std::memory_order_acquire);
+    size_t prevEnd   = gui->getDirtyEnd().load(std::memory_order_acquire);
 
     // Extend range atomically
     if (prevStart == SIZE_MAX || writeIndex < prevStart) {
-        dirtyStart.store(writeIndex, std::memory_order_release);
+        gui->getDirtyStart().store(writeIndex, std::memory_order_release);
     }
 
     if (newWriteEnd > prevEnd) {
-        dirtyEnd.store(newWriteEnd, std::memory_order_release);
+        gui->getDirtyEnd().store(newWriteEnd, std::memory_order_release);
     }
 
     newDataAvailable.store(true, std::memory_order_release);
@@ -344,208 +342,28 @@ void Track::workerThreadLoop()
     drainAndMergeRingBuffer();
 }
 
-// Safe method that copies only new data
-bool Track::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount) {
-    if (!newDataAvailable.load(std::memory_order_acquire)) {
-        return false;
-    }
-
-    // Atomically grab and reset dirty range
-    auto& leftSamples = buffer->getLeftSamples();
-    auto& rightSamples = buffer->getRightSamples();
-    size_t start = dirtyStart.exchange(SIZE_MAX, std::memory_order_acq_rel);
-    size_t end   = dirtyEnd.exchange(0, std::memory_order_acq_rel);
-    newDataAvailable.store(false, std::memory_order_release);
-
-    if (start == SIZE_MAX || end <= start || end > leftSamples.size()) {
-        return false;
-    }
-
-    newStartIndex = start;
-    newCount = end - start;
-
-    // Copy or overwrite a new chunk of recorded data.
-    leftCopy.assign(leftSamples.begin() + start, leftSamples.begin() + end);
-    rightCopy.assign(rightSamples.begin() + start, rightSamples.begin() + end);
-
-    return true;
-}
-
 void Track::setNewTrack(TrackOptions options)
 {
     newTrack = true;
     // Set the track recording format (ie: mono/stereo).
-    //stereo = options.stereo;
-    auto file = FileIO(*this);
-    file.setNewFileFormat(buffer->getFormat(), options.stereo);
+    auto file = FileIO();
+    file.setNewFileFormat(buffer->getFormat(), options.stereo, getEngine());
 }
 
 void Track::loadFromFile(const char *filename)
 {
-    auto loader = FileIO(*this);
-    loader.load(filename);
+    auto loader = FileIO();
+    loader.load(filename, getBuffer(), getEngine());
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);
 }
-
-/*
- * Loads a given audio file.
- */
-/*void Track::loadFromFile(const char *filename)
-{
-    printf("Load audio file '%s'\n", filename); // Debog.
-    // First ensure the file format is supported.
-    std::string fileFormat = std::filesystem::path(filename).extension();
-    std::vector<std::string> supportedFormats = engine.getSupportedFormats();
-    unsigned int size = supportedFormats.size();
-    bool supported = false;
-
-    // Check wether the format of the given file is supported
-    for (unsigned int i = 0; i < size; i++) {
-        if (fileFormat.compare(supportedFormats[i]) == 0) {
-            supported = true;
-            break;
-        }
-    }
-
-    if (!supported) {
-        throw std::runtime_error("Format: " + fileFormat + " not supported.");
-    }
-
-    // First store the original data file format.
-    if (!storeOriginalFileFormat(filename)) {
-        throw std::runtime_error("Failed to initialized temporary decoder.");
-    }
-
-    // Then initialize decoder with format conversion (except for output channels).
-    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), originalFileFormat.outputChannels, engine.getDefaultOutputSampleRate());
-
-    if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
-        throw std::runtime_error("Failed to initialize decoder with conversion.");
-    }
-
-    if (!decodeFile()) {
-        throw std::runtime_error("Failed to decode file.");
-    }
-
-    // Reset index.
-    playbackSampleIndex.store(0, std::memory_order_relaxed);
-
-    ma_decoder_uninit(&decoder);
-}*/
-
-/*
- * Decode the entire file manually to playback straight from memory (ie: no streaming).
- */
-/*bool Track::decodeFile()
-{
-    frameCount = 0;
-
-    if (ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount) != MA_SUCCESS) {
-        std::cerr << "Failed to get length" << std::endl;
-        ma_decoder_uninit(&decoder);
-        return false;
-    }
-
-    // Create a array/buffer to hold the total number of samples (not frames!):
-    // nb frames * nb channels = total nb samples
-    std::vector<float> tempData(static_cast<size_t>(frameCount * decoder.outputChannels));
-
-    ma_uint64 framesRead = 0;
-    if (ma_decoder_read_pcm_frames(&decoder, tempData.data(), frameCount, &framesRead) != MA_SUCCESS) {
-        std::cerr << "Failed to read PCM frames" << std::endl;
-        ma_decoder_uninit(&decoder);
-        return false;
-    }
-
-    // Check whether the file is stereo.
-    stereo = decoder.outputChannels == 2;
-    totalFrames = static_cast<int>(framesRead);
-
-    if (stereo) {
-        // Split into left/right channels
-        leftSamples.clear(); 
-        rightSamples.clear();
-
-        for (int i = 0; i < totalFrames; ++i) {
-            leftSamples.push_back(tempData[i * 2]);
-            rightSamples.push_back(tempData[i * 2 + 1]);
-        }
-    }
-    // Mono data
-    else {
-        leftSamples = std::vector<float>(tempData);
-        // Mirror for playback
-        rightSamples = leftSamples;
-    }
-
-    return true;
-}*/
 
 void Track::save(const char* filename)
 {
-    auto file = FileIO(*this);
-    file.save(filename);
+    auto file = FileIO();
+    file.save(filename, getBuffer());
 }
-
-/*void Track::save(const char* filename)
-{
-    ma_encoder_config config = ma_encoder_config_init(
-        ma_encoding_format_wav,
-        ma_format_f32,      // 32-bit float samples
-        2,                  // stereo
-        44100               // sample rate (adjust to your app)
-    );
-
-    ma_encoder encoder;
-    if (ma_encoder_init_file(filename, &config, &encoder) != MA_SUCCESS) {
-        printf("Failed to initialize encoder.\n");
-        return;
-    }
-
-    // Interleave the samples
-    size_t frameCount = leftSamples.size();
-    std::vector<float> interleaved(frameCount * 2);
-    for (size_t i = 0; i < frameCount; ++i) {
-        interleaved[i * 2 + 0] = leftSamples[i];
-        interleaved[i * 2 + 1] = rightSamples[i];
-    }
-
-    // Write audio data
-    ma_uint64 framesWritten = 0;
-    ma_encoder_write_pcm_frames(&encoder, interleaved.data(), frameCount, &framesWritten);
-
-    // Clean up
-    ma_encoder_uninit(&encoder);
-
-    printf("Wrote %llu frames to %s\n", framesWritten, filename);
-}*/
-
-/*
- * Probes the original file format and store its data.
- */
-/*bool Track::storeOriginalFileFormat(const char* filename)
-{
-    // Initialize a temporary decoder without any config data (ie: NULL).
-    ma_decoder decoderProbe;
-
-    if (ma_decoder_init_file(filename, NULL, &decoderProbe) != MA_SUCCESS) {
-        ma_decoder_uninit(&decoderProbe);
-        return false;
-    }
-
-    // Retrieve data about the original file format.
-    originalFileFormat.fileName = filename;
-    originalFileFormat.outputChannels = decoderProbe.outputChannels;
-    originalFileFormat.outputSampleRate = decoderProbe.outputSampleRate;
-    originalFileFormat.outputFormat = decoderProbe.outputFormat;
-
-    // Done probing
-    ma_decoder_uninit(&decoderProbe);
-
-    return true;
-}*/
 
 void Track::updateTime()
 {
@@ -557,10 +375,7 @@ void Track::updateTime()
  */
 void Track::render(int x, int y, int w, int h) 
 {
-    marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
-    waveform = std::make_unique<Waveform>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, *this, *marking);
-    waveform->take_focus();    
-    waveform->setStereoMode(buffer->isStereo());    
-    waveform->setStereoSamples(getLeftSamples(), getRightSamples());
+    gui = std::make_unique<GUI>(*this);
+    gui->init(x, y, w, h);
 }
 

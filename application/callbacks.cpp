@@ -115,8 +115,8 @@ void Application::insert_marker_cb(Fl_Widget* w, void* data)
     if (app->tabs->value()) {
         try {
             auto& track = app->getActiveDocument().getTrack();
-            track.getMarking().insertMarker(track.getCurrentSample());
-            track.getWaveform().redraw();
+            track.getGUI().getMarking().insertMarker(track.getCurrentSample());
+            track.getGUI().getWaveform().redraw();
         }
         catch (const std::runtime_error& e) {
             std::cerr << "Failed to get track: " << e.what() << std::endl;

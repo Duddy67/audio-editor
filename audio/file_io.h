@@ -6,25 +6,22 @@
 #include "buffer.h"
 
 // Forward declaration.
-class Track;
+class Engine;
 struct Format;
 
 class FileIO {
     private:
 
-        Track& track;
         ma_decoder decoder;
-        bool decode();
+        bool decode(Buffer& buffer);
 
     public:
 
-        FileIO(Track& t) : track(t) {}
-
-        void load(const char *fileName);
+        void load(const char *fileName, Buffer& buffer, const Engine& engine);
         std::map<std::string, std::string> getOriginalFileFormat();
-        void save(const char* filename);
+        void save(const char* filename, Buffer& buffer);
         bool setFormat(const char* filename, Format& format);
-        void setNewFileFormat(Format& format, bool stereo);
+        void setNewFileFormat(Format& format, bool stereo, const Engine& engine);
 };
 
 #endif // FILE_IO_H

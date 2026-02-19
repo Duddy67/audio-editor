@@ -27,7 +27,7 @@ class Delete : public Command {
                                           track.getRightSamples().begin() + static_cast<size_t>(endSample));
 
             // The sample vectors used to draw audio waveforms has to be modified as well.
-            auto& waveform = track.getWaveform();
+            auto& waveform = track.getGUI().getWaveform();
             
             waveform.getLeftSamples().erase(waveform.getLeftSamples().begin() + static_cast<size_t>(startSample),
                                             waveform.getLeftSamples().begin() + static_cast<size_t>(endSample));
@@ -44,7 +44,7 @@ class Delete : public Command {
                                            backupRight.begin(), backupRight.end());
 
             // The sample vectors used to draw audio waveforms has to be restored as well.
-            auto& waveform = track.getWaveform();
+            auto& waveform = track.getGUI().getWaveform();
 
             waveform.getLeftSamples().insert(waveform.getLeftSamples().begin() + static_cast<size_t>(startSample),
                                              backupLeft.begin(), backupLeft.end());

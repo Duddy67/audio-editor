@@ -19,7 +19,6 @@ class Buffer {
 
         std::vector<float> leftSamples;
         std::vector<float> rightSamples;
-        std::vector<float> interleaved;
         Format format;
 
     public:
@@ -34,7 +33,7 @@ class Buffer {
         void fillFromInterleaved(const std::vector<float>& data, size_t frames);
         Format& getFormat() { return format; }
         size_t getTotalFrames() const { return leftSamples.size(); }
-        std::vector<float>& interleaveSamples();
+        void interleaveSamples(std::vector<float>& interleaved);
 };
 
 #endif // BUFFER_H
