@@ -56,6 +56,11 @@ namespace audio {
                     undoStack.push(std::move(cmd));
                 }
 
+                const Selection getInitialSelection() {
+                    // Return the selection of the latest command.
+                    return undoStack.top()->getSelection();
+                }
+
                 const EditID getLastUndo() { return !undoStack.empty() ? undoStack.top()->editID() : EditID::NONE; }
                 const EditID getLastRedo() { return !redoStack.empty() ? redoStack.top()->editID() : EditID::NONE; }
 

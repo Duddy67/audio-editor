@@ -1,7 +1,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-
 // Forward declaration.
 class Track;
 class Waveform;
@@ -16,6 +15,7 @@ class Command {
         virtual void apply(Track& track) = 0;
         virtual void undo(Track& track) = 0;
         virtual EditID editID() = 0;
+        virtual const Selection getSelection() const = 0;
 };
 
 #endif // COMMAND_H

@@ -34,6 +34,14 @@ void Waveform::setStereoSamples(const std::vector<float>& left, const std::vecto
     redraw();
 }
 
+void Waveform::updateSamples(const std::vector<float>& left, const std::vector<float>& right) 
+{
+    leftSamples.clear();
+    rightSamples.clear();
+    leftSamples = left;
+    rightSamples = right;
+}
+
 void Waveform::setScrollOffset(int offset) {
     scrollOffset = std::max(0, offset);
     updateScrollbar();

@@ -25,9 +25,19 @@ const Selection Application::getSelection(Track& track)
 void Application::onUndo(Track& track)
 {
     auto& audioHistory = getActiveDocument().getAudioHistory();
+    // Important: Get the latest selection BEFORE applying the undo command, (after applying, the
+    // undo command will be removed from the stack). 
+    const auto selection = audioHistory.getInitialSelection();
     audioHistory.undo(track);
+
     auto& waveform = track.getGUI().getWaveform();
+    waveform.updateSamples(track.getLeftSamples(), track.getRightSamples());
+
+    // Restore the selection as well.
+    waveform.setSelectionStartSample(selection.start);
+    waveform.setSelectionEndSample(selection.end);
     waveform.redraw();
+
     std::string label = "";
 
     // No more edit command left.
@@ -48,8 +58,16 @@ void Application::onRedo(Track& track)
 {
     auto& audioHistory = getActiveDocument().getAudioHistory();
     audioHistory.redo(track);
+
     auto& waveform = track.getGUI().getWaveform();
+    waveform.updateSamples(track.getLeftSamples(), track.getRightSamples());
+
+    // Restore the selection as well.
+    const auto selection = audioHistory.getInitialSelection();
+    waveform.setSelectionStartSample(selection.start);
+    waveform.setSelectionEndSample(selection.end);
     waveform.redraw();
+
     std::string label = "";
 
     if (audioHistory.getLastRedo() == EditID::NONE) {
@@ -78,6 +96,7 @@ void Application::onMute(Track& track)
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
     audioHistory.apply(std::move(muteCmd), track);
+    track.getGUI().getWaveform().updateSamples(track.getLeftSamples(), track.getRightSamples());
     track.getGUI().getWaveform().redraw();
 
     //
@@ -98,6 +117,8 @@ void Application::onFadeIn(Track& track)
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
     audioHistory.apply(std::move(fadeInCmd), track);
+    // Update waveform.
+    track.getGUI().getWaveform().updateSamples(track.getLeftSamples(), track.getRightSamples());
     track.getGUI().getWaveform().redraw();
 
     std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_IN]; 
@@ -119,6 +140,8 @@ void Application::onFadeOut(Track& track)
     auto& audioHistory = getActiveDocument().getAudioHistory();
     // Apply the command.
     audioHistory.apply(std::move(fadeOutCmd), track);
+    // Update waveform.
+    track.getGUI().getWaveform().updateSamples(track.getLeftSamples(), track.getRightSamples());
     track.getGUI().getWaveform().redraw();
 
     // Update the Undo menu item accordingly.
@@ -139,6 +162,8 @@ void Application::onDelete(Track& track)
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
     audioHistory.apply(std::move(deleteCmd), track);
+    // Update waveform.
+    track.getGUI().getWaveform().updateSamples(track.getLeftSamples(), track.getRightSamples());
     track.getGUI().getWaveform().redraw();
 
     //

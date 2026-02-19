@@ -26,13 +26,8 @@ class Delete : public Command {
             track.getRightSamples().erase(track.getRightSamples().begin() + static_cast<size_t>(startSample),
                                           track.getRightSamples().begin() + static_cast<size_t>(endSample));
 
-            // The sample vectors used to draw audio waveforms has to be modified as well.
-            auto& waveform = track.getGUI().getWaveform();
-            
-            waveform.getLeftSamples().erase(waveform.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                                            waveform.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            waveform.getRightSamples().erase(waveform.getRightSamples().begin() + static_cast<size_t>(startSample),
-                                             waveform.getRightSamples().begin() + static_cast<size_t>(endSample));
+            // Store the initial selection.
+            selection = {startSample, endSample};
         }
 
         void undo(Track& track) override
@@ -42,27 +37,17 @@ class Delete : public Command {
                                           backupLeft.begin(), backupLeft.end());
             track.getRightSamples().insert(track.getRightSamples().begin() + static_cast<size_t>(startSample),
                                            backupRight.begin(), backupRight.end());
-
-            // The sample vectors used to draw audio waveforms has to be restored as well.
-            auto& waveform = track.getGUI().getWaveform();
-
-            waveform.getLeftSamples().insert(waveform.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                                             backupLeft.begin(), backupLeft.end());
-            waveform.getRightSamples().insert(waveform.getRightSamples().begin() + static_cast<size_t>(startSample),
-                                              backupRight.begin(), backupRight.end());
-
-            // Restore the selection as well.
-            waveform.setSelectionStartSample(startSample);
-            waveform.setSelectionEndSample(endSample);
         }
 
         // Returns the edit command identifier.
         EditID editID() { return EditID::DELETE; }
+        const Selection getSelection() const { return selection; }
 
     private:
 
         int startSample;
         int endSample;
+        Selection selection;
         std::vector<float> backupLeft;
         std::vector<float> backupRight;
 };

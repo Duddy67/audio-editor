@@ -20,18 +20,14 @@ class Mute : public Command {
             backupRight.assign(track.getRightSamples().begin() + static_cast<size_t>(startSample),
                                track.getRightSamples().begin() + static_cast<size_t>(endSample));
 
-            // The sample vectors used to draw audio waveforms has to be modified as well.
-            auto& waveform = track.getGUI().getWaveform();
-
             // Mute samples.
             for (int i = startSample; i < endSample; i++) {
-                // Audio
                 track.getLeftSamples()[i] = 0.0f;
                 track.getRightSamples()[i] = 0.0f;
-                // View
-                waveform.getLeftSamples()[i] = 0.0f;
-                waveform.getRightSamples()[i] = 0.0f;
             }
+
+            // Store the initial selection.
+            selection = {startSample, endSample};
         }
 
         void undo(Track& track) override
@@ -41,27 +37,17 @@ class Mute : public Command {
                       track.getLeftSamples().begin() + static_cast<size_t>(startSample));
             std::copy(backupRight.begin(), backupRight.end(),
                       track.getRightSamples().begin() + static_cast<size_t>(startSample));
-
-            // The sample vectors used to draw audio waveforms has to be restored as well.
-            auto& waveform = track.getGUI().getWaveform();
-
-            std::copy(backupLeft.begin(), backupLeft.end(),
-                      waveform.getLeftSamples().begin() + static_cast<size_t>(startSample));
-            std::copy(backupRight.begin(), backupRight.end(),
-                      waveform.getRightSamples().begin() + static_cast<size_t>(startSample));
-
-            // Restore the selection as well.
-            waveform.setSelectionStartSample(startSample);
-            waveform.setSelectionEndSample(endSample);
         }
 
         // Returns the edit command identifier.
         EditID editID() { return EditID::MUTE; }
+        const Selection getSelection() const { return selection; }
 
     private:
 
         int startSample;
         int endSample;
+        Selection selection;
         std::vector<float> backupLeft;
         std::vector<float> backupRight;
 };

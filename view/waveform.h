@@ -85,6 +85,7 @@ class Waveform : public Fl_Gl_Window {
         // Setters.
 
         void setStereoSamples(const std::vector<float>& left, const std::vector<float>& right);
+        void updateSamples(const std::vector<float>& left, const std::vector<float>& right);
         void setScrollOffset(int offset);
         void setScrollbar(Fl_Scrollbar* sb);
         void setCursorSamplePosition(int sample) { cursorSamplePosition = sample; }

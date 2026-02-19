@@ -20,9 +20,6 @@ class FadeIn: public Command {
             backupRight.assign(track.getRightSamples().begin() + static_cast<size_t>(startSample),
                                track.getRightSamples().begin() + static_cast<size_t>(endSample));
 
-            // The sample vectors used to draw audio waveforms has to be modified as well.
-            auto& waveform = track.getGUI().getWaveform();
-
             int length = endSample - startSample;
 
             // Compute a linear gain ramp going from 0.0 to 1.0.
@@ -31,14 +28,12 @@ class FadeIn: public Command {
                 int idx = startSample + i;
 
                 // Multiply samples by the newly computed gain ramp.
-
-                // Audio
                 track.getLeftSamples()[idx]  *= gain;
                 track.getRightSamples()[idx] *= gain;
-                // View
-                waveform.getLeftSamples()[idx] *= gain;
-                waveform.getRightSamples()[idx] *= gain;
             }
+
+            // Store the initial selection.
+            selection = {startSample, endSample};
         }
 
         void undo(Track& track) override
@@ -48,27 +43,17 @@ class FadeIn: public Command {
                       track.getLeftSamples().begin() + static_cast<size_t>(startSample));
             std::copy(backupRight.begin(), backupRight.end(),
                       track.getRightSamples().begin() + static_cast<size_t>(startSample));
-
-            // The sample vectors used to draw audio waveforms has to be restored as well.
-            auto& waveform = track.getGUI().getWaveform();
-
-            std::copy(backupLeft.begin(), backupLeft.end(),
-                      waveform.getLeftSamples().begin() + static_cast<size_t>(startSample));
-            std::copy(backupRight.begin(), backupRight.end(),
-                      waveform.getRightSamples().begin() + static_cast<size_t>(startSample));
-
-            // Restore the selection as well.
-            waveform.setSelectionStartSample(startSample);
-            waveform.setSelectionEndSample(endSample);
         }
 
         // Returns the edit command identifier.
         EditID editID() { return EditID::FADE_IN; }
+        const Selection getSelection() const { return selection; }
 
     private:
 
         int startSample;
         int endSample;
+        Selection selection;
         std::vector<float> backupLeft;
         std::vector<float> backupRight;
 };
