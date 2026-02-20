@@ -5,7 +5,7 @@
 #include "command.h"
 
 // Forward declaration.
-class Track;
+class Buffer;
 
 // Use namespaces as History is a common word and might be used by other classes.
 namespace audio {
@@ -18,8 +18,8 @@ namespace audio {
         class History {
             public:
 
-                void apply(std::unique_ptr<Command> cmd, Track& track) {
-                    cmd->apply(track);
+                void apply(std::unique_ptr<Command> cmd, Buffer& buffer) {
+                    cmd->apply(buffer);
                     lastCmdApplied = cmd->editID();
                     // Append the command to the undo stack.
                     undoStack.push(std::move(cmd));
@@ -27,7 +27,7 @@ namespace audio {
                     redoStack = {};
                 }
 
-                void undo(Track& track) {
+                void undo(Buffer& buffer) {
                     if (undoStack.empty()) {
                         return;
                     }
@@ -35,13 +35,13 @@ namespace audio {
                     auto cmd = std::move(undoStack.top());
                     // Remove the command from the undo stack.
                     undoStack.pop();
-                    cmd->undo(track);
+                    cmd->undo(buffer);
                     lastCmdApplied = cmd->editID();
                     // Append the command to the redo stack.
                     redoStack.push(std::move(cmd));
                 }
 
-                void redo(Track& track) {
+                void redo(Buffer& buffer) {
                     if (redoStack.empty()) {
                         return;
                     }
@@ -50,7 +50,7 @@ namespace audio {
                     // Remove the command from the redo stack.
                     redoStack.pop();
                     // Apply the command again.
-                    cmd->apply(track);
+                    cmd->apply(buffer);
                     lastCmdApplied = cmd->editID();
                     // Append the command to the undo stack.
                     undoStack.push(std::move(cmd));

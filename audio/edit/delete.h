@@ -12,30 +12,30 @@ class Delete : public Command {
         Delete(int start, int end)
             : startSample(start), endSample(end) {}
 
-        void apply(Track& track) override
+        void apply(Buffer& buffer) override
         {
-            // First, save the initial state of the track samples.
-            backupLeft.assign(track.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                              track.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            backupRight.assign(track.getRightSamples().begin() + static_cast<size_t>(startSample),
-                               track.getRightSamples().begin() + static_cast<size_t>(endSample));
+            // First, save the initial state of the buffer samples.
+            backupLeft.assign(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
+                              buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
+            backupRight.assign(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
+                               buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
 
             // Delete the selected samples.
-            track.getLeftSamples().erase(track.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                                         track.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            track.getRightSamples().erase(track.getRightSamples().begin() + static_cast<size_t>(startSample),
-                                          track.getRightSamples().begin() + static_cast<size_t>(endSample));
+            buffer.getLeftSamples().erase(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
+                                         buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
+            buffer.getRightSamples().erase(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
+                                          buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
 
             // Store the initial selection.
             selection = {startSample, endSample};
         }
 
-        void undo(Track& track) override
+        void undo(Buffer& buffer) override
         {
-            // Restore the track samples to their initial state.
-            track.getLeftSamples().insert(track.getLeftSamples().begin() + static_cast<size_t>(startSample),
+            // Restore the buffer samples to their initial state.
+            buffer.getLeftSamples().insert(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
                                           backupLeft.begin(), backupLeft.end());
-            track.getRightSamples().insert(track.getRightSamples().begin() + static_cast<size_t>(startSample),
+            buffer.getRightSamples().insert(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
                                            backupRight.begin(), backupRight.end());
         }
 
