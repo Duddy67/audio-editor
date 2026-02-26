@@ -43,30 +43,19 @@ void Application::onTransport(TransportID id)
 
 void Application::onPlay(Track& track)
 {
-    auto& waveform = track.getGUI().getWaveform();
-
     // Cannot play while recording.
     if (track.isRecording()) {
         return;
     }
 
     if (!track.isPlaying()) {
-        if (track.isPaused() || track.isEndOfFile() || waveform.selection()) {
-            waveform.resetCursor();
-            track.resetEndOfFile();
-        }
-
         track.play();
 
         getButton("record").deactivate();
         startVuMeters();
-        // Launch cursor timer.
-        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
-        //
-        Fl::add_timeout(0.01, time_cb, this); 
-    }
-    else {
-        waveform.resetCursor();
+
+        // Launch timer that updates cursor and time.
+        Fl::add_timeout(TIMER_CALLBACK_VALUE, gui_cb, &track); 
     }
 }
 
@@ -105,19 +94,17 @@ void Application::onPause(Track& track)
         track.setPlaybackSampleIndex(resumeSample);
         track.unpause();
         track.play();
-        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+        Fl::add_timeout(TIMER_CALLBACK_VALUE, gui_cb, &track); 
     }
 }
 
 void Application::onRecord(Track& track)
 {
-    auto& waveform = track.getGUI().getWaveform();
-
     // Check the app can record.
     if (!track.isPlaying() && !track.isRecording()) {
         track.record();
         getButton("play").deactivate();
-        Fl::add_timeout(0.016, waveform.update_cursor_timer_cb, &track);
+        Fl::add_timeout(TIMER_CALLBACK_VALUE, gui_cb, &track); 
     }
 }
 

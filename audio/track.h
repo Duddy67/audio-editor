@@ -53,6 +53,8 @@ class Track {
         std::atomic<bool> workerRunning{false};
         // End of file flag.
         std::atomic<bool> eof{false};
+        // End of selection flag.
+        std::atomic<bool> eos{false};
         bool newTrack = false;
         // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
@@ -80,6 +82,7 @@ class Track {
       bool isPaused() const { return paused.load(); }
       bool isRecording() const { return recording.load(); }
       bool isEndOfFile() const { return eof.load(); }
+      bool isEndOfSelection() const { return eos.load(); }
       bool isNewTrack() const { return newTrack; }
       uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
       unsigned int getId() const { return id; }
@@ -96,7 +99,7 @@ class Track {
       void setNewTrack(TrackOptions options);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
-      void resetEndOfFile() { eof.store(false); }
+      //void resetEndOfFile() { eof.store(false); }
 
       ////// Facade ////////
 

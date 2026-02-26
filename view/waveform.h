@@ -32,8 +32,8 @@ class Waveform : public Fl_Gl_Window {
         bool isStereo = true;
         // Current position of the cursor. It can be manually moved.
         int cursorSamplePosition = 0;
-        // Inintial position of the cursor.
-        int initialSamplePosition = 0;
+        // Start position of the cursor.
+        int startSamplePosition = 0;
         int lastSyncedSample = 0;
         int recordingStartSample = 0;
         Track& track;
@@ -62,7 +62,7 @@ class Waveform : public Fl_Gl_Window {
         }
 
         std::function<void(int)> onSeekCallback;
-        static void update_cursor_timer_cb(void* userdata);
+        void updateCursor(Track& track);
 
         void updateScrollbar();
         void resetCursor();

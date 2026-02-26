@@ -124,23 +124,24 @@ void Application::insert_marker_cb(Fl_Widget* w, void* data)
     }
 }
 
-void Application::time_cb(void *data)
+/*
+ * Graphic User Interface callback that keeps cursor and time updated 
+ * while playback or recording. 
+ */
+void Application::gui_cb(void *userData)
 {
-    Application* app = (Application*) data;
+    // Dereference to get reference
+    auto& track = *(Track*)userData;  
 
-    if (app->tabs->value()) {
-        try {
-            auto& track = app->getActiveDocument().getTrack();
+    track.updateTime();
+    track.getGUI().getWaveform().updateCursor(track);
 
-            if (track.isPlaying()) {
-                track.updateTime();
-                Fl::repeat_timeout(0.01, time_cb, data); 
-            }
-        }
-        catch (const std::runtime_error& e) {
-            std::cerr << "Failed to get track: " << e.what() << std::endl;
-        }
+    if (track.isEndOfFile() || track.isEndOfSelection()) {
+        track.getApplication().onStop(track);
     }
 
+    if (track.isPlaying() && !track.isEndOfFile()) {
+        Fl::repeat_timeout(TIMER_CALLBACK_VALUE, gui_cb, userData); 
+    }
 }
 

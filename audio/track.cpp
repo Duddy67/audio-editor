@@ -31,7 +31,9 @@ void Track::mixInto(float* output, int frameCount)
         return;
     }
 
+    // Reset end of file and selection flags.
     eof.store(false);
+    eos.store(false);
 
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
@@ -39,19 +41,11 @@ void Track::mixInto(float* output, int frameCount)
         unsigned int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
         auto& waveform = getGUI().getWaveform();
 
-        // End of audio file.
-        if (idx >= buffer->getTotalFrames()) {
-            if (getApplication().isLooped()) {
-                // Go back to the cursor's current position.
-                playbackSampleIndex.store(waveform.getCursorSamplePosition(), std::memory_order_relaxed);
-            }
-            else {
-                eof.store(true);
-                // Stop playback.
-                getApplication().onStop(*this);
-            }
-
-            // Exit the loop and function.
+        // End of audio file, no selection.
+        if (idx >= buffer->getTotalFrames() && !waveform.selection()) {
+            // Inform GUI that end of file has been reached.
+            eof.store(true);
+            // Exit loop and function.
             break;
         }
 
@@ -62,11 +56,11 @@ void Track::mixInto(float* output, int frameCount)
                 playbackSampleIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
             }
             else {
-                // Stop playback.
-                getApplication().onStop(*this);
+                // Inform GUI that end of selection has been reached.
+                eos.store(true);
             }
 
-            // Exit the loop and function.
+            // Exit loop and function.
             break;
         }
 

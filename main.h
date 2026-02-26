@@ -141,7 +141,7 @@ class Application : public Fl_Double_Window
         static void cancel_cb(Fl_Widget* w, void* data);
         static void update_vu_cb(void* data);
         static void insert_marker_cb(Fl_Widget* w, void* data);
-        static void time_cb(void* data);
+        static void gui_cb(void* userData);
 };
 
 #endif

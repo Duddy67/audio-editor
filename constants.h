@@ -23,6 +23,7 @@ constexpr unsigned int MARKER_WIDTH = 60;
 constexpr unsigned int MARKER_HEIGHT = 20;
 constexpr unsigned int TAB_BORDER_THICKNESS = 10;
 constexpr float VU_METER_DECAY_TIME = 1.0f;
+constexpr double TIMER_CALLBACK_VALUE = 0.016;
 constexpr const char* CONFIG_FILENAME = "config.json";
 
 // --- Custom types ---
