@@ -7,8 +7,7 @@ void GUI::init(int x, int y, int w, int h)
     marking = std::make_unique<Marking>(x, y, w, MARKING_AREA_HEIGHT);
     waveform = std::make_unique<Waveform>(x, y + MARKING_AREA_HEIGHT, w, h - MARKING_AREA_HEIGHT, track, *marking);
     waveform->take_focus();    
-    waveform->setStereoMode(track.getBuffer().isStereo());    
-    waveform->setStereoSamples(track.getBuffer().getLeftSamples(), track.getBuffer().getRightSamples());
+    waveform->initView();
 }
 
 // Safe method that copies only new data
@@ -27,7 +26,7 @@ bool GUI::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& ri
     // Inform Track that more new data can now be handled.
     newDataAvailable.store(false, std::memory_order_release);
 
-    if (start == SIZE_MAX || end <= start || end > leftSamples.size()) {
+    if (start == SIZE_MAX || end <= start || end > track.getLeftSamples().size()) {
         return false;
     }
 

@@ -68,7 +68,7 @@ void Application::onStop(Track& track)
         track.stop();
 
         if (stoppedRecording) {
-            waveform.setStereoSamples(track.getLeftSamples(), track.getRightSamples());
+            waveform.redraw();
             getButton("play").activate();
         }
         else {

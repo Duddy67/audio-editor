@@ -99,7 +99,6 @@ class Track {
       void setNewTrack(TrackOptions options);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
-      //void resetEndOfFile() { eof.store(false); }
 
       ////// Facade ////////
 

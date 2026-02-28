@@ -17,8 +17,9 @@ class Track;
 class Marking;
 
 class Waveform : public Fl_Gl_Window {
-        std::vector<float> leftSamples;
-        std::vector<float> rightSamples;
+        // Temporary buffers used during recording.
+        std::vector<float> recordedLeftSamples;
+        std::vector<float> recordedRightSamples;
         Fl_Scrollbar* scrollbar = nullptr;
         // Fit-to-screen (current starting zoom).
         float zoomFit = 1.0f;
@@ -63,7 +64,7 @@ class Waveform : public Fl_Gl_Window {
 
         std::function<void(int)> onSeekCallback;
         void updateCursor(Track& track);
-
+        void initView();
         void updateScrollbar();
         void resetCursor();
         void startLiveUpdate();
@@ -79,17 +80,12 @@ class Waveform : public Fl_Gl_Window {
         int getSelectionEndSample() const { return selectionEndSample; }
         int getCursorSamplePosition() const { return cursorSamplePosition; }
         float getLastDrawnX();
-        std::vector<float>& getLeftSamples() { return leftSamples; }
-        std::vector<float>& getRightSamples() { return rightSamples; }
 
         // Setters.
 
-        void setStereoSamples(const std::vector<float>& left, const std::vector<float>& right);
-        void updateSamples(const std::vector<float>& left, const std::vector<float>& right);
         void setScrollOffset(int offset);
         void setScrollbar(Fl_Scrollbar* sb);
         void setCursorSamplePosition(int sample) { cursorSamplePosition = sample; }
-        void setStereoMode(bool stereo) { isStereo = stereo; }
         void setSelectionStartSample(int start) { selectionStartSample = start; }
         void setSelectionEndSample(int end) { selectionEndSample = end; }
 };

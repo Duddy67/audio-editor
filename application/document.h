@@ -118,7 +118,7 @@ class Document : public Fl_Group {
 
         void hasChanged() {
             changed = true;
-            std::cout << "Document: " << label() << std::endl;
+            std::cout << "Document: " << label() << " has changed." << std::endl;
         }
 
         void saved() {
