@@ -15,6 +15,38 @@ void Track::setId(unsigned int i)
     id = i;
 }
 
+size_t Track::getLength()
+{
+    size_t length = 0;
+
+    for (auto clip : clips) {
+        length += clip.getLength();
+    }
+
+    return length;
+}
+
+float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
+{
+    // Loop through existing clips.
+    for (size_t j = 0; j < clips.size() j++) {
+        // Compute the gap of the clip's timeline.
+        size_t clipStart = clips[j].getTimelineStart();
+        size_t clipEnd = clipStart + clips[j].getLength();
+
+        // Check if current playback position is inside the clip's timeline.
+        if (timelineIndex >= clipStart && timelineIndex < clipEnd) {
+            // Compute the actual source sample to read from. Map between the clip's
+            // timeline and the corresponding source region.
+            size_t sourceIndex = clips[j].getSourceStart() + (timelineIndex - clipStart);
+
+            float rawSample = channel == LEFT ? clips[j].getSource()->getLeftSamples()[sourceIndex] : clips[j].getSource()->getRightSamples()[sourceIndex];
+
+            return clips[i].processSample(rawSample, timelineIndex);
+        }
+    }
+}
+
 /*
  * Fills the given output buffer with interleaved stereo samples.
  */
@@ -38,41 +70,63 @@ void Track::mixInto(float* output, int frameCount)
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
         // Increment the sample index (ie: ++).
-        unsigned int idx = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
+        unsigned int timelineIndex = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
         auto& waveform = getGUI().getWaveform();
 
-        // End of audio file, no selection.
-        if (idx >= buffer->getTotalFrames() && !waveform.selection()) {
-            // Inform GUI that end of file has been reached.
-            eof.store(true);
-            // Exit loop and function.
-            break;
-        }
+        // Loop through existing clips.
+        for (size_t j = 0; j < clips.size() j++) {
+            // Compute the gap of the clip's timeline.
+            size_t clipStart = clips[j].getTimelineStart();
+            size_t clipEnd = clipStart + clips[j].getLength();
 
-        // Playback has reached the end of the current selection.
-        if (waveform.selection() && idx >= static_cast<unsigned int>(waveform.getSelectionEndSample())) {
-            if (getApplication().isLooped()) {
-                // Go back to the start of the selection.
-                playbackSampleIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
+            // First, check for the end of audio file.
+            if (j == clips.size() - 1 && timelineIndex >= clipEnd && !waveform.selection()) {
+                // Inform GUI that end of file has been reached.
+                eof.store(true);
+
+                // Fill remaining frames with silence
+                output[i * 2] += 0.0f;
+                output[i * 2 + 1] += 0.0f;
+
+                // Exit loop.
+                break;
             }
-            else {
-                // Inform GUI that end of selection has been reached.
-                eos.store(true);
+
+            // Check if current playback position is inside the clip's timeline.
+            if (timelineIndex >= clipStart && timelineIndex < clipEnd) {
+                // Playback has reached the end of the current selection.
+                if (waveform.selection() && timelineIndex >= static_cast<unsigned int>(waveform.getSelectionEndSample())) {
+                    if (getApplication().isLooped()) {
+                        // Go back to the start of the selection.
+                        playbackSampleIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
+                    }
+                    else {
+                        // Inform GUI that end of selection has been reached.
+                        eos.store(true);
+                    }
+
+                    // Exit loop.
+                    break;
+                }
+
+                // Compute the actual source sample to read from. Map between the clip's
+                // timeline and the corresponding source region.
+                size_t sourceIndex = clips[j].getSourceStart() + (timelineIndex - clipStart);
+
+                float rawL = clips[j].getSource()->getLeftSamples()[sourceIndex];
+                float rawR = clips[j].getSource()->getRightSamples()[sourceIndex];
+
+                float processedL = clips[i].processSample(rawL, timelineIndex);
+                float processedR = clips[i].processSample(rawR, timelineIndex);
+
+                // --- Copy audio data to output device. ---
+
+                // Left
+                output[i * 2] += processedL;
+                // Right
+                output[i * 2 + 1] += processedR;
             }
-
-            // Exit loop and function.
-            break;
         }
-
-        // --- Copy audio data to output device. ---
-
-        auto& left = buffer->getLeftSamples();
-        auto& right = buffer->getRightSamples();
-
-        // Left
-        output[i * 2] += left[idx];   
-        // Right
-        output[i * 2 + 1] += right[idx];  
     }
 }
 

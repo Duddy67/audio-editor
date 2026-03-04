@@ -4,7 +4,7 @@
 /*
  * Loads a given audio file.
  */
-void FileIO::load(const char *filename, Buffer& buffer, const Engine& engine)
+void FileIO::load(const char *filename, std::vector<Clip>& clips, const Engine& engine)
 {
     printf("Load audio file '%s'\n", filename); // Debog.
     // First ensure the file format is supported.
@@ -25,19 +25,22 @@ void FileIO::load(const char *filename, Buffer& buffer, const Engine& engine)
         throw std::runtime_error("Format: " + fileFormat + " not supported.");
     }
 
-    // First set the original data file format.
-    if (!setFormat(filename, buffer.getFormat())) {
+    // First, set format to the file's original format.
+    Format format;
+
+    if (!setFormat(filename, format)) {
         throw std::runtime_error("Failed to initialized temporary decoder.");
     }
 
-    // Then initialize decoder with format conversion (except for output channels).
-    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), buffer.getFormat().outputChannels, engine.getDefaultOutputSampleRate());
+    // Then initialize decoder with the conversion format (except for output channels).
+    ma_decoder_config decoderConfig = ma_decoder_config_init(engine.getDefaultOutputFormat(), format.outputChannels, engine.getDefaultOutputSampleRate());
 
     if (ma_decoder_init_file(filename, &decoderConfig, &decoder) != MA_SUCCESS) {
         throw std::runtime_error("Failed to initialize decoder with conversion.");
     }
 
-    if (!decode(buffer)) {
+
+    if (!decode(clips, format)) {
         throw std::runtime_error("Failed to decode file.");
     }
 
@@ -47,7 +50,7 @@ void FileIO::load(const char *filename, Buffer& buffer, const Engine& engine)
 /*
  * Decode the entire file manually to playback straight from memory (ie: no streaming).
  */
-bool FileIO::decode(Buffer& buffer)
+bool FileIO::decode(std::vector<Clip>& clips, Format format)
 {
     ma_uint64 frameCount = 0;
 
@@ -68,13 +71,22 @@ bool FileIO::decode(Buffer& buffer)
         return false;
     }
 
-    // Check whether the file is stereo.
+    // Prepare some data for writing.
     ma_uint64 totalFrames = static_cast<size_t>(framesRead);
+    std::shared_ptr<Buffer> buffer(new Buffer());
+
+    // First, set buffer's format to the original audio file format.
+    auto& f = buffer->getFormat();
+    f = format;
 
     // Write audio data into buffer.
-    buffer.clear();
-    buffer.reserve(totalFrames);
-    buffer.fillFromInterleaved(tempData, totalFrames);
+    buffer->clear();
+    buffer->reserve(totalFrames);
+    buffer->fillFromInterleaved(tempData, totalFrames);
+
+    // Store buffer into a clip.
+    Clip clip(buffer);
+    clips.push_back(clip);
 
     return true;
 }

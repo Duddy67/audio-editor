@@ -176,7 +176,7 @@ void Waveform::draw() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (track.getBuffer().getLeftSamples().empty()) return;
+    if (track.getLength() == 0) return;
 
     // Blue waveform.
     glColor3f(0.0f, 0.0f, 1.0f);
@@ -184,7 +184,8 @@ void Waveform::draw() {
     glLineWidth(1.0f);
 
     // Lambda function that draws a channel.
-    auto drawChannel = [&](const std::vector<float>& channel, int yOffset, int heightPx) {
+    //auto drawChannel = [&](const std::vector<float>& channel, int yOffset, int heightPx) {
+    auto drawChannel = [&](Direction channel, int yOffset, int heightPx) {
         float samplesPerPixel = 1.0f / zoomLevel;
 
         // Decide rendering mode based on zoom level.
@@ -194,12 +195,14 @@ void Waveform::draw() {
 
             for (int x = 0; x < w(); ++x) {
                 int startSample = scrollOffset + static_cast<int>(x * samplesPerPixel);
-                int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)channel.size());
+                //int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)channel.size());
+                int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)track.getLength());
 
                 float minY = 1.0f, maxY = -1.0f;
 
                 for (int i = startSample; i < endSample; ++i) {
-                    float s = channel[i];
+                    //float s = channel[i];
+                    float s = track.getProcessedSample(i, channel);
                     minY = std::min(minY, s);
                     maxY = std::max(maxY, s);
                 }
@@ -208,7 +211,8 @@ void Waveform::draw() {
 
                 for (int i = startSample; i < endSample; ++i) {
                     // Noise threshold
-                    if (std::abs(channel[i]) > 0.005f) {
+                    //if (std::abs(channel[i]) > 0.005f) {
+                    if (std::abs(track.getProcessedSample(i, channel)) > 0.005f) {
                         isSilent = false;
                         break;
                     }
@@ -245,11 +249,13 @@ void Waveform::draw() {
 
             // Note: Add +1 sample to visible range to ensure last visible pixel is drawn.
             int visibleSamples = static_cast<int>(std::ceil(w() / zoomLevel)) + 1;
-            int endSample = std::min(scrollOffset + visibleSamples, (int)channel.size());
+            //int endSample = std::min(scrollOffset + visibleSamples, (int)channel.size());
+            int endSample = std::min(scrollOffset + visibleSamples, (int)track.getLength());
 
             for (int i = scrollOffset; i < endSample; ++i) {
                 float x = (i - scrollOffset) * zoomLevel;
-                float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
+                //float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
+                float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
                 glVertex2f(x, y);
             }
 
@@ -265,7 +271,8 @@ void Waveform::draw() {
 
                 for (int i = scrollOffset; i < endSample; ++i) {
                     float x = (i - scrollOffset) * zoomLevel;
-                    float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
+                    //float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
+                    float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
                     glVertex2f(x, y);
                 }
 
@@ -317,13 +324,15 @@ void Waveform::draw() {
         // Draw both left and right channels.
         if (track.isRecording()) {
             // Read from the temporary buffers.
-            drawChannel(recordedLeftSamples, 0, halfHeight);
-            drawChannel(recordedRightSamples, halfHeight, halfHeight);
+            //drawChannel(recordedLeftSamples, 0, halfHeight);
+            //drawChannel(recordedRightSamples, halfHeight, halfHeight);
+            drawChannel(LEFT, 0, halfHeight);
+            drawChannel(RIGHT, halfHeight, halfHeight);
         }
         // Playback. Read directly from the audio buffers.
         else {
-            drawChannel(track.getBuffer().getLeftSamples(), 0, halfHeight);
-            drawChannel(track.getBuffer().getRightSamples(), halfHeight, halfHeight);
+            //drawChannel(track.getBuffer().getLeftSamples(), 0, halfHeight);
+            //drawChannel(track.getBuffer().getRightSamples(), halfHeight, halfHeight);
         }
 
         // --- Draw separation line between waveforms ---

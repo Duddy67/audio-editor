@@ -12,6 +12,7 @@
 #include "../../libraries/miniaudio.h"
 #include "../view/waveform.h"
 #include "engine.h"
+#include "clip.h"
 #include "file_io.h"
 #include "buffer.h"
 #include "gui.h"
@@ -39,7 +40,8 @@ class Track {
         unsigned int id = 0;
         ma_uint64 frameCount;
         Engine& engine;
-        std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
+        //std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
+        std::vector<Clip> clips;
         std::unique_ptr<GUI> gui;
         std::atomic<uint64_t> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
@@ -92,8 +94,10 @@ class Track {
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
       const Engine& getEngine() { return engine; }
-      Buffer& getBuffer() { return *buffer; }
+      //Buffer& getBuffer() { return *buffer; }
       GUI& getGUI() { return *gui; }
+      size_t getLength();
+      float getProcessedSample(unsigned int timelineIndex, Direction channel);
 
       // Setters.
       void setNewTrack(TrackOptions options);
@@ -102,8 +106,9 @@ class Track {
 
       ////// Facade ////////
 
-      std::vector<float>& getLeftSamples() { return buffer->getLeftSamples(); }
-      std::vector<float>& getRightSamples() { return buffer->getRightSamples(); }
+      const std::vector<Clip>& getClips() { return clips; }
+      //std::vector<float>& getLeftSamples() { return buffer->getLeftSamples(); }
+      //std::vector<float>& getRightSamples() { return buffer->getRightSamples(); }
       void save(const char* filename);
       bool isStereo() { return buffer->isStereo(); }
       void render(int x, int y, int w, int h);
