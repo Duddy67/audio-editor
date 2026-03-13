@@ -24,7 +24,10 @@ void Application::createMenu()
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_COPY].c_str(), FL_CTRL + 'c',0, 0, 0);
     menu->add(MenuLabels[MenuItemID::EDIT_PAST].c_str(), FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
-    menu->add(MenuLabels[MenuItemID::EDIT_CUT].c_str(), FL_CTRL + 'x',0, 0, 0);
+    menu->add(MenuLabels[MenuItemID::EDIT_CUT].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->onMenuEdit(EditID::CUT);
+                                  }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_INSERT_MARKER].c_str(), 0, insert_marker_cb, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_SETTINGS].c_str(), 0, settings_cb, (void*) this);
     menu->add(MenuLabels[MenuItemID::PROCESS_SUB].c_str(), 0, 0, 0, FL_SUBMENU);
@@ -216,6 +219,7 @@ void Application::onMenuEdit(EditID id)
                     break;
 
                 case EditID::CUT:
+                    onCut(track);
                     break;
 
                 case EditID::UNDO:

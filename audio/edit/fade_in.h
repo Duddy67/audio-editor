@@ -12,37 +12,28 @@ class FadeIn: public Command {
         FadeIn(int start, int end)
             : startSample(start), endSample(end) {}
 
-        void apply(Buffer& buffer) override
+        void apply(Track& track) override
         {
-            // First, save the initial state of the buffer samples.
-            backupLeft.assign(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                              buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            backupRight.assign(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
-                               buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
+            // First, save the timeline state.
+            previousClips = track.getClips();
 
-            int length = endSample - startSample;
+            track.splitClip(startSample);
+            track.splitClip(endSample);
 
-            // Compute a linear gain ramp going from 0.0 to 1.0.
-            for (int i = 0; i < length; ++i) {
-                float gain = static_cast<float>(i) / (length - 1);
-                int idx = startSample + i;
-
-                // Multiply samples by the newly computed gain ramp.
-                buffer.getLeftSamples()[idx]  *= gain;
-                buffer.getRightSamples()[idx] *= gain;
+            for (Clip& clip : track.getClips()) {
+                if (clip.getTimelineStart() >= static_cast<size_t>(startSample) && clip.getTimelineStart() < static_cast<size_t>(endSample)) {
+                    clip.setFadeIn(true);
+                    clip.setFadeInLength(clip.getLength());
+                }
             }
 
             // Store the initial selection.
             selection = {startSample, endSample};
         }
 
-        void undo(Buffer& buffer) override
+        void undo(Track& track) override
         {
-            // Restore the buffer samples to their initial state.
-            std::copy(backupLeft.begin(), backupLeft.end(),
-                      buffer.getLeftSamples().begin() + static_cast<size_t>(startSample));
-            std::copy(backupRight.begin(), backupRight.end(),
-                      buffer.getRightSamples().begin() + static_cast<size_t>(startSample));
+            track.setClips(previousClips);
         }
 
         // Returns the edit command identifier.
@@ -54,8 +45,7 @@ class FadeIn: public Command {
         int startSample;
         int endSample;
         Selection selection;
-        std::vector<float> backupLeft;
-        std::vector<float> backupRight;
+        std::vector<Clip> previousClips;
 };
 
 #endif // FADE_IN_H

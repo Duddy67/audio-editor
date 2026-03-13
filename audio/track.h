@@ -40,7 +40,6 @@ class Track {
         unsigned int id = 0;
         ma_uint64 frameCount;
         Engine& engine;
-        //std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>();
         std::vector<Clip> clips;
         std::unique_ptr<GUI> gui;
         std::atomic<uint64_t> playbackSampleIndex{0};
@@ -78,6 +77,9 @@ class Track {
       void recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captureChannels);
       void prepareRecording();
       void updateTime();
+      void splitClip(size_t position);
+      void removeClips(size_t start, size_t end);
+      void insertClip(Clip clip, size_t position);
 
       // Getters.
       bool isPlaying() const { return playing.load(); }
@@ -94,23 +96,23 @@ class Track {
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
       const Engine& getEngine() { return engine; }
-      //Buffer& getBuffer() { return *buffer; }
       GUI& getGUI() { return *gui; }
       size_t getLength();
       float getProcessedSample(unsigned int timelineIndex, Direction channel);
+      // TEMPORARY!
+      Buffer& getSource();
 
       // Setters.
       void setNewTrack(TrackOptions options);
       void setId(unsigned int i);
       void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
+      void setClips(const std::vector<Clip>& newClips) { clips = newClips; }
 
       ////// Facade ////////
 
-      const std::vector<Clip>& getClips() { return clips; }
-      //std::vector<float>& getLeftSamples() { return buffer->getLeftSamples(); }
-      //std::vector<float>& getRightSamples() { return buffer->getRightSamples(); }
+      std::vector<Clip>& getClips() { return clips; }
       void save(const char* filename);
-      bool isStereo() { return buffer->isStereo(); }
+      bool isStereo();
       void render(int x, int y, int w, int h);
 };
 

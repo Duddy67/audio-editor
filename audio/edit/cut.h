@@ -1,15 +1,15 @@
-#ifndef FADE_OUT_H
-#define FADE_OUT_H
+#ifndef CUT_H
+#define CUT_H
 
 #include <vector>
 #include "command.h"
 
 /*
- * Creates a fade out edit command pattern/object.
+ * Creates a mute edit command pattern/object.
  */
-class FadeOut: public Command {
+class Cut : public Command {
     public:
-        FadeOut(int start, int end)
+        Cut(int start, int end)
             : startSample(start), endSample(end) {}
 
         void apply(Track& track) override
@@ -17,13 +17,17 @@ class FadeOut: public Command {
             // First, save the timeline state.
             previousClips = track.getClips();
 
+            size_t removedLength = endSample - startSample;
+
             track.splitClip(startSample);
             track.splitClip(endSample);
 
+            track.removeClips(startSample, endSample);
+
+            // Close the gap
             for (Clip& clip : track.getClips()) {
-                if (clip.getTimelineStart() >= static_cast<size_t>(startSample) && clip.getTimelineStart() < static_cast<size_t>(endSample)) {
-                    clip.setFadeOut(true);
-                    clip.setFadeOutLength(clip.getLength());
+                if (clip.getTimelineStart() >= static_cast<size_t>(endSample)) {
+                    clip.setTimelineStart(clip.getTimelineStart() - removedLength);
                 }
             }
 
@@ -37,7 +41,7 @@ class FadeOut: public Command {
         }
 
         // Returns the edit command identifier.
-        EditID editID() { return EditID::FADE_OUT; }
+        EditID editID() { return EditID::CUT; }
         const Selection getSelection() const { return selection; }
 
     private:
@@ -48,4 +52,4 @@ class FadeOut: public Command {
         std::vector<Clip> previousClips;
 };
 
-#endif // FADE_OUt_H
+#endif // CUT_H

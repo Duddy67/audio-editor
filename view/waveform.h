@@ -70,6 +70,7 @@ class Waveform : public Fl_Gl_Window {
         void startLiveUpdate();
         void stopLiveUpdate();
         bool selection();
+        void deleteSelection();
 
         // Getters.
 

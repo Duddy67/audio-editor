@@ -114,6 +114,7 @@ class Application : public Fl_Double_Window
         void onFadeOut(Track& track);
         void onUndo(Track& track);
         void onRedo(Track& track);
+        void onCut(Track& track);
         void onDelete(Track& track);
         void onMenuEdit(EditID id);
         const Selection getSelection(Track& track);

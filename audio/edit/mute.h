@@ -12,31 +12,28 @@ class Mute : public Command {
         Mute(int start, int end)
             : startSample(start), endSample(end) {}
 
-        void apply(Buffer& buffer) override
+        void apply(Track& track) override
         {
-            // First, save the initial state of the buffer samples.
-            backupLeft.assign(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                              buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            backupRight.assign(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
-                               buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
+            // First, save the timeline state.
+            previousClips = track.getClips();
 
-            // Mute samples.
-            for (int i = startSample; i < endSample; i++) {
-                buffer.getLeftSamples()[i] = 0.0f;
-                buffer.getRightSamples()[i] = 0.0f;
+            track.splitClip(startSample);
+            track.splitClip(endSample);
+
+            for (Clip& clip : track.getClips()) {
+                if (clip.getTimelineStart() >= static_cast<size_t>(startSample) && clip.getTimelineStart() < static_cast<size_t>(endSample)) {
+                    clip.setMute(true);
+                    clip.setMuteLength(clip.getLength());
+                }
             }
 
             // Store the initial selection.
             selection = {startSample, endSample};
         }
 
-        void undo(Buffer& buffer) override
+        void undo(Track& track) override
         {
-            // Restore the buffer samples to their initial state.
-            std::copy(backupLeft.begin(), backupLeft.end(),
-                      buffer.getLeftSamples().begin() + static_cast<size_t>(startSample));
-            std::copy(backupRight.begin(), backupRight.end(),
-                      buffer.getRightSamples().begin() + static_cast<size_t>(startSample));
+            track.setClips(previousClips);
         }
 
         // Returns the edit command identifier.
@@ -48,8 +45,7 @@ class Mute : public Command {
         int startSample;
         int endSample;
         Selection selection;
-        std::vector<float> backupLeft;
-        std::vector<float> backupRight;
+        std::vector<Clip> previousClips;
 };
 
 #endif // MUTE_H

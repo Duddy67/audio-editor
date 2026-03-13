@@ -14,12 +14,10 @@ class FileIO {
     private:
 
         ma_decoder decoder;
-        //bool decode(Buffer& buffer);
         bool decode(std::vector<Clip>& clips, Format format);
 
     public:
 
-        //void load(const char *fileName, Buffer& buffer, const Engine& engine);
         void load(const char *fileName, std::vector<Clip>& clips, const Engine& engine);
         std::map<std::string, std::string> getOriginalFileFormat();
         void save(const char* filename, Buffer& buffer);

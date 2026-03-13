@@ -15,6 +15,9 @@ void Track::setId(unsigned int i)
     id = i;
 }
 
+/*
+ * Computes and returns the length sum of all clips. 
+ */
 size_t Track::getLength()
 {
     size_t length = 0;
@@ -26,23 +29,120 @@ size_t Track::getLength()
     return length;
 }
 
+bool Track::isStereo()
+{
+    if (clips.empty()) {
+        throw std::runtime_error("No clip!");
+    }
+
+    return clips.front().getSource()->isStereo();
+}
+
+// TEMPORARY!
+Buffer& Track::getSource()
+{
+    if (clips.empty()) {
+        throw std::runtime_error("No clip!");
+    }
+
+    return *clips.front().getSource();
+}
+
 float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
 {
     // Loop through existing clips.
-    for (size_t j = 0; j < clips.size() j++) {
+    for (size_t i = 0; i < clips.size(); i++) {
         // Compute the gap of the clip's timeline.
-        size_t clipStart = clips[j].getTimelineStart();
-        size_t clipEnd = clipStart + clips[j].getLength();
+        size_t clipStart = clips[i].getTimelineStart();
+        size_t clipEnd = clipStart + clips[i].getLength();
 
         // Check if current playback position is inside the clip's timeline.
         if (timelineIndex >= clipStart && timelineIndex < clipEnd) {
             // Compute the actual source sample to read from. Map between the clip's
             // timeline and the corresponding source region.
-            size_t sourceIndex = clips[j].getSourceStart() + (timelineIndex - clipStart);
+            size_t sourceIndex = clips[i].getSourceStart() + (timelineIndex - clipStart);
 
-            float rawSample = channel == LEFT ? clips[j].getSource()->getLeftSamples()[sourceIndex] : clips[j].getSource()->getRightSamples()[sourceIndex];
+            float rawSample = channel == Direction::LEFT ? clips[i].getSource()->getLeftSamples()[sourceIndex] : clips[i].getSource()->getRightSamples()[sourceIndex];
 
             return clips[i].processSample(rawSample, timelineIndex);
+        }
+    }
+
+    return 0.0f;
+}
+
+void Track::splitClip(size_t position)
+{
+    // Loop through existing clips.
+    for (size_t i = 0; i < clips.size(); i++) {
+        Clip& clip = clips[i];
+
+        // Compute the clip's boundaries.
+        size_t start = clip.getTimelineStart();
+        size_t end = start + clip.getLength();
+
+        // Not inside this clip.
+        if (position <= start || position >= end) {
+            continue;
+        }
+
+        // Offset inside clip.
+        size_t offset = position - start;
+
+        // Create second clip.
+        Clip newClip = clip;
+
+        // Adjust first clip.
+        clip.setLength(offset);
+
+        // Configure new clip.
+        newClip.setTimelineStart(position);
+        newClip.setSourceStart(clip.getSourceStart() + offset);
+        newClip.setLength(end - position);
+
+        // Insert new clip after current one.
+        clips.insert(clips.begin() + i + 1, newClip);
+
+        return;
+    }
+
+    return;
+}
+
+void Track::insertClip(Clip clip, size_t position)
+{
+    clip.setTimelineStart(position);
+
+    // Find insertion point (clips are timeline sorted)
+    auto it = std::find_if(
+        clips.begin(),
+        clips.end(),
+        [position](const Clip& c) {
+            return c.getTimelineStart() > position;
+        });
+
+    clips.insert(it, clip);
+}
+
+void Track::removeClips(size_t start, size_t end)
+{
+    if (start >= end) {
+        return;
+    }
+
+    // Ensure boundaries align with clip edges.
+    splitClip(start);
+    splitClip(end);
+
+    for (auto it = clips.begin(); it != clips.end();) {
+        size_t clipStart = it->getTimelineStart();
+        size_t clipEnd   = clipStart + it->getLength();
+
+        if (clipStart >= start && clipEnd <= end) {
+            it = clips.erase(it);
+        }
+        else {
+            ++it;
         }
     }
 }
@@ -74,7 +174,7 @@ void Track::mixInto(float* output, int frameCount)
         auto& waveform = getGUI().getWaveform();
 
         // Loop through existing clips.
-        for (size_t j = 0; j < clips.size() j++) {
+        for (size_t j = 0; j < clips.size(); j++) {
             // Compute the gap of the clip's timeline.
             size_t clipStart = clips[j].getTimelineStart();
             size_t clipEnd = clipStart + clips[j].getLength();
@@ -116,8 +216,8 @@ void Track::mixInto(float* output, int frameCount)
                 float rawL = clips[j].getSource()->getLeftSamples()[sourceIndex];
                 float rawR = clips[j].getSource()->getRightSamples()[sourceIndex];
 
-                float processedL = clips[i].processSample(rawL, timelineIndex);
-                float processedR = clips[i].processSample(rawR, timelineIndex);
+                float processedL = clips[j].processSample(rawL, timelineIndex);
+                float processedR = clips[j].processSample(rawR, timelineIndex);
 
                 // --- Copy audio data to output device. ---
 
@@ -231,8 +331,8 @@ void Track::stop()
         // Done using the ring buffer.
         ma_pcm_rb_uninit(&captureRing);
         // Return possible unused memory (allocated through "reserve") to the system.
-        buffer->getLeftSamples().shrink_to_fit();
-        buffer->getRightSamples().shrink_to_fit();
+        //buffer->getLeftSamples().shrink_to_fit();
+        //buffer->getRightSamples().shrink_to_fit();
 
         // Stop drawing waveform.
         gui->getWaveform().stopLiveUpdate();
@@ -289,7 +389,7 @@ void Track::drainAndMergeRingBuffer()
     newRight.resize(framesToRead);
     const float* src = interleaved.data();
 
-    if (buffer->isStereo()) {
+    if (isStereo()) {
         // Stereo: deinterleave.
         for (ma_uint32 i = 0; i < framesToRead; ++i) {
             newLeft[i]  = src[i * 2 + 0];
@@ -311,8 +411,10 @@ void Track::drainAndMergeRingBuffer()
     }
 
     // --- Step 5: Merge (Punch-In Aware) ---
-    auto& leftSamples = buffer->getLeftSamples();
-    auto& rightSamples = buffer->getRightSamples();
+    //auto& leftSamples = buffer->getLeftSamples();
+    //auto& rightSamples = buffer->getRightSamples();
+    auto& leftSamples = getSource().getLeftSamples();
+    auto& rightSamples = getSource().getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
     size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
@@ -322,7 +424,7 @@ void Track::drainAndMergeRingBuffer()
     // vector memory allocations causing audio glitches.
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        buffer->reserve(newCapacity);
+        getSource().reserve(newCapacity);
     }
 
     // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
@@ -394,14 +496,14 @@ void Track::setNewTrack(TrackOptions options)
 {
     newTrack = true;
     // Set the track recording format (ie: mono/stereo).
-    auto file = FileIO();
-    file.setNewFileFormat(buffer->getFormat(), options.stereo, getEngine());
+    //auto file = FileIO();
+    //file.setNewFileFormat(buffer->getFormat(), options.stereo, getEngine());
 }
 
 void Track::loadFromFile(const char *filename)
 {
     auto loader = FileIO();
-    loader.load(filename, getBuffer(), getEngine());
+    loader.load(filename, clips, getEngine());
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);
@@ -409,8 +511,8 @@ void Track::loadFromFile(const char *filename)
 
 void Track::save(const char* filename)
 {
-    auto file = FileIO();
-    file.save(filename, getBuffer());
+    //auto file = FileIO();
+    //file.save(filename, getBuffer());
 }
 
 void Track::updateTime()

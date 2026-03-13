@@ -12,31 +12,16 @@ class Delete : public Command {
         Delete(int start, int end)
             : startSample(start), endSample(end) {}
 
-        void apply(Buffer& buffer) override
+        void apply(Track& track) override
         {
-            // First, save the initial state of the buffer samples.
-            backupLeft.assign(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                              buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            backupRight.assign(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
-                               buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
-
-            // Delete the selected samples.
-            buffer.getLeftSamples().erase(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                                         buffer.getLeftSamples().begin() + static_cast<size_t>(endSample));
-            buffer.getRightSamples().erase(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
-                                          buffer.getRightSamples().begin() + static_cast<size_t>(endSample));
 
             // Store the initial selection.
             selection = {startSample, endSample};
         }
 
-        void undo(Buffer& buffer) override
+        void undo(Track& track) override
         {
-            // Restore the buffer samples to their initial state.
-            buffer.getLeftSamples().insert(buffer.getLeftSamples().begin() + static_cast<size_t>(startSample),
-                                          backupLeft.begin(), backupLeft.end());
-            buffer.getRightSamples().insert(buffer.getRightSamples().begin() + static_cast<size_t>(startSample),
-                                           backupRight.begin(), backupRight.end());
+            track.setClips(previousClips);
         }
 
         // Returns the edit command identifier.
@@ -48,8 +33,7 @@ class Delete : public Command {
         int startSample;
         int endSample;
         Selection selection;
-        std::vector<float> backupLeft;
-        std::vector<float> backupRight;
+        std::vector<Clip> previousClips;
 };
 
 #endif // DELETE_H

@@ -19,14 +19,17 @@ bool GUI::getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& ri
     }
 
     // Atomically grab and reset dirty range
-    auto& leftSamples = track.getBuffer().getLeftSamples();
-    auto& rightSamples = track.getBuffer().getRightSamples();
+    //auto& leftSamples = track.getBuffer().getLeftSamples();
+    //auto& rightSamples = track.getBuffer().getRightSamples();
+    auto& leftSamples = track.getSource().getLeftSamples();
+    auto& rightSamples = track.getSource().getRightSamples();
     size_t start = dirtyStart.exchange(SIZE_MAX, std::memory_order_acq_rel);
     size_t end = dirtyEnd.exchange(0, std::memory_order_acq_rel);
     // Inform Track that more new data can now be handled.
     newDataAvailable.store(false, std::memory_order_release);
 
-    if (start == SIZE_MAX || end <= start || end > track.getLeftSamples().size()) {
+    //if (start == SIZE_MAX || end <= start || end > track.getLeftSamples().size()) {
+    if (start == SIZE_MAX || end <= start || end > track.getLength()) {
         return false;
     }
 

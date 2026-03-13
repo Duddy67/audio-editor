@@ -14,7 +14,7 @@ int Marker::getNewSamplePosition(int newX)
     // Get the new sample position out of the new x value, the scroll offset and the zoom level. 
     int samplePos = marking.getWaveform().getScrollOffset() + static_cast<int>((newX - TAB_BORDER_THICKNESS) / marking.getWaveform().getZoomLevel());
     // Clamp within sample range
-    samplePos = std::clamp(samplePos, 0, (int)marking.getWaveform().getTrack().getLeftSamples().size() - 1);
+    samplePos = std::clamp(samplePos, 0, (int)marking.getWaveform().getTrack().getLength() - 1);
 
     return samplePos;
 }

@@ -57,6 +57,7 @@ inline std::map<EditID, std::string> EditLabels {
     {EditID::MUTE, "Mute"},
     {EditID::FADE_IN, "Fade in"},
     {EditID::FADE_OUT, "Fade out"},
+    {EditID::CUT, "Cut"},
     {EditID::NONE, ""}
 };
 

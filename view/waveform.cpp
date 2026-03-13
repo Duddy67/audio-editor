@@ -7,9 +7,9 @@ void Waveform::initView()
     isStereo = track.isStereo();
 
     // Fit entire waveform on screen initially.
-    if (!track.getBuffer().getLeftSamples().empty()) {
+    if (track.getLength() != 0) {
         // Compute fit-to-screen zoom (pixels per sample that fits entire file).
-        zoomFit = static_cast<float>(w()) / static_cast<float>(track.getBuffer().getLeftSamples().size());
+        zoomFit = static_cast<float>(w()) / static_cast<float>(track.getLength());
         // Allow zooming out beyond fit-to-screen.
         // Note: Tweak factor (0.01 = 100× smaller than fit).
         zoomMin = zoomFit * 0.01f;
@@ -44,22 +44,22 @@ void Waveform::setScrollbar(Fl_Scrollbar* sb) {
 }
 
 void Waveform::updateScrollbar() {
-    if (!scrollbar || track.getBuffer().getLeftSamples().empty()) return;
+    if (!scrollbar || track.getLength() == 0) return;
     int visibleSamples = static_cast<int>(w() / zoomLevel);
-    int maxOffset = std::max(0, (int)track.getBuffer().getLeftSamples().size() - visibleSamples);
+    int maxOffset = std::max(0, (int)track.getLength() - visibleSamples);
     scrollOffset = std::clamp(scrollOffset, 0, maxOffset);
     scrollbar->maximum(maxOffset);
     scrollbar->value(scrollOffset);
-    scrollbar->slider_size((float)visibleSamples / track.getBuffer().getLeftSamples().size());
+    scrollbar->slider_size((float)visibleSamples / track.getLength());
 }
 
 void Waveform::prepareForRecording()
 {
     // Check audio buffers.
-    if (!track.getLeftSamples().empty()) {
+    if (!track.getLength() == 0) {
         // Copy audio data already stored.
-        recordedLeftSamples = track.getLeftSamples();
-        recordedRightSamples = track.getRightSamples();
+        recordedLeftSamples = track.getSource().getLeftSamples();
+        recordedRightSamples = track.getSource().getRightSamples();
     }
 
     scrollOffset = 0;
@@ -140,7 +140,8 @@ void Waveform::pullNewRecordedSamples()
 /*
  * Check whether a selection is currently set.
  */
-bool Waveform::selection() {
+bool Waveform::selection()
+{
     if (selectionStartSample >= 0 && selectionEndSample > 0 && selectionStartSample < selectionEndSample) {
         return true;
     }
@@ -148,12 +149,19 @@ bool Waveform::selection() {
     return false;
 }
 
+void Waveform::deleteSelection()
+{
+    selectionStartSample = 0; 
+    selectionEndSample = 0;
+}
+
 /*
  * Computes the last drawn x position.
  */
 float Waveform::getLastDrawnX() 
 {
-    int totalSamples = track.getBuffer().getLeftSamples().size();
+    //int totalSamples = track.getLeftSamples().size();
+    int totalSamples = track.getLength();
     int visibleSamples = visibleSamplesCount();
     int endSample = scrollOffset + visibleSamples;
 
@@ -184,7 +192,6 @@ void Waveform::draw() {
     glLineWidth(1.0f);
 
     // Lambda function that draws a channel.
-    //auto drawChannel = [&](const std::vector<float>& channel, int yOffset, int heightPx) {
     auto drawChannel = [&](Direction channel, int yOffset, int heightPx) {
         float samplesPerPixel = 1.0f / zoomLevel;
 
@@ -195,26 +202,19 @@ void Waveform::draw() {
 
             for (int x = 0; x < w(); ++x) {
                 int startSample = scrollOffset + static_cast<int>(x * samplesPerPixel);
-                //int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)channel.size());
                 int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)track.getLength());
 
                 float minY = 1.0f, maxY = -1.0f;
-
-                for (int i = startSample; i < endSample; ++i) {
-                    //float s = channel[i];
-                    float s = track.getProcessedSample(i, channel);
-                    minY = std::min(minY, s);
-                    maxY = std::max(maxY, s);
-                }
-
                 bool isSilent = true;
 
                 for (int i = startSample; i < endSample; ++i) {
-                    // Noise threshold
-                    //if (std::abs(channel[i]) > 0.005f) {
-                    if (std::abs(track.getProcessedSample(i, channel)) > 0.005f) {
+                    float s = track.getProcessedSample(i, channel);
+                    minY = std::min(minY, s);
+                    maxY = std::max(maxY, s);
+
+                    if (std::abs(s) > 0.005f) {
                         isSilent = false;
-                        break;
+                        //break;
                     }
                 }
 
@@ -249,12 +249,10 @@ void Waveform::draw() {
 
             // Note: Add +1 sample to visible range to ensure last visible pixel is drawn.
             int visibleSamples = static_cast<int>(std::ceil(w() / zoomLevel)) + 1;
-            //int endSample = std::min(scrollOffset + visibleSamples, (int)channel.size());
             int endSample = std::min(scrollOffset + visibleSamples, (int)track.getLength());
 
             for (int i = scrollOffset; i < endSample; ++i) {
                 float x = (i - scrollOffset) * zoomLevel;
-                //float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
                 float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
                 glVertex2f(x, y);
             }
@@ -271,7 +269,6 @@ void Waveform::draw() {
 
                 for (int i = scrollOffset; i < endSample; ++i) {
                     float x = (i - scrollOffset) * zoomLevel;
-                    //float y = yOffset + (1.0f - std::clamp(channel[i], -1.0f, 1.0f)) * (heightPx / 2.0f);
                     float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
                     glVertex2f(x, y);
                 }
@@ -326,13 +323,11 @@ void Waveform::draw() {
             // Read from the temporary buffers.
             //drawChannel(recordedLeftSamples, 0, halfHeight);
             //drawChannel(recordedRightSamples, halfHeight, halfHeight);
-            drawChannel(LEFT, 0, halfHeight);
-            drawChannel(RIGHT, halfHeight, halfHeight);
         }
         // Playback. Read directly from the audio buffers.
         else {
-            //drawChannel(track.getBuffer().getLeftSamples(), 0, halfHeight);
-            //drawChannel(track.getBuffer().getRightSamples(), halfHeight, halfHeight);
+            drawChannel(Direction::LEFT, 0, halfHeight);
+            drawChannel(Direction::RIGHT, halfHeight, halfHeight);
         }
 
         // --- Draw separation line between waveforms ---
@@ -364,11 +359,11 @@ void Waveform::draw() {
     // mono = full height
     else {
         if (track.isRecording()) {
-            drawChannel(recordedLeftSamples, 0, h());
+            //drawChannel(recordedLeftSamples, 0, h());
         }
         // Playback.
         else {
-            drawChannel(track.getBuffer().getLeftSamples(), 0, h());
+            drawChannel(Direction::LEFT, 0, h());
         }
 
         // --- Draw zero line (middle line). ---
@@ -449,7 +444,7 @@ int Waveform::handle(int event) {
             zoomLevel = std::clamp(zoomLevel, zoomMin, zoomMax);
 
             int visibleSamples = static_cast<int>(w() / zoomLevel);
-            int maxOffset = std::max(0, (int)track.getBuffer().getLeftSamples().size() - visibleSamples);
+            int maxOffset = std::max(0, (int)track.getLength() - visibleSamples);
             scrollOffset = std::clamp(scrollOffset, 0, maxOffset);
 
             updateScrollbar();
@@ -476,7 +471,7 @@ int Waveform::handle(int event) {
                 int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
 
                 // Clamp within sample range
-                sample = std::clamp(sample, 0, (int)track.getBuffer().getLeftSamples().size() - 1);
+                sample = std::clamp(sample, 0, (int)track.getLength() - 1);
 
                 // Update positions.
                 startSamplePosition = sample;
@@ -544,7 +539,7 @@ int Waveform::handle(int event) {
                 int mouseX = Fl::event_x();
                 int sample = scrollOffset + static_cast<int>(mouseX / zoomLevel);
                 // Clamp within sample range
-                sample = std::clamp(sample, 0, (int)track.getBuffer().getLeftSamples().size() - 1);
+                sample = std::clamp(sample, 0, (int)track.getLength() - 1);
 
                 // Check for selection.
                 if (selectionHandle == Direction::LEFT) {
@@ -635,8 +630,8 @@ int Waveform::handle(int event) {
                 // Process only when playback is stopped.
                 if (!track.isPlaying()) {
                     // Set positions to the end.
-                    cursorSamplePosition = static_cast<int>(track.getBuffer().getLeftSamples().size()) - 1;
-                    startSamplePosition = static_cast<int>(track.getBuffer().getLeftSamples().size()) - 1;
+                    cursorSamplePosition = static_cast<int>(track.getLength()) - 1;
+                    startSamplePosition = static_cast<int>(track.getLength()) - 1;
                     resetCursor();
 
                     return 1;
@@ -703,11 +698,11 @@ void Waveform::updateCursor(Track& track)
 
 // helper to compute how many samples fit inside the widget width at current zoom
 int Waveform::visibleSamplesCount() const {
-    if (zoomLevel <= 0.0f) return (int)track.getBuffer().getLeftSamples().size();
+    if (zoomLevel <= 0.0f) return (int)track.getLength();
     // number of samples that correspond to the width: ceil(w / zoomLevel)
     int vs = static_cast<int>(std::ceil(static_cast<float>(w()) / zoomLevel));
     vs = std::max(1, vs);
-    vs = std::min((int)track.getBuffer().getLeftSamples().size(), vs);
+    vs = std::min((int)track.getLength(), vs);
 
     return vs;
 }

@@ -2,6 +2,7 @@
 #include "../audio/edit/mute.h"
 #include "../audio/edit/fade_in.h"
 #include "../audio/edit/fade_out.h"
+#include "../audio/edit/cut.h"
 #include "../audio/edit/delete.h"
 
 const Selection Application::getSelection(Track& track)
@@ -10,7 +11,7 @@ const Selection Application::getSelection(Track& track)
     auto& waveform = track.getGUI().getWaveform();
     int start = waveform.getSelectionStartSample();
     int end = waveform.getSelectionEndSample();
-    int totalSamples = static_cast<int>(track.getLeftSamples().size());
+    int totalSamples = static_cast<int>(track.getLength());
 
     // Make sure selection is valid.
     if (start >= end || start > totalSamples || end > totalSamples) {
@@ -28,7 +29,7 @@ void Application::onUndo(Track& track)
     // Important: Get the latest selection BEFORE applying the undo command, (after applying, the
     // latest command will be removed from the stack). 
     const auto selection = audioHistory.getInitialSelection();
-    audioHistory.undo(track.getBuffer());
+    audioHistory.undo(track);
 
     auto& waveform = track.getGUI().getWaveform();
 
@@ -56,7 +57,7 @@ void Application::onUndo(Track& track)
 void Application::onRedo(Track& track)
 {
     auto& audioHistory = getActiveDocument().getAudioHistory();
-    audioHistory.redo(track.getBuffer());
+    audioHistory.redo(track);
 
     auto& waveform = track.getGUI().getWaveform();
 
@@ -93,7 +94,7 @@ void Application::onMute(Track& track)
     auto muteCmd = std::make_unique<Mute>(selection.start, selection.end);
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
-    audioHistory.apply(std::move(muteCmd), track.getBuffer());
+    audioHistory.apply(std::move(muteCmd), track);
     track.getGUI().getWaveform().redraw();
 
     //
@@ -113,7 +114,7 @@ void Application::onFadeIn(Track& track)
     auto fadeInCmd = std::make_unique<FadeIn>(selection.start, selection.end);
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
-    audioHistory.apply(std::move(fadeInCmd), track.getBuffer());
+    audioHistory.apply(std::move(fadeInCmd), track);
     track.getGUI().getWaveform().redraw();
 
     std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_IN]; 
@@ -134,12 +135,36 @@ void Application::onFadeOut(Track& track)
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
     // Apply the command.
-    audioHistory.apply(std::move(fadeOutCmd), track.getBuffer());
+    audioHistory.apply(std::move(fadeOutCmd), track);
     track.getGUI().getWaveform().redraw();
 
     // Update the Undo menu item accordingly.
     std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::FADE_OUT]; 
     updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
+}
+
+void Application::onCut(Track& track)
+{
+    // Get the current selection.
+    auto selection = getSelection(track);
+
+    if (selection.start >= selection.end) {
+        return; 
+    }
+
+    // Create a new fade out command process.
+    auto cutCmd = std::make_unique<Cut>(selection.start, selection.end);
+    // Get the history from the track's parent document.
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    // Apply the command.
+    audioHistory.apply(std::move(cutCmd), track);
+    track.getGUI().getWaveform().deleteSelection();
+    track.getGUI().getWaveform().redraw();
+
+    // Update the Undo menu item accordingly.
+    std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::CUT]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
+
 }
 
 void Application::onDelete(Track& track)
@@ -154,7 +179,7 @@ void Application::onDelete(Track& track)
     auto deleteCmd = std::make_unique<Delete>(selection.start, selection.end);
     // Get the history from the track's parent document.
     auto& audioHistory = getActiveDocument().getAudioHistory();
-    audioHistory.apply(std::move(deleteCmd), track.getBuffer());
+    audioHistory.apply(std::move(deleteCmd), track);
     track.getGUI().getWaveform().redraw();
 
     //
