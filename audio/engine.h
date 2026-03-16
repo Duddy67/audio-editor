@@ -10,6 +10,7 @@
 // Forward declarations.
 class Track;
 class Application;
+class Clip;
 
 class Engine {
         // Structure that holds the backend data.
@@ -51,6 +52,8 @@ class Engine {
         std::atomic<float> currentLevelR {0.0f};
         std::atomic<float> currentPeakL {0.0f};
         std::atomic<float> currentPeakR {0.0f};
+        // Used by track for cut, copy, paste operations.
+        std::vector<Clip> clipboard;
 
         std::vector<DeviceInfo> getDevices(ma_device_type deviceType);
         static void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
@@ -89,6 +92,7 @@ class Engine {
         std::vector<DeviceInfo> getInputDevices();
         std::vector<DeviceInfo> getDuplexDevices();
         std::vector<std::string> getSupportedFormats() const { return supportedFormats; }
+        std::vector<Clip>& getClipboard() { return clipboard; }
         bool isContextInitialized() { return contextInitialized; }
         ma_format getDefaultOutputFormat() const { return defaultOutputFormat; }
         ma_uint32 getDefaultOutputSampleRate() const { return defaultOutputSampleRate; }

@@ -1,5 +1,5 @@
-#ifndef CUT_H
-#define CUT_H
+#ifndef COPY_H
+#define COPY_H
 
 #include <vector>
 #include "command.h"
@@ -7,9 +7,9 @@
 /*
  * Creates a mute edit command pattern/object.
  */
-class Cut : public Command {
+class Copy : public Command {
     public:
-        Cut(int start, int end)
+        Copy(int start, int end)
             : startSample(start), endSample(end) {}
 
         void apply(Track& track) override
@@ -17,21 +17,10 @@ class Cut : public Command {
             // First, save the current timeline state.
             previousClips = track.getClips();
 
-            size_t removedLength = endSample - startSample;
-
             track.splitClip(startSample);
             track.splitClip(endSample);
-            // Copy the cut clip region before removing it.
+            // Copy the cut clip region.
             track.copy(startSample, endSample);
-
-            track.removeClips(startSample, endSample);
-
-            // Close the gap
-            for (Clip& clip : track.getClips()) {
-                if (clip.getTimelineStart() >= static_cast<size_t>(endSample)) {
-                    clip.setTimelineStart(clip.getTimelineStart() - removedLength);
-                }
-            }
 
             // Store the initial selection.
             selection = {startSample, endSample};
@@ -52,4 +41,4 @@ class Cut : public Command {
         std::vector<Clip> previousClips;
 };
 
-#endif // CUT_H
+#endif // COPY_H

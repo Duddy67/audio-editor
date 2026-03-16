@@ -147,6 +147,30 @@ void Track::removeClips(size_t start, size_t end)
     }
 }
 
+void Track::copy(size_t start, size_t end)
+{
+    // Retrieve and clear the global clipboard.
+    std::vector<Clip>& clipboard = engine.getClipboard();
+    clipboard.clear();
+
+    splitClip(start);
+    splitClip(end);
+
+    for (const Clip& clip : clips) {
+        size_t clipStart = clip.getTimelineStart();
+        size_t clipEnd   = clipStart + clip.getLength();
+
+        if (clipStart >= start && clipEnd <= end) {
+            Clip copy = clip;
+
+            // normalize timeline to clipboard origin
+            copy.setTimelineStart(clipStart - start);
+
+            clipboard.push_back(copy);
+        }
+    }
+}
+
 /*
  * Fills the given output buffer with interleaved stereo samples.
  */
@@ -503,7 +527,7 @@ void Track::setNewTrack(TrackOptions options)
 void Track::loadFromFile(const char *filename)
 {
     auto loader = FileIO();
-    loader.load(filename, clips, getEngine());
+    loader.load(filename, clips, engine);
 
     // Reset index.
     playbackSampleIndex.store(0, std::memory_order_relaxed);

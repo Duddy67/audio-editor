@@ -38,13 +38,11 @@ class Mute : public Command {
 
         // Returns the edit command identifier.
         EditID editID() { return EditID::MUTE; }
-        const Selection getSelection() const { return selection; }
 
     private:
 
         int startSample;
         int endSample;
-        Selection selection;
         std::vector<Clip> previousClips;
 };
 

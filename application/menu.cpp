@@ -23,7 +23,10 @@ void Application::createMenu()
                                       app->onMenuEdit(EditID::DELETE);
                                   }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_COPY].c_str(), FL_CTRL + 'c',0, 0, 0);
-    menu->add(MenuLabels[MenuItemID::EDIT_PAST].c_str(), FL_CTRL + 'v',0, 0, FL_MENU_INACTIVE);
+    menu->add(MenuLabels[MenuItemID::EDIT_PASTE].c_str(), 0, [](Fl_Widget* w, void* userData) { 
+                                      Application* app = static_cast<Application*>(userData);
+                                      app->onMenuEdit(EditID::PASTE);
+                                  }, (void*) this);
     menu->add(MenuLabels[MenuItemID::EDIT_CUT].c_str(), 0, [](Fl_Widget* w, void* userData) { 
                                       Application* app = static_cast<Application*>(userData);
                                       app->onMenuEdit(EditID::CUT);
@@ -147,6 +150,10 @@ Fl_Menu_Item* Application::getMenuItem(MenuItemID menuItemID)
           return redoMenuItem;
         break;
 
+      case MenuItemID::EDIT_PASTE:
+          return pasteMenuItem;
+        break;
+
       default:
          return nullptr;
     }
@@ -215,7 +222,8 @@ void Application::onMenuEdit(EditID id)
                 case EditID::COPY:
                     break;
 
-                case EditID::PAST:
+                case EditID::PASTE:
+                    onPaste(track);
                     break;
 
                 case EditID::CUT:

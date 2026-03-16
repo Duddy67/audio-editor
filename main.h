@@ -30,6 +30,7 @@ class Application : public Fl_Double_Window
     Fl_Menu_Bar* menu = nullptr;
     Fl_Menu_Item* undoMenuItem = nullptr;
     Fl_Menu_Item* redoMenuItem = nullptr;
+    Fl_Menu_Item* pasteMenuItem = nullptr;
     Fl_Group* toolbar = nullptr;
     Fl_Multiline_Output* fileInfo = nullptr;
     Fl_Button* playBtn = nullptr;
@@ -115,6 +116,7 @@ class Application : public Fl_Double_Window
         void onUndo(Track& track);
         void onRedo(Track& track);
         void onCut(Track& track);
+        void onPaste(Track& track);
         void onDelete(Track& track);
         void onMenuEdit(EditID id);
         const Selection getSelection(Track& track);

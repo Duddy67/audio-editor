@@ -34,7 +34,7 @@ enum class TimeFormat { HH_MM_SS_SSS, MM_SS_SSS, SS_SSS };
 
 enum class EditID {
     MUTE, FADE_IN, FADE_OUT, NORMALIZE,
-    VOLUME, COPY, PAST, CUT, DELETE, 
+    VOLUME, COPY, PASTE, CUT, DELETE, 
     UNDO, REDO, NONE
 };
 
@@ -44,7 +44,7 @@ enum class Action {ACTIVATE, DEACTIVATE};
 
 enum class MenuItemID {
     FILE_SUB, FILE_NEW, FILE_OPEN, FILE_SAVE, FILE_SAVE_AS, FILE_QUIT, EDIT_SUB,
-    EDIT_UNDO, EDIT_REDO, EDIT_DELETE, EDIT_COPY, EDIT_PAST, EDIT_CUT, EDIT_INSERT_MARKER,
+    EDIT_UNDO, EDIT_REDO, EDIT_DELETE, EDIT_COPY, EDIT_PASTE, EDIT_CUT, EDIT_INSERT_MARKER,
     EDIT_SETTINGS, PROCESS_SUB, PROCESS_MUTE, PROCESS_NORMALIZE, PROCESS_VOLUME,
     PROCESS_FADE_IN, PROCESS_FADE_OUT
 };
@@ -58,6 +58,7 @@ inline std::map<EditID, std::string> EditLabels {
     {EditID::FADE_IN, "Fade in"},
     {EditID::FADE_OUT, "Fade out"},
     {EditID::CUT, "Cut"},
+    {EditID::PASTE, "Paste"},
     {EditID::NONE, ""}
 };
 
@@ -73,7 +74,7 @@ inline std::map<MenuItemID, std::string> MenuLabels {
     {MenuItemID::EDIT_REDO, "Edit/&Redo"},
     {MenuItemID::EDIT_DELETE, "Edit/Delete"},
     {MenuItemID::EDIT_COPY, "Edit/&Copy"},
-    {MenuItemID::EDIT_PAST, "Edit/&Past"},
+    {MenuItemID::EDIT_PASTE, "Edit/&Paste"},
     {MenuItemID::EDIT_CUT, "Edit/&Cut"},
     {MenuItemID::EDIT_INSERT_MARKER, "Edit/&Insert marker"},
     {MenuItemID::EDIT_SETTINGS, "Edit/&Settings"},

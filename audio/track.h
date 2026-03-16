@@ -80,6 +80,7 @@ class Track {
       void splitClip(size_t position);
       void removeClips(size_t start, size_t end);
       void insertClip(Clip clip, size_t position);
+      void copy(size_t start, size_t end);
 
       // Getters.
       bool isPlaying() const { return playing.load(); }
@@ -95,7 +96,6 @@ class Track {
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
       bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
-      const Engine& getEngine() { return engine; }
       GUI& getGUI() { return *gui; }
       size_t getLength();
       float getProcessedSample(unsigned int timelineIndex, Direction channel);
@@ -114,6 +114,7 @@ class Track {
       void save(const char* filename);
       bool isStereo();
       void render(int x, int y, int w, int h);
+      std::vector<Clip>& getClipboard() { return engine.getClipboard(); }
 };
 
 #endif // TRACK_H

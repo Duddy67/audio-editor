@@ -3,6 +3,7 @@
 #include "../audio/edit/fade_in.h"
 #include "../audio/edit/fade_out.h"
 #include "../audio/edit/cut.h"
+#include "../audio/edit/paste.h"
 #include "../audio/edit/delete.h"
 
 const Selection Application::getSelection(Track& track)
@@ -164,7 +165,23 @@ void Application::onCut(Track& track)
     // Update the Undo menu item accordingly.
     std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::CUT]; 
     updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
+    updateMenuItem(MenuItemID::EDIT_PASTE, Action::ACTIVATE);
+}
 
+void Application::onPaste(Track& track)
+{
+    size_t position = static_cast<size_t>(track.getGUI().getWaveform().getCursorSamplePosition());
+    // Create a new fade out command process.
+    auto pasteCmd = std::make_unique<Paste>(position);
+    // Get the history from the track's parent document.
+    auto& audioHistory = getActiveDocument().getAudioHistory();
+    // Apply the command.
+    audioHistory.apply(std::move(pasteCmd), track);
+    track.getGUI().getWaveform().redraw();
+
+    // Update the Undo menu item accordingly.
+    std::string newLabel = MenuLabels[MenuItemID::EDIT_UNDO] + " " + EditLabels[EditID::PASTE]; 
+    updateMenuItem(MenuItemID::EDIT_UNDO, Action::ACTIVATE, newLabel);
 }
 
 void Application::onDelete(Track& track)
