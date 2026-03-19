@@ -58,8 +58,8 @@ void Waveform::prepareForRecording()
     // Check audio buffers.
     if (!track.getLength() == 0) {
         // Copy audio data already stored.
-        recordedLeftSamples = track.getSource().getLeftSamples();
-        recordedRightSamples = track.getSource().getRightSamples();
+        recordedLeftSamples = track.getRecordingBuffer().getLeftSamples();
+        recordedRightSamples = track.getRecordingBuffer().getRightSamples();
     }
 
     scrollOffset = 0;
@@ -76,6 +76,11 @@ void Waveform::prepareForRecording()
 
     updateScrollbar();
     redraw();
+}
+
+float Waveform::getRecordedSample(unsigned int timelineIndex, Direction channel)
+{
+    return channel == Direction::LEFT ?  recordedLeftSamples.at(timelineIndex) : recordedRightSamples.at(timelineIndex);
 }
 
 void Waveform::pullNewRecordedSamples()
@@ -208,7 +213,7 @@ void Waveform::draw() {
                 bool isSilent = true;
 
                 for (int i = startSample; i < endSample; ++i) {
-                    float s = track.getProcessedSample(i, channel);
+                    float s = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
                     minY = std::min(minY, s);
                     maxY = std::max(maxY, s);
 
@@ -253,7 +258,8 @@ void Waveform::draw() {
 
             for (int i = scrollOffset; i < endSample; ++i) {
                 float x = (i - scrollOffset) * zoomLevel;
-                float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
+                float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                 glVertex2f(x, y);
             }
 
@@ -269,7 +275,8 @@ void Waveform::draw() {
 
                 for (int i = scrollOffset; i < endSample; ++i) {
                     float x = (i - scrollOffset) * zoomLevel;
-                    float y = yOffset + (1.0f - std::clamp(track.getProcessedSample(i, channel), -1.0f, 1.0f)) * (heightPx / 2.0f);
+                    float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                    float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                     glVertex2f(x, y);
                 }
 
@@ -319,16 +326,19 @@ void Waveform::draw() {
 
     if (isStereo) {
         // Draw both left and right channels.
-        if (track.isRecording()) {
-            // Read from the temporary buffers.
-            //drawChannel(recordedLeftSamples, 0, halfHeight);
-            //drawChannel(recordedRightSamples, halfHeight, halfHeight);
+        /*if (track.isRecording()) {
+            // Read from the temporary recording buffer.
+            //drawChannel(track.getRecordingBuffer().getLeftSamples(), 0, halfHeight);
+            //drawChannel(track.getRecordingBuffer().getRightSamples(), halfHeight, halfHeight);
         }
         // Playback. Read directly from the audio buffers.
         else {
             drawChannel(Direction::LEFT, 0, halfHeight);
             drawChannel(Direction::RIGHT, halfHeight, halfHeight);
-        }
+        }*/
+
+        drawChannel(Direction::LEFT, 0, halfHeight);
+        drawChannel(Direction::RIGHT, halfHeight, halfHeight);
 
         // --- Draw separation line between waveforms ---
 
@@ -358,13 +368,14 @@ void Waveform::draw() {
     }
     // mono = full height
     else {
-        if (track.isRecording()) {
-            //drawChannel(recordedLeftSamples, 0, h());
+        /*if (track.isRecording()) {
+            //drawChannel(track.getRecordingBuffer().getLeftSamples(), 0, h());
         }
         // Playback.
         else {
             drawChannel(Direction::LEFT, 0, h());
-        }
+        }*/
+        drawChannel(Direction::LEFT, 0, h());
 
         // --- Draw zero line (middle line). ---
         glColor3f(0.863f, 0.863f, 0.863f);

@@ -41,6 +41,7 @@ class Track {
         ma_uint64 frameCount;
         Engine& engine;
         std::vector<Clip> clips;
+        std::unique_ptr<Buffer> recordingBuffer;
         std::unique_ptr<GUI> gui;
         std::atomic<uint64_t> playbackSampleIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
@@ -63,6 +64,7 @@ class Track {
         void uninit();
         void drainAndMergeRingBuffer();
         void workerThreadLoop();
+        void stopRecording();
 
     public:
       Track(Engine& e) : engine(e) {}
@@ -94,13 +96,14 @@ class Track {
       std::atomic<bool>& getNewDataAvailableFlag() { return newDataAvailable; }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
-      bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
+      //bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
       GUI& getGUI() { return *gui; }
       size_t getLength();
       float getProcessedSample(unsigned int timelineIndex, Direction channel);
+      Buffer& getRecordingBuffer() { return *recordingBuffer; }
       // TEMPORARY!
-      Buffer& getSource();
+      //Buffer& getSource();
 
       // Setters.
       void setNewTrack(TrackOptions options);

@@ -31,22 +31,23 @@ size_t Track::getLength()
 
 bool Track::isStereo()
 {
-    if (clips.empty()) {
+    /*if (clips.empty()) {
         throw std::runtime_error("No clip!");
     }
 
-    return clips.front().getSource()->isStereo();
+    return clips.front().getSource()->isStereo();*/
+    return (recordingBuffer) ? recordingBuffer->isStereo() : clips.front().getSource()->isStereo();
 }
 
 // TEMPORARY!
-Buffer& Track::getSource()
+/*Buffer& Track::getSource()
 {
     if (clips.empty()) {
         throw std::runtime_error("No clip!");
     }
 
     return *clips.front().getSource();
-}
+}*/
 
 float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
 {
@@ -343,23 +344,7 @@ void Track::stop()
     playing.store(false);
 
     if (recording.load()) {
-        // Stop recording audio.
-        recording.store(false);
-        workerRunning.store(false);
-
-        // Join worker thread
-        if (workerThread.joinable()) {
-            workerThread.join();
-        }
-
-        // Done using the ring buffer.
-        ma_pcm_rb_uninit(&captureRing);
-        // Return possible unused memory (allocated through "reserve") to the system.
-        //buffer->getLeftSamples().shrink_to_fit();
-        //buffer->getRightSamples().shrink_to_fit();
-
-        // Stop drawing waveform.
-        gui->getWaveform().stopLiveUpdate();
+        stopRecording();
     }
 }
 
@@ -376,6 +361,43 @@ void Track::record()
 
     // Start worker thread
     workerThread = std::thread(&Track::workerThreadLoop, this);
+}
+
+void Track::stopRecording()
+{
+    // Stop recording audio.
+    recording.store(false);
+    workerRunning.store(false);
+
+    // Join worker thread
+    if (workerThread.joinable()) {
+        workerThread.join();
+    }
+
+    // Done using the ring buffer.
+    ma_pcm_rb_uninit(&captureRing);
+
+    // Check first the recording buffer exists and something has been actually recorded.
+    if (!recordingBuffer || recordingBuffer->getTotalFrames() == 0) {
+        return;
+    }
+
+    // Return possible unused memory (allocated through "reserve") to the system.
+    recordingBuffer->getLeftSamples().shrink_to_fit();
+    recordingBuffer->getRightSamples().shrink_to_fit();
+
+    // Create a Clip from the recorded buffer (transfers ownership safely).
+    std::shared_ptr<Buffer> sharedBuffer = std::move(recordingBuffer);
+    Clip newClip(sharedBuffer);
+
+    // Get the cursor initial position (0 for new track).
+    auto timelineStart = (clips.empty()) ? 0 : static_cast<size_t>(gui->getWaveform().getStartSamplePosition());
+    newClip.setTimelineStart(timelineStart); 
+
+    clips.push_back(newClip);
+
+    // Stop drawing waveform.
+    gui->getWaveform().stopLiveUpdate();
 }
 
 void Track::drainAndMergeRingBuffer()
@@ -435,10 +457,10 @@ void Track::drainAndMergeRingBuffer()
     }
 
     // --- Step 5: Merge (Punch-In Aware) ---
-    //auto& leftSamples = buffer->getLeftSamples();
-    //auto& rightSamples = buffer->getRightSamples();
-    auto& leftSamples = getSource().getLeftSamples();
-    auto& rightSamples = getSource().getRightSamples();
+    auto& leftSamples = recordingBuffer->getLeftSamples();
+    auto& rightSamples = recordingBuffer->getRightSamples();
+    //auto& leftSamples = getSource().getLeftSamples();
+    //auto& rightSamples = getSource().getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
     size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
@@ -448,7 +470,8 @@ void Track::drainAndMergeRingBuffer()
     // vector memory allocations causing audio glitches.
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        getSource().reserve(newCapacity);
+        //getSource().reserve(newCapacity);
+        recordingBuffer->reserve(newCapacity);
     }
 
     // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
@@ -519,9 +542,15 @@ void Track::workerThreadLoop()
 void Track::setNewTrack(TrackOptions options)
 {
     newTrack = true;
+    recordingBuffer = std::make_unique<Buffer>();
+    recordingBuffer->clear();
+    // Since this is "new recording"
+    clips.clear();              
+
     // Set the track recording format (ie: mono/stereo).
-    //auto file = FileIO();
-    //file.setNewFileFormat(buffer->getFormat(), options.stereo, getEngine());
+    auto file = FileIO();
+    //file.setNewFileFormat(getSource().getFormat(), options.stereo, engine);
+    file.setNewFileFormat(recordingBuffer->getFormat(), options.stereo, engine);
 }
 
 void Track::loadFromFile(const char *filename)

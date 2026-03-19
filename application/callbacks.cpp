@@ -140,7 +140,7 @@ void Application::gui_cb(void *userData)
         track.getApplication().onStop(track);
     }
 
-    if (track.isPlaying() && !track.isEndOfFile()) {
+    if (track.isRecording() || (track.isPlaying() && !track.isEndOfFile())) {
         Fl::repeat_timeout(TIMER_CALLBACK_VALUE, gui_cb, userData); 
     }
 }
