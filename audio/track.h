@@ -48,6 +48,7 @@ class Track {
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
         std::atomic<bool> recording{false};
+        size_t recordStart = 0;
         // The MiniAudio ring buffer (for recording).
         ma_pcm_rb captureRing;                 
         std::atomic<size_t> totalRecordedFrames {0};
@@ -65,6 +66,7 @@ class Track {
         void drainAndMergeRingBuffer();
         void workerThreadLoop();
         void stopRecording();
+        void replaceRecording(size_t recordStart, std::shared_ptr<Buffer> buffer);
 
     public:
       Track(Engine& e) : engine(e) {}
@@ -96,14 +98,12 @@ class Track {
       std::atomic<bool>& getNewDataAvailableFlag() { return newDataAvailable; }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
       size_t getCaptureWriteIndex() const { return captureWriteIndex.load(); }
-      //bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
       Application& getApplication() const { return engine.getApplication(); }
       GUI& getGUI() { return *gui; }
       size_t getLength();
       float getProcessedSample(unsigned int timelineIndex, Direction channel);
       Buffer& getRecordingBuffer() { return *recordingBuffer; }
-      // TEMPORARY!
-      //Buffer& getSource();
+      void printClips();
 
       // Setters.
       void setNewTrack(TrackOptions options);
@@ -121,4 +121,3 @@ class Track {
 };
 
 #endif // TRACK_H
-

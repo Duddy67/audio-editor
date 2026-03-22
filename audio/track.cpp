@@ -39,16 +39,6 @@ bool Track::isStereo()
     return (recordingBuffer) ? recordingBuffer->isStereo() : clips.front().getSource()->isStereo();
 }
 
-// TEMPORARY!
-/*Buffer& Track::getSource()
-{
-    if (clips.empty()) {
-        throw std::runtime_error("No clip!");
-    }
-
-    return *clips.front().getSource();
-}*/
-
 float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
 {
     // Loop through existing clips.
@@ -271,10 +261,10 @@ void Track::recordInto(const float* input, ma_uint32 frameCount, ma_uint32 captu
         float* pDst = nullptr;
 
         // Ask MiniAudio for a contiguous writable region.
-        ma_pcm_rb_acquire_write(&captureRing, &framesToWrite, (void**)&pDst);
+        ma_result result = ma_pcm_rb_acquire_write(&captureRing, &framesToWrite, (void**)&pDst);
 
         // If we can’t write anything right now, stop — ring buffer is full.
-        if (framesToWrite == 0 || pDst == nullptr) {
+        if (result != MA_SUCCESS || framesToWrite == 0 || pDst == nullptr) {
             // If buffer full, stop and log once.
             static std::atomic_flag overrunLogged = ATOMIC_FLAG_INIT;
 
@@ -330,7 +320,8 @@ void Track::prepareRecording()
     // Set the start of the recording to the actual position of the cursor.
     // ie: zero for the very first recording or wherever the cursor is 
     // positioned for the next recordings.
-    captureWriteIndex.store(playbackSampleIndex.load());
+    //captureWriteIndex.store(playbackSampleIndex.load());
+    captureWriteIndex.store(0);
     // Clear count.
     totalRecordedFrames.store(0, std::memory_order_release);
 }
@@ -345,12 +336,26 @@ void Track::stop()
 
     if (recording.load()) {
         stopRecording();
+        // Debugging
+        printClips();
     }
 }
 
 void Track::record()
 {
+    if (!clips.empty()) {
+        // Create a new recording buffer.
+        recordingBuffer = std::make_unique<Buffer>();
+        recordingBuffer->clear();
+        recordingBuffer->setFormat(clips.front().getSource()->getFormat());
+    }
+
+    // Make sure no flag is left as true, (it would stop recording automatically).
+    eof.store(false);
+    eos.store(false);
+
     prepareRecording();
+    recordStart = playbackSampleIndex.load();
     // Mark the document as "changed". 
     getApplication().documentHasChanged(id);
     // Start recording audio.
@@ -391,13 +396,39 @@ void Track::stopRecording()
     Clip newClip(sharedBuffer);
 
     // Get the cursor initial position (0 for new track).
-    auto timelineStart = (clips.empty()) ? 0 : static_cast<size_t>(gui->getWaveform().getStartSamplePosition());
-    newClip.setTimelineStart(timelineStart); 
+    //auto timelineStart = (clips.empty()) ? 0 : static_cast<size_t>(gui->getWaveform().getStartSamplePosition());
+    auto timelineStart = (clips.empty()) ? 0 : recordStart;
 
-    clips.push_back(newClip);
+    // It's the very first recording for this track.
+    if (clips.empty()) {
+        Clip newClip(sharedBuffer);
+        newClip.setTimelineStart(timelineStart);
+        clips.push_back(newClip);
+    }
+    else {
+        replaceRecording(timelineStart, sharedBuffer);
+    }
 
     // Stop drawing waveform.
     gui->getWaveform().stopLiveUpdate();
+}
+
+void Track::replaceRecording(size_t recordStart, std::shared_ptr<Buffer> buffer)
+{
+    size_t recordEnd = recordStart + buffer->getTotalFrames();
+
+    // 1. Split boundaries
+    splitClip(recordStart);
+    splitClip(recordEnd);
+
+    // 2. Remove overlapping region
+    removeClips(recordStart, recordEnd);
+
+    // 3. Insert recorded clip
+    Clip newClip(buffer);
+    newClip.setTimelineStart(recordStart);
+
+    insertClip(newClip, recordStart);
 }
 
 void Track::drainAndMergeRingBuffer()
@@ -412,9 +443,9 @@ void Track::drainAndMergeRingBuffer()
     }
 
     float* pSrc = nullptr;
-    ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
+    ma_result result = ma_pcm_rb_acquire_read(&captureRing, &framesToRead, (void**)&pSrc);
 
-    if (framesToRead == 0 || pSrc == nullptr) {
+    if (result != MA_SUCCESS || framesToRead == 0 || pSrc == nullptr) {
         // Nothing valid to read.
         return;
     }
@@ -459,10 +490,8 @@ void Track::drainAndMergeRingBuffer()
     // --- Step 5: Merge (Punch-In Aware) ---
     auto& leftSamples = recordingBuffer->getLeftSamples();
     auto& rightSamples = recordingBuffer->getRightSamples();
-    //auto& leftSamples = getSource().getLeftSamples();
-    //auto& rightSamples = getSource().getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
-    size_t oldLength  = leftSamples.size();
+    //size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
     const size_t blockSize = engine.getDefaultOutputSampleRate();
 
@@ -470,12 +499,14 @@ void Track::drainAndMergeRingBuffer()
     // vector memory allocations causing audio glitches.
     if (newWriteEnd > leftSamples.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        //getSource().reserve(newCapacity);
         recordingBuffer->reserve(newCapacity);
     }
 
+    leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
+    rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
+
     // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
-    if (writeIndex < oldLength) {
+    /*if (writeIndex < oldLength) {
         // Compute how many frames fit inside the current buffer.
         size_t overwriteCount = std::min<size_t>(framesToRead, oldLength - writeIndex);
 
@@ -498,7 +529,7 @@ void Track::drainAndMergeRingBuffer()
         // Entirely beyond old length → just append.
         leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
         rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
-    }
+    }*/
 
     // --- Update write cursor to the end of newly written region ---
     captureWriteIndex.store(newWriteEnd, std::memory_order_release);
@@ -541,16 +572,21 @@ void Track::workerThreadLoop()
 
 void Track::setNewTrack(TrackOptions options)
 {
+    // Set the current state of a brand new track/file.
     newTrack = true;
-    recordingBuffer = std::make_unique<Buffer>();
-    recordingBuffer->clear();
     // Since this is "new recording"
     clips.clear();              
 
-    // Set the track recording format (ie: mono/stereo).
-    auto file = FileIO();
-    //file.setNewFileFormat(getSource().getFormat(), options.stereo, engine);
-    file.setNewFileFormat(recordingBuffer->getFormat(), options.stereo, engine);
+    // Set the new track recording format (ie: mono/stereo, default sample rate...).
+    Format format;
+    format.outputChannels = options.stereo ? 2 : 1;
+    format.outputSampleRate = engine.getDefaultOutputSampleRate();
+    format.outputFormat = engine.getDefaultOutputFormat();
+
+    // Create the first recording buffer for this track.
+    recordingBuffer = std::make_unique<Buffer>();
+    recordingBuffer->clear();
+    recordingBuffer->setFormat(format);
 }
 
 void Track::loadFromFile(const char *filename)
@@ -582,3 +618,23 @@ void Track::render(int x, int y, int w, int h)
     gui->init(x, y, w, h);
 }
 
+/*
+ * Displays the clip list in the console.
+ * Function used for debugging purpose.
+ */
+void Track::printClips()
+{
+    std::cout << "---- Clip list ----" << std::endl;
+
+    for (auto clip : clips) {
+        std::cout << "timeline start: " << clip.getTimelineStart() << std::endl;
+        std::cout << "length: " << clip.getLength() << std::endl;
+        std::cout << "time line end: " << clip.getTimelineStart() + clip.getLength() << std::endl;
+        std::cout << "source start: " << clip.getSourceStart() << std::endl;
+        std::cout << "source end: " << clip.getSourceEnd() << std::endl;
+        std::cout << "----------------------" << std::endl;
+    }
+
+    std::cout << "total length: " << getLength() << std::endl;
+    std::cout << "----------------------" << std::endl;
+}

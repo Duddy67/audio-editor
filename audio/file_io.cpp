@@ -76,8 +76,7 @@ bool FileIO::decode(std::vector<Clip>& clips, Format format)
     std::shared_ptr<Buffer> buffer(new Buffer());
 
     // First, set buffer's format to the original audio file format.
-    auto& f = buffer->getFormat();
-    f = format;
+    buffer->setFormat(format);
 
     // Write audio data into buffer.
     buffer->clear();
@@ -143,12 +142,5 @@ bool FileIO::setFormat(const char* filename, Format& format)
     ma_decoder_uninit(&decoderProbe);
 
     return true;
-}
-
-void FileIO::setNewFileFormat(Format& format, bool stereo, const Engine& engine)
-{
-    format.outputChannels = stereo ? 2 : 1;
-    format.outputSampleRate = engine.getDefaultOutputSampleRate();
-    format.outputFormat = engine.getDefaultOutputFormat();
 }
 

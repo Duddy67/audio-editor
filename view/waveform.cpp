@@ -213,7 +213,8 @@ void Waveform::draw() {
                 bool isSilent = true;
 
                 for (int i = startSample; i < endSample; ++i) {
-                    float s = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                    //float s = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                    float s = track.getProcessedSample(i, channel);
                     minY = std::min(minY, s);
                     maxY = std::max(maxY, s);
 
@@ -258,7 +259,8 @@ void Waveform::draw() {
 
             for (int i = scrollOffset; i < endSample; ++i) {
                 float x = (i - scrollOffset) * zoomLevel;
-                float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                //float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                float sample = track.getProcessedSample(i, channel);
                 float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                 glVertex2f(x, y);
             }
@@ -275,7 +277,8 @@ void Waveform::draw() {
 
                 for (int i = scrollOffset; i < endSample; ++i) {
                     float x = (i - scrollOffset) * zoomLevel;
-                    float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                    //float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
+                    float sample = track.getProcessedSample(i, channel);
                     float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                     glVertex2f(x, y);
                 }

@@ -22,7 +22,6 @@ class FileIO {
         std::map<std::string, std::string> getOriginalFileFormat();
         void save(const char* filename, Buffer& buffer);
         bool setFormat(const char* filename, Format& format);
-        void setNewFileFormat(Format& format, bool stereo, const Engine& engine);
 };
 
 #endif // FILE_IO_H
