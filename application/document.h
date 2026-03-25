@@ -58,6 +58,12 @@ class Document : public Fl_Group {
             // Done adding children.
             end();
 
+            // An audio file has been loaded.
+            if (!created) {
+                // Buid a cache for GUI.
+                track.getGUI().getWaveform().buildWaveformCache(track);
+            }
+
             track.getGUI().getWaveform().show();
             track.getGUI().getWaveform().redraw();
         }

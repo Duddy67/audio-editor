@@ -91,7 +91,7 @@ void Application::onPause(Track& track)
     else if (track.isPaused() && !track.isPlaying()) {
         // Resume from where playback paused
         int resumeSample = waveform.getCursorSamplePosition();
-        track.setPlaybackSampleIndex(resumeSample);
+        track.setPlaybackIndex(resumeSample);
         track.unpause();
         track.play();
         Fl::add_timeout(TIMER_CALLBACK_VALUE, gui_cb, &track); 

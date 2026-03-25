@@ -43,21 +43,21 @@ class Track {
         std::vector<Clip> clips;
         std::unique_ptr<Buffer> recordingBuffer;
         std::unique_ptr<GUI> gui;
-        std::atomic<uint64_t> playbackSampleIndex{0};
+        std::atomic<uint64_t> playbackIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
         std::atomic<bool> playing{false};
         std::atomic<bool> paused{false};
         std::atomic<bool> recording{false};
         size_t recordStart = 0;
+        size_t totalLength = 0;
         // The MiniAudio ring buffer (for recording).
         ma_pcm_rb captureRing;                 
         std::atomic<size_t> totalRecordedFrames {0};
         std::thread workerThread;
         std::atomic<bool> workerRunning{false};
         // End of file flag.
-        std::atomic<bool> eof{false};
-        // End of selection flag.
-        std::atomic<bool> eos{false};
+        std::atomic<bool> endOfFile{false};
+        std::atomic<bool> endOfSelection{false};
         bool newTrack = false;
         // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
@@ -67,8 +67,10 @@ class Track {
         void workerThreadLoop();
         void stopRecording();
         void replaceRecording(size_t recordStart, std::shared_ptr<Buffer> buffer);
+        void overdubRecording(size_t recordStart, std::shared_ptr<Buffer> buffer);
 
     public:
+
       Track(Engine& e) : engine(e) {}
 
       void loadFromFile(const char *fileName);
@@ -90,10 +92,10 @@ class Track {
       bool isPlaying() const { return playing.load(); }
       bool isPaused() const { return paused.load(); }
       bool isRecording() const { return recording.load(); }
-      bool isEndOfFile() const { return eof.load(); }
-      bool isEndOfSelection() const { return eos.load(); }
+      bool isEndOfFile() const { return endOfFile.load(); }
+      bool isEndOfSelection() const { return endOfSelection.load(); }
       bool isNewTrack() const { return newTrack; }
-      uint64_t getCurrentSample() const { return playbackSampleIndex.load(); }
+      uint64_t getCurrentSample() const { return playbackIndex.load(); }
       unsigned int getId() const { return id; }
       std::atomic<bool>& getNewDataAvailableFlag() { return newDataAvailable; }
       size_t getTotalRecordedFrames() const { return totalRecordedFrames.load(); }
@@ -108,7 +110,7 @@ class Track {
       // Setters.
       void setNewTrack(TrackOptions options);
       void setId(unsigned int i);
-      void setPlaybackSampleIndex(int index) { playbackSampleIndex.store(index); }
+      void setPlaybackIndex(int index) { playbackIndex.store(index); }
       void setClips(const std::vector<Clip>& newClips) { clips = newClips; }
 
       ////// Facade ////////

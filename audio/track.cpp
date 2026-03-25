@@ -17,13 +17,17 @@ void Track::setId(unsigned int i)
 
 /*
  * Computes and returns the length sum of all clips. 
+ * Clips played in overdub mode are taken into account. 
  */
 size_t Track::getLength()
 {
     size_t length = 0;
 
     for (auto clip : clips) {
-        length += clip.getLength();
+        // Check for overdubed clips.
+        if (clip.getTimelineStart() + clip.getLength() > length) {
+            length = clip.getTimelineStart() + clip.getLength();
+        }
     }
 
     return length;
@@ -41,6 +45,8 @@ bool Track::isStereo()
 
 float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
 {
+    float processedSample = 0.0f;
+
     // Loop through existing clips.
     for (size_t i = 0; i < clips.size(); i++) {
         // Compute the gap of the clip's timeline.
@@ -55,11 +61,12 @@ float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
 
             float rawSample = channel == Direction::LEFT ? clips[i].getSource()->getLeftSamples()[sourceIndex] : clips[i].getSource()->getRightSamples()[sourceIndex];
 
-            return clips[i].processSample(rawSample, timelineIndex);
+            processedSample += clips[i].processSample(rawSample, timelineIndex);
+            //return clips[i].processSample(rawSample, timelineIndex);
         }
     }
 
-    return 0.0f;
+    return processedSample;
 }
 
 void Track::splitClip(size_t position)
@@ -179,13 +186,13 @@ void Track::mixInto(float* output, int frameCount)
     }
 
     // Reset end of file and selection flags.
-    eof.store(false);
-    eos.store(false);
+    endOfFile.store(false);
+    endOfSelection.store(false);
 
     // Fill buffer.
     for (int i = 0; i < frameCount; ++i) {
-        // Increment the sample index (ie: ++).
-        unsigned int timelineIndex = playbackSampleIndex.fetch_add(1, std::memory_order_relaxed);
+        // Increment the timeline index (based on sample).
+        unsigned int timelineIndex = playbackIndex.fetch_add(1, std::memory_order_relaxed);
         auto& waveform = getGUI().getWaveform();
 
         // Loop through existing clips.
@@ -195,9 +202,10 @@ void Track::mixInto(float* output, int frameCount)
             size_t clipEnd = clipStart + clips[j].getLength();
 
             // First, check for the end of audio file.
-            if (j == clips.size() - 1 && timelineIndex >= clipEnd && !waveform.selection()) {
+            //if (j == clips.size() - 1 && timelineIndex >= clipEnd && !waveform.selection()) {
+            if (!waveform.selection() && timelineIndex >= totalLength) {
                 // Inform GUI that end of file has been reached.
-                eof.store(true);
+                endOfFile.store(true);
 
                 // Fill remaining frames with silence
                 output[i * 2] += 0.0f;
@@ -213,11 +221,11 @@ void Track::mixInto(float* output, int frameCount)
                 if (waveform.selection() && timelineIndex >= static_cast<unsigned int>(waveform.getSelectionEndSample())) {
                     if (getApplication().isLooped()) {
                         // Go back to the start of the selection.
-                        playbackSampleIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
+                        playbackIndex.store(waveform.getSelectionStartSample(), std::memory_order_relaxed);
                     }
                     else {
                         // Inform GUI that end of selection has been reached.
-                        eos.store(true);
+                        endOfSelection.store(true);
                     }
 
                     // Exit loop.
@@ -317,16 +325,20 @@ void Track::prepareRecording()
     // Reset the ring buffer so the next recording starts clean.
     ma_pcm_rb_reset(&captureRing);
 
-    // Set the start of the recording to the actual position of the cursor.
-    // ie: zero for the very first recording or wherever the cursor is 
-    // positioned for the next recordings.
-    //captureWriteIndex.store(playbackSampleIndex.load());
+    // Always set to zero since a new buffer is created for each recording.
     captureWriteIndex.store(0);
     // Clear count.
     totalRecordedFrames.store(0, std::memory_order_release);
 }
 
-void Track::play() { playing.store(true); }
+void Track::play()
+{
+    // Optimize a bit.
+    totalLength = getLength();
+    // Start playback.
+    playing.store(true);
+}
+
 void Track::pause() { paused.store(true); }
 void Track::unpause() { paused.store(false); }
 
@@ -350,12 +362,13 @@ void Track::record()
         recordingBuffer->setFormat(clips.front().getSource()->getFormat());
     }
 
-    // Make sure no flag is left as true, (it would stop recording automatically).
-    eof.store(false);
-    eos.store(false);
+    // Make sure no flag is left as true, (or it would stop recording automatically).
+    endOfFile.store(false);
+    endOfSelection.store(false);
 
     prepareRecording();
-    recordStart = playbackSampleIndex.load();
+    // Set the record start to the timeline.
+    recordStart = playbackIndex.load();
     // Mark the document as "changed". 
     getApplication().documentHasChanged(id);
     // Start recording audio.
@@ -396,7 +409,6 @@ void Track::stopRecording()
     Clip newClip(sharedBuffer);
 
     // Get the cursor initial position (0 for new track).
-    //auto timelineStart = (clips.empty()) ? 0 : static_cast<size_t>(gui->getWaveform().getStartSamplePosition());
     auto timelineStart = (clips.empty()) ? 0 : recordStart;
 
     // It's the very first recording for this track.
@@ -407,6 +419,7 @@ void Track::stopRecording()
     }
     else {
         replaceRecording(timelineStart, sharedBuffer);
+        //overdubRecording(timelineStart, sharedBuffer);
     }
 
     // Stop drawing waveform.
@@ -429,6 +442,17 @@ void Track::replaceRecording(size_t recordStart, std::shared_ptr<Buffer> buffer)
     newClip.setTimelineStart(recordStart);
 
     insertClip(newClip, recordStart);
+}
+
+/*
+ * Layering.
+ */
+void Track::overdubRecording(size_t recordStart, std::shared_ptr<Buffer> buffer)
+{
+    Clip newClip(buffer);
+    newClip.setTimelineStart(recordStart);
+
+    clips.push_back(newClip);
 }
 
 void Track::drainAndMergeRingBuffer()
@@ -487,11 +511,10 @@ void Track::drainAndMergeRingBuffer()
         newRight = newLeft; 
     }
 
-    // --- Step 5: Merge (Punch-In Aware) ---
+    // --- Step 5: Store data ---
     auto& leftSamples = recordingBuffer->getLeftSamples();
     auto& rightSamples = recordingBuffer->getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
-    //size_t oldLength  = leftSamples.size();
     size_t newWriteEnd = writeIndex + framesToRead;
     const size_t blockSize = engine.getDefaultOutputSampleRate();
 
@@ -502,42 +525,17 @@ void Track::drainAndMergeRingBuffer()
         recordingBuffer->reserve(newCapacity);
     }
 
+    // Store recording data into buffer. 
     leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
     rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
-
-    // --- Step 6: Merge using direct pointer access (handles partial overlap - faster than push_back loop) ---
-    /*if (writeIndex < oldLength) {
-        // Compute how many frames fit inside the current buffer.
-        size_t overwriteCount = std::min<size_t>(framesToRead, oldLength - writeIndex);
-
-        // Overwrite the existing region.
-        std::copy_n(newLeft.begin(), overwriteCount, leftSamples.begin() + writeIndex);
-        std::copy_n(newRight.begin(), overwriteCount, rightSamples.begin() + writeIndex);
-
-        // If there are still extra frames beyond oldLength, append them.
-        if (overwriteCount < framesToRead) {
-            size_t appendCount = framesToRead - overwriteCount;
-            leftSamples.insert(leftSamples.end(),
-                               newLeft.begin() + overwriteCount,
-                               newLeft.begin() + overwriteCount + appendCount);
-            rightSamples.insert(rightSamples.end(),
-                                newRight.begin() + overwriteCount,
-                                newRight.begin() + overwriteCount + appendCount);
-        }
-    }
-    else {
-        // Entirely beyond old length → just append.
-        leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
-        rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
-    }*/
 
     // --- Update write cursor to the end of newly written region ---
     captureWriteIndex.store(newWriteEnd, std::memory_order_release);
 
-    // --- Step 7: Update stats and GUI ---
+    // --- Step 6: Update stats and GUI ---
     totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
 
-    // --- Step 8: Update dirty range atomically (for GUI) ---
+    // --- Step 7: Update dirty range atomically (for GUI) ---
     size_t prevStart = gui->getDirtyStart().load(std::memory_order_acquire);
     size_t prevEnd   = gui->getDirtyEnd().load(std::memory_order_acquire);
 
@@ -595,7 +593,7 @@ void Track::loadFromFile(const char *filename)
     loader.load(filename, clips, engine);
 
     // Reset index.
-    playbackSampleIndex.store(0, std::memory_order_relaxed);
+    playbackIndex.store(0, std::memory_order_relaxed);
 }
 
 void Track::save(const char* filename)
@@ -606,7 +604,7 @@ void Track::save(const char* filename)
 
 void Track::updateTime()
 {
-    getApplication().getTime().update(playbackSampleIndex.load());
+    getApplication().getTime().update(playbackIndex.load());
 }
 
 /*

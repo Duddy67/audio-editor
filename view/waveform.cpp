@@ -174,6 +174,44 @@ float Waveform::getLastDrawnX()
     return (float)(std::min(endSample, totalSamples) - scrollOffset) * zoomLevel;
 }
 
+void Waveform::buildWaveformCache(Track& track)
+{
+    size_t totalSamples = track.getLength();
+    size_t samplesPerBucket = std::max<size_t>(1, static_cast<size_t>(1.0f / zoomLevel));
+    size_t bucketCount = totalSamples / samplesPerBucket;
+
+    cache.samplesPerBucket = samplesPerBucket;
+    cache.minL.resize(bucketCount);
+    cache.maxL.resize(bucketCount);
+    cache.minR.resize(bucketCount);
+    cache.maxR.resize(bucketCount);
+
+    for (size_t b = 0; b < bucketCount; ++b) {
+        float minValL = 1.0f;
+        float maxValL = -1.0f;
+        float minValR = 1.0f;
+        float maxValR = -1.0f;
+
+        size_t start = b * samplesPerBucket;
+        size_t end = std::min(start + samplesPerBucket, totalSamples);
+
+        for (size_t i = start; i < end; ++i) {
+            float L = track.getProcessedSample(i, Direction::LEFT);
+            float R = track.getProcessedSample(i, Direction::RIGHT);
+
+            minValL = std::min(minValL, L);
+            maxValL = std::max(maxValL, L);
+            minValR = std::min(minValR, R);
+            maxValR = std::max(maxValR, R);
+        }
+
+        cache.minL[b] = minValL;
+        cache.maxL[b] = maxValL;
+        cache.minR[b] = minValR;
+        cache.maxR[b] = maxValR;
+    }
+}
+
 void Waveform::draw() {
     if (!valid()) {
         glLoadIdentity();
@@ -206,27 +244,28 @@ void Waveform::draw() {
             glBegin(GL_LINES);
 
             for (int x = 0; x < w(); ++x) {
-                int startSample = scrollOffset + static_cast<int>(x * samplesPerPixel);
-                int endSample = std::min(scrollOffset + static_cast<int>((x + 1) * samplesPerPixel), (int)track.getLength());
+                float minY, maxY;
 
-                float minY = 1.0f, maxY = -1.0f;
-                bool isSilent = true;
+                size_t bucketIndex = (scrollOffset + x * cache.samplesPerBucket) / cache.samplesPerBucket;
 
-                for (int i = startSample; i < endSample; ++i) {
-                    //float s = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
-                    float s = track.getProcessedSample(i, channel);
-                    minY = std::min(minY, s);
-                    maxY = std::max(maxY, s);
-
-                    if (std::abs(s) > 0.005f) {
-                        isSilent = false;
-                        //break;
+                if (bucketIndex < cache.minL.size()) {
+                    if (channel == Direction::LEFT) {
+                        minY = cache.minL[bucketIndex];
+                        maxY = cache.maxL[bucketIndex];
+                    }
+                    else {
+                        minY = cache.minR[bucketIndex];
+                        maxY = cache.maxR[bucketIndex];
                     }
                 }
 
+                // Silence detection.
+                const float threshold = 0.005f;
+                bool isSilent = (std::abs(minY) <= threshold) && (std::abs(maxY) <= threshold);
+
                 if (isSilent) {
                     // Flat silent section → draw a thin horizontal line
-                    float yFlatPx = yOffset + (1.0f - 0.0f) * (heightPx / 2.0f);  // Amplitude 0
+                    float yFlatPx = yOffset + (heightPx / 2.0f);  // Amplitude 0
 
                     glVertex2f(x, yFlatPx);
                     // 1-pixel wide horizontal line.
@@ -247,6 +286,7 @@ void Waveform::draw() {
                 glVertex2f(x, yMinPx);
                 glVertex2f(x, yMaxPx);
             }
+
             glEnd();
         }
         else {
@@ -329,17 +369,6 @@ void Waveform::draw() {
 
     if (isStereo) {
         // Draw both left and right channels.
-        /*if (track.isRecording()) {
-            // Read from the temporary recording buffer.
-            //drawChannel(track.getRecordingBuffer().getLeftSamples(), 0, halfHeight);
-            //drawChannel(track.getRecordingBuffer().getRightSamples(), halfHeight, halfHeight);
-        }
-        // Playback. Read directly from the audio buffers.
-        else {
-            drawChannel(Direction::LEFT, 0, halfHeight);
-            drawChannel(Direction::RIGHT, halfHeight, halfHeight);
-        }*/
-
         drawChannel(Direction::LEFT, 0, halfHeight);
         drawChannel(Direction::RIGHT, halfHeight, halfHeight);
 
@@ -371,13 +400,6 @@ void Waveform::draw() {
     }
     // mono = full height
     else {
-        /*if (track.isRecording()) {
-            //drawChannel(track.getRecordingBuffer().getLeftSamples(), 0, h());
-        }
-        // Playback.
-        else {
-            drawChannel(Direction::LEFT, 0, h());
-        }*/
         drawChannel(Direction::LEFT, 0, h());
 
         // --- Draw zero line (middle line). ---
@@ -491,7 +513,7 @@ int Waveform::handle(int event) {
                 startSamplePosition = sample;
                 cursorSamplePosition = sample;
                 // Tell the audio system to seek too.
-                track.setPlaybackSampleIndex(sample);
+                track.setPlaybackIndex(sample);
                 track.updateTime();
 
                 // Start a new selection.
@@ -532,7 +554,7 @@ int Waveform::handle(int event) {
                     cursorSamplePosition = selectionStartSample;
                     startSamplePosition = selectionStartSample;
                     // Tell the audio system to seek too.
-                    track.setPlaybackSampleIndex(selectionStartSample);
+                    track.setPlaybackIndex(selectionStartSample);
                     track.updateTime();
 
                     // The user is done selecting.
@@ -668,7 +690,7 @@ void Waveform::resetCursor()
     // Get the cursor's start position.
     int resetTo = startSamplePosition;
     // Reset the cursor to its initial audio and graphic position.
-    track.setPlaybackSampleIndex(resetTo);
+    track.setPlaybackIndex(resetTo);
     cursorSamplePosition = resetTo;
     track.updateTime();
 

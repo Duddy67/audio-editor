@@ -17,6 +17,15 @@ class Track;
 class Marking;
 
 class Waveform : public Fl_Gl_Window {
+        struct WaveformCache {
+            std::vector<float> minL;
+            std::vector<float> maxL;
+            std::vector<float> minR;
+            std::vector<float> maxR;
+            size_t samplesPerBucket;
+        };
+
+        WaveformCache cache;
         // Temporary buffers used during recording.
         std::vector<float> recordedLeftSamples;
         std::vector<float> recordedRightSamples;
@@ -72,6 +81,7 @@ class Waveform : public Fl_Gl_Window {
         void stopLiveUpdate();
         bool selection();
         void deleteSelection();
+        void buildWaveformCache(Track& track);
 
         // Getters.
 
