@@ -55,13 +55,8 @@ void Waveform::updateScrollbar() {
 
 void Waveform::prepareForRecording()
 {
-    // Check audio buffers.
-    if (!track.getLength() == 0) {
-        // Copy audio data already stored.
-        recordedLeftSamples = track.getRecordingBuffer().getLeftSamples();
-        recordedRightSamples = track.getRecordingBuffer().getRightSamples();
-    }
-
+    //recordingStartTimeline = track.getCurrentSample();
+    recordingStartTimeline = cursorSamplePosition;
     scrollOffset = 0;
     recordingStartSample = cursorSamplePosition;
     lastSyncedSample = recordingStartSample;
@@ -78,68 +73,40 @@ void Waveform::prepareForRecording()
     redraw();
 }
 
-float Waveform::getRecordedSample(unsigned int timelineIndex, Direction channel)
+float Waveform::getDisplaySample(size_t timelineIndex, Direction channel)
 {
-    return channel == Direction::LEFT ?  recordedLeftSamples.at(timelineIndex) : recordedRightSamples.at(timelineIndex);
+    if (track.isRecording()) {
+        return getRecordedSample(timelineIndex, channel);
+    }
+
+    return track.getProcessedSample(timelineIndex, channel);
 }
 
-void Waveform::pullNewRecordedSamples()
+float Waveform::getRecordedSample(unsigned int timelineIndex, Direction channel)
 {
-    std::vector<float> newLeft, newRight;
-    size_t startIndex, count;
+    auto snap = track.getRecordingSnapshot();
 
-    if (track.getGUI().getNewSamplesCopy(newLeft, newRight, startIndex, count)) {
-        if (count == 0) return;
-
-        size_t requiredSize = startIndex + count;
-
-        // Ensure we have enough capacity
-        if (recordedLeftSamples.size() < requiredSize) {
-            recordedLeftSamples.resize(requiredSize, 0.0f);
-            recordedRightSamples.resize(requiredSize, 0.0f);
-        }
-
-        // Append new samples
-        for (size_t i = 0; i < count; i++) {
-            size_t globalIndex = startIndex + i;
-
-            if (globalIndex < recordedLeftSamples.size()) {
-                // Shouldn't happen with proper indexing, but safe
-                recordedLeftSamples[globalIndex] = newLeft[i];
-                recordedRightSamples[globalIndex] = newRight[i];
-            }
-            else {
-                // Normal case - append
-                recordedLeftSamples.push_back(newLeft[i]);
-                recordedRightSamples.push_back(newRight[i]);
-            }
-        }
-
-        // --- Alternative (without loop nor condition) ---
-        // Copy new samples (overwrite or append)
-        //std::copy_n(newLeft.begin(), count, leftSamples.begin() + startIndex);
-        //std::copy_n(newRight.begin(), count, rightSamples.begin() + startIndex);
-
-        lastSyncedSample = startIndex + count;
-
-        // ===== Rolling window style  ====
-        int head = static_cast<int>(recordedLeftSamples.size());
-        int visible = visibleSamplesCount();
-        int rightEdge = scrollOffset + visible;
-
-        // Scroll only when the record head nears the right edge
-        if (head > rightEdge - visible / 10) {
-            scrollOffset = head - (int)(visible * 0.9f);
-
-            if (scrollOffset < 0) { 
-                scrollOffset = 0;
-            }
-        }
-        // =====================
-
-        // Update zoom/scroll boundaries if needed
-        updateScrollbar();
+    if (!snap) {
+      return 0.0f;
     }
+
+    size_t recordingStart = track.getRecordingStartSample(); // IMPORTANT
+
+    if (timelineIndex < recordingStart) {
+        return 0.0f;
+    }
+
+    size_t localIndex = timelineIndex - recordingStart;
+
+    const auto& samples = (channel == Direction::LEFT)
+        ? snap->getLeftSamples()
+        : snap->getRightSamples();
+
+    if (localIndex >= samples.size()) {
+        return 0.0f;
+    }
+
+    return samples[timelineIndex];
 }
 
 /*
@@ -165,7 +132,6 @@ void Waveform::deleteSelection()
  */
 float Waveform::getLastDrawnX() 
 {
-    //int totalSamples = track.getLeftSamples().size();
     int totalSamples = track.getLength();
     int visibleSamples = visibleSamplesCount();
     int endSample = scrollOffset + visibleSamples;
@@ -177,7 +143,7 @@ float Waveform::getLastDrawnX()
 void Waveform::buildWaveformCache(Track& track)
 {
     size_t totalSamples = track.getLength();
-    size_t samplesPerBucket = std::max<size_t>(1, static_cast<size_t>(1.0f / zoomLevel));
+    const size_t samplesPerBucket = 128; // or 512, 1024
     size_t bucketCount = totalSamples / samplesPerBucket;
 
     cache.samplesPerBucket = samplesPerBucket;
@@ -227,10 +193,8 @@ void Waveform::draw() {
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (track.getLength() == 0) return;
+    //if (track.getLength() == 0) return;
 
-    // Blue waveform.
-    glColor3f(0.0f, 0.0f, 1.0f);
     // Ensure full-pixel lines.
     glLineWidth(1.0f);
 
@@ -239,45 +203,91 @@ void Waveform::draw() {
         float samplesPerPixel = 1.0f / zoomLevel;
 
         // Decide rendering mode based on zoom level.
-        if (samplesPerPixel > 5.0f) {
+        if (samplesPerPixel > 1.0f) {
             // ZOOMED OUT: Envelope (min/max per pixel column)
-            glBegin(GL_LINES);
+            //glBegin(GL_LINES);
+            glBegin(GL_TRIANGLE_STRIP);
 
             for (int x = 0; x < w(); ++x) {
-                float minY, maxY;
+                size_t startSample = scrollOffset + static_cast<size_t>(x * samplesPerPixel);
+                size_t endSample = scrollOffset + static_cast<size_t>((x + 1) * samplesPerPixel);
 
-                size_t bucketIndex = (scrollOffset + x * cache.samplesPerBucket) / cache.samplesPerBucket;
+                if (endSample <= startSample) {
+                    endSample = startSample + 1;
+                }
 
-                if (bucketIndex < cache.minL.size()) {
-                    if (channel == Direction::LEFT) {
-                        minY = cache.minL[bucketIndex];
-                        maxY = cache.maxL[bucketIndex];
+                float minY = 1.0f;
+                float maxY = -1.0f;
+
+                // =========================
+                // CACHE (only if NOT recording)
+                // =========================
+                float cacheMin = 1.0f;
+                float cacheMax = -1.0f;
+
+                // Default: real samples.
+                float blend = 1.0f; 
+
+                if (!track.isRecording()) {
+                    // --- Compute cache-based min/max ---
+                    size_t startBucket = startSample / cache.samplesPerBucket;
+                    size_t endBucket = endSample / cache.samplesPerBucket;
+
+                    for (size_t b = startBucket; b <= endBucket; ++b) {
+                        if (b >= cache.minL.size()) break;
+
+                        float bMin = (channel == Direction::LEFT) ? cache.minL[b] : cache.minR[b];
+                        float bMax = (channel == Direction::LEFT) ? cache.maxL[b] : cache.maxR[b];
+
+                        cacheMin = std::min(cacheMin, bMin);
+                        cacheMax = std::max(cacheMax, bMax);
                     }
-                    else {
-                        minY = cache.minR[bucketIndex];
-                        maxY = cache.maxR[bucketIndex];
+
+                    // --- Smooth blend. Compute blend factor (based on zoom) ---
+                    float t = std::clamp((20.0f - samplesPerPixel) / 19.0f, 0.0f, 1.0f);
+                    blend = t * t * (3.0f - 2.0f * t); // smoothstep
+
+                    if (samplesPerPixel > 20.0f) {
+                        blend = 0.0f; // cache only
                     }
                 }
 
-                // Silence detection.
-                const float threshold = 0.005f;
-                bool isSilent = (std::abs(minY) <= threshold) && (std::abs(maxY) <= threshold);
+                // =========================
+                // Use cache samples by default.
+                // =========================
+                float realMin = cacheMin;
+                float realMax = cacheMax;
 
-                if (isSilent) {
-                    // Flat silent section → draw a thin horizontal line
-                    float yFlatPx = yOffset + (heightPx / 2.0f);  // Amplitude 0
+                if (track.isRecording() || blend > 0.0f) {
+                    // Real samples
+                    realMin = 1.0f;
+                    realMax = -1.0f;
 
-                    glVertex2f(x, yFlatPx);
-                    // 1-pixel wide horizontal line.
-                    glVertex2f(x + 1, yFlatPx);
-                    // Skip the rest of loop.
-                    continue;
+                    for (size_t i = startSample; i < endSample; ++i) {
+                        float s = getDisplaySample(i, channel);
+                        realMin = std::min(realMin, s);
+                        realMax = std::max(realMax, s);
+                    }
+                }
+
+                // =========================
+                // FINAL BLEND
+                // =========================
+                if (!track.isRecording()) {
+                    minY = (1.0f - blend) * cacheMin + blend * realMin;
+                    maxY = (1.0f - blend) * cacheMax + blend * realMax;
+                }
+                else {
+                    // Recording (ignore cache).
+                    minY = realMin;
+                    maxY = realMax;
                 }
 
                 // Avoid disappearing lines: pad very flat sections
                 // Note: Near-flat, but not completely silent → pad it
                 if (std::abs(maxY - minY) < 0.01f) {
-                    minY -= 0.005f; maxY += 0.005f;
+                    minY -= 0.005f;
+                    maxY += 0.005f;
                 }
 
                 float yMinPx = yOffset + (1.0f - std::clamp(minY, -1.0f, 1.0f)) * (heightPx / 2.0f);
@@ -299,26 +309,26 @@ void Waveform::draw() {
 
             for (int i = scrollOffset; i < endSample; ++i) {
                 float x = (i - scrollOffset) * zoomLevel;
-                //float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
-                float sample = track.getProcessedSample(i, channel);
+                float sample = getDisplaySample(i, channel);
                 float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                 glVertex2f(x, y);
             }
 
             glEnd();
 
-            // --- Draw nodes if zoomed in enough ---
-            float samplesPerPixel = 1.0f / zoomLevel;
-
+            // =========================
+            // NODES (very zoomed)
+            // =========================
             if (samplesPerPixel <= 0.1f) {
-                glColor3f(1.0f, 0.0f, 0.0f); // red nodes
-                glPointSize(4.0f);           // size of each node
+                // Red nodes.
+                glColor3f(1.0f, 0.0f, 0.0f); 
+                // Size of each node.
+                glPointSize(4.0f);           
                 glBegin(GL_POINTS);
 
                 for (int i = scrollOffset; i < endSample; ++i) {
                     float x = (i - scrollOffset) * zoomLevel;
-                    //float sample = track.isRecording() ? getRecordedSample(i, channel) : track.getProcessedSample(i, channel);
-                    float sample = track.getProcessedSample(i, channel);
+                    float sample = getDisplaySample(i, channel);
                     float y = yOffset + (1.0f - std::clamp(sample, -1.0f, 1.0f)) * (heightPx / 2.0f);
                     glVertex2f(x, y);
                 }
@@ -327,24 +337,6 @@ void Waveform::draw() {
             }
         }
     };
-
-    // If waveform doesn't fill the full width, paint the rest in grey
-    float lastX = getLastDrawnX();
-
-    if (lastX < (float)w()) {
-        glBegin(GL_QUADS);
-            // grey background
-            glColor3f(0.3f, 0.3f, 0.3f);
-            // top-right
-            glVertex2f((float)w(), (float)h());
-            // top-left
-            glVertex2f(lastX, (float)h());
-            // bottom-left
-            glVertex2f(lastX, 0.0f);
-            // bottom-right
-            glVertex2f((float)w(), 0.0f);
-        glEnd();
-    }
 
     // --- Draw current selection (if any) ---
     if (selection() || (isSelecting && !track.isPlaying() && !track.isRecording())) {
@@ -411,6 +403,23 @@ void Waveform::draw() {
         glEnd();
     }
 
+    // If waveforms doesn't fill the full width, paint the rest in grey
+    /*float lastX = getLastDrawnX();
+
+    if (lastX < (float)w()) {
+        glBegin(GL_QUADS);
+            // grey background
+            glColor3f(0.3f, 0.3f, 0.3f);
+            // top-right
+            glVertex2f((float)w(), (float)h());
+            // top-left
+            glVertex2f(lastX, (float)h());
+            // bottom-left
+            glVertex2f(lastX, 0.0f);
+            // bottom-right
+            glVertex2f((float)w(), 0.0f);
+        glEnd();
+    }*/
 
     // --- Draw playback cursor ---
     int sampleToDraw = -1;
@@ -746,11 +755,10 @@ int Waveform::visibleSamplesCount() const {
 void Waveform::liveUpdate_cb(void* userdata)
 {
     Waveform* self = static_cast<Waveform*>(userdata);
-    self->pullNewRecordedSamples();
     self->redraw();
 
     if (self->isLiveUpdating) {
-        Fl::repeat_timeout(0.30, liveUpdate_cb, userdata); // 30 ms refresh
+        Fl::repeat_timeout(0.03, liveUpdate_cb, userdata); // 30 ms refresh
     }
 }
 
@@ -771,7 +779,8 @@ void Waveform::stopLiveUpdate()
     Fl::remove_timeout(liveUpdate_cb, this);
 
     // Empty temporary buffers.
-    recordedLeftSamples.clear();
-    recordedRightSamples.clear();
+    //recordedLeftSamples.clear();
+    //recordedRightSamples.clear();
+    buildWaveformCache(track);
 }
 

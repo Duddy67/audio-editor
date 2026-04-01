@@ -35,11 +35,7 @@ size_t Track::getLength()
 
 bool Track::isStereo()
 {
-    /*if (clips.empty()) {
-        throw std::runtime_error("No clip!");
-    }
-
-    return clips.front().getSource()->isStereo();*/
+    // Check for brand new audio document (ie: recordingBuffer).
     return (recordingBuffer) ? recordingBuffer->isStereo() : clips.front().getSource()->isStereo();
 }
 
@@ -202,7 +198,6 @@ void Track::mixInto(float* output, int frameCount)
             size_t clipEnd = clipStart + clips[j].getLength();
 
             // First, check for the end of audio file.
-            //if (j == clips.size() - 1 && timelineIndex >= clipEnd && !waveform.selection()) {
             if (!waveform.selection() && timelineIndex >= totalLength) {
                 // Inform GUI that end of file has been reached.
                 endOfFile.store(true);
@@ -394,15 +389,24 @@ void Track::stopRecording()
 
     // Done using the ring buffer.
     ma_pcm_rb_uninit(&captureRing);
+    // No more new data available.
+    newDataAvailable.store(false, std::memory_order_release);
 
-    // Check first the recording buffer exists and something has been actually recorded.
-    if (!recordingBuffer || recordingBuffer->getTotalFrames() == 0) {
+    // Check first the recording buffer exists and something has been
+    // actually recorded in the temporary sample vectors.
+    if (!recordingBuffer || writeLeft.size() == 0) {
         return;
     }
 
     // Return possible unused memory (allocated through "reserve") to the system.
-    recordingBuffer->getLeftSamples().shrink_to_fit();
-    recordingBuffer->getRightSamples().shrink_to_fit();
+    writeLeft.shrink_to_fit();
+    writeRight.shrink_to_fit();
+
+    // Copy the new captured data to the left and right sample vectors of the buffer.
+    recordingBuffer->setSamples(writeLeft, writeRight);
+    // Reset the temporary sample vectors.
+    writeLeft.clear();
+    writeRight.clear();
 
     // Create a Clip from the recorded buffer (transfers ownership safely).
     std::shared_ptr<Buffer> sharedBuffer = std::move(recordingBuffer);
@@ -512,43 +516,30 @@ void Track::drainAndMergeRingBuffer()
     }
 
     // --- Step 5: Store data ---
-    auto& leftSamples = recordingBuffer->getLeftSamples();
-    auto& rightSamples = recordingBuffer->getRightSamples();
     size_t writeIndex = captureWriteIndex.load(std::memory_order_acquire);
     size_t newWriteEnd = writeIndex + framesToRead;
     const size_t blockSize = engine.getDefaultOutputSampleRate();
 
     // Reserve new required capacity beforehand to prevent multiple
     // vector memory allocations causing audio glitches.
-    if (newWriteEnd > leftSamples.capacity()) {
+    if (newWriteEnd > writeLeft.capacity()) {
         size_t newCapacity = ((newWriteEnd / blockSize) + 1) * blockSize;
-        recordingBuffer->reserve(newCapacity);
+        writeLeft.reserve(newCapacity);
+        writeRight.reserve(newCapacity);
     }
 
-    // Store recording data into buffer. 
-    leftSamples.insert(leftSamples.end(), newLeft.begin(), newLeft.end());
-    rightSamples.insert(rightSamples.end(), newRight.begin(), newRight.end());
+    // Store recording data into temporary sample vectors. 
+    writeLeft.insert(writeLeft.end(), newLeft.begin(), newLeft.end());
+    writeRight.insert(writeRight.end(), newRight.begin(), newRight.end());
 
     // --- Update write cursor to the end of newly written region ---
     captureWriteIndex.store(newWriteEnd, std::memory_order_release);
 
+    // Inform snapshot that new data is available.
+    newDataAvailable.store(true, std::memory_order_release);
+
     // --- Step 6: Update stats and GUI ---
     totalRecordedFrames.fetch_add(framesToRead, std::memory_order_release);
-
-    // --- Step 7: Update dirty range atomically (for GUI) ---
-    size_t prevStart = gui->getDirtyStart().load(std::memory_order_acquire);
-    size_t prevEnd   = gui->getDirtyEnd().load(std::memory_order_acquire);
-
-    // Extend range atomically
-    if (prevStart == SIZE_MAX || writeIndex < prevStart) {
-        gui->getDirtyStart().store(writeIndex, std::memory_order_release);
-    }
-
-    if (newWriteEnd > prevEnd) {
-        gui->getDirtyEnd().store(newWriteEnd, std::memory_order_release);
-    }
-
-    newDataAvailable.store(true, std::memory_order_release);
 }
 
 void Track::workerThreadLoop()
@@ -557,15 +548,44 @@ void Track::workerThreadLoop()
     // (optional, platform-specific)
     // setLowPriority();
 
+    auto lastSnapshot = std::chrono::steady_clock::now();
+
     while (workerRunning.load(std::memory_order_acquire)) {
         drainAndMergeRingBuffer();
+
+        auto now = std::chrono::steady_clock::now();
+        // Publish every ~50 ms.
+        // Make sure some new data is available.
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSnapshot).count() > 50 && newDataAvailable.exchange(false)) {
+            publishSnapshot();
+            lastSnapshot = now;
+        }
 
         // Sleep 1–2 ms for smooth draining
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
-    // One last drain after stop
+    // One last drain and snapshot after stop.
     drainAndMergeRingBuffer();
+    publishSnapshot();
+}
+
+/*
+ * Snapshot system (immutable).
+ * Prevent GUI to read directly from audio thread while recording.
+ * (ie: to read memory that is being reallocated by the audio
+ *  thread which eventualy leads to segmentation fault).
+ */
+void Track::publishSnapshot()
+{
+    if (writeLeft.size() == 0) {
+        return; 
+    }
+
+    auto snap = std::make_shared<Buffer>();
+    snap->setSamples(writeLeft, writeRight);
+
+    std::atomic_store(&snapshot, snap);
 }
 
 void Track::setNewTrack(TrackOptions options)

@@ -30,6 +30,12 @@ void Buffer::interleaveSamples(std::vector<float>& interleaved)
     }
 }
 
+void Buffer::setSamples(const std::vector<float>& left, const std::vector<float>& right)
+{
+    leftSamples = left;
+    rightSamples = right;
+}
+
 void Buffer::clear()
 {
     leftSamples.clear();
@@ -40,4 +46,10 @@ void Buffer::reserve(size_t frames)
 {
     leftSamples.reserve(frames);
     rightSamples.reserve(frames);
+}
+
+void Buffer::resize(size_t frames)
+{
+    leftSamples.resize(frames);
+    rightSamples.resize(frames);
 }

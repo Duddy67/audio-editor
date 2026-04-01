@@ -19,8 +19,6 @@ class GUI {
         Track& track;
         std::unique_ptr<Waveform> waveform;  
         std::unique_ptr<Marking> marking;  
-        std::atomic<size_t> dirtyStart{SIZE_MAX};
-        std::atomic<size_t> dirtyEnd{0};
 
     public:
 
@@ -29,9 +27,6 @@ class GUI {
         Waveform& getWaveform() { return *waveform.get(); }
         Marking& getMarking() { return *marking.get(); }
         void init(int x, int y, int w, int h);
-        bool getNewSamplesCopy(std::vector<float>& leftCopy, std::vector<float>& rightCopy, size_t& newStartIndex, size_t& newCount);
-        std::atomic<size_t>& getDirtyStart() { return dirtyStart; }
-        std::atomic<size_t>& getDirtyEnd() { return dirtyEnd; }
 };
 
 #endif // GUI_H

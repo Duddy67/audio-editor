@@ -26,9 +26,7 @@ class Waveform : public Fl_Gl_Window {
         };
 
         WaveformCache cache;
-        // Temporary buffers used during recording.
-        std::vector<float> recordedLeftSamples;
-        std::vector<float> recordedRightSamples;
+        size_t recordingStartTimeline = 0;
         Fl_Scrollbar* scrollbar = nullptr;
         // Fit-to-screen (current starting zoom).
         float zoomFit = 1.0f;
@@ -57,8 +55,8 @@ class Waveform : public Fl_Gl_Window {
 
         static void liveUpdate_cb(void* userdata);
         void prepareForRecording();
-        void pullNewRecordedSamples();
         float getRecordedSample(unsigned int timelineIndex, Direction channel);
+        float getDisplaySample(size_t timelineIndex, Direction channel);
 
     protected:
         void draw() override;

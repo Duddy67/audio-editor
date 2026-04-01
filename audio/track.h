@@ -42,6 +42,9 @@ class Track {
         Engine& engine;
         std::vector<Clip> clips;
         std::unique_ptr<Buffer> recordingBuffer;
+        // Temporary sample vectors used for recording. 
+        std::vector<float> writeLeft;
+        std::vector<float> writeRight;
         std::unique_ptr<GUI> gui;
         std::atomic<uint64_t> playbackIndex{0};
         std::atomic<size_t> captureWriteIndex {0};
@@ -61,6 +64,7 @@ class Track {
         bool newTrack = false;
         // Used for GUI.
         std::atomic<bool> newDataAvailable{false};
+        std::shared_ptr<Buffer> snapshot;
 
         void uninit();
         void drainAndMergeRingBuffer();
@@ -68,6 +72,7 @@ class Track {
         void stopRecording();
         void replaceRecording(size_t recordStart, std::shared_ptr<Buffer> buffer);
         void overdubRecording(size_t recordStart, std::shared_ptr<Buffer> buffer);
+        void publishSnapshot();
 
     public:
 
@@ -104,8 +109,10 @@ class Track {
       GUI& getGUI() { return *gui; }
       size_t getLength();
       float getProcessedSample(unsigned int timelineIndex, Direction channel);
-      Buffer& getRecordingBuffer() { return *recordingBuffer; }
       void printClips();
+      size_t getRecordingStartSample() { return recordStart; }
+      // Used by GUI to safety get and draw new data available. 
+      std::shared_ptr<Buffer> getRecordingSnapshot() const { return std::atomic_load(&snapshot); }
 
       // Setters.
       void setNewTrack(TrackOptions options);
