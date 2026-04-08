@@ -150,7 +150,7 @@ void Waveform::deleteSelection()
  */
 float Waveform::getLastDrawnX() 
 {
-    int totalSamples = track.getLength();
+    int totalSamples = track.isRecording() ? startSamplePosition + track.getCaptureWriteIndex() : track.getLength();
     int visibleSamples = visibleSamplesCount();
     int endSample = scrollOffset + visibleSamples;
 
@@ -422,7 +422,7 @@ void Waveform::draw() {
     }
 
     // If waveforms doesn't fill the full width, paint the rest in grey
-    /*float lastX = getLastDrawnX();
+    float lastX = getLastDrawnX();
 
     if (lastX < (float)w()) {
         glBegin(GL_QUADS);
@@ -437,7 +437,7 @@ void Waveform::draw() {
             // bottom-right
             glVertex2f((float)w(), 0.0f);
         glEnd();
-    }*/
+    }
 
     // --- Draw playback cursor ---
     int sampleToDraw = -1;
@@ -767,7 +767,7 @@ int Waveform::visibleSamplesCount() const {
     // number of samples that correspond to the width: ceil(w / zoomLevel)
     int vs = static_cast<int>(std::ceil(static_cast<float>(w()) / zoomLevel));
     vs = std::max(1, vs);
-    vs = std::min((int)track.getLength(), vs);
+    vs = track.isRecording() ? std::min(startSamplePosition + (int)track.getCaptureWriteIndex(), vs) : std::min((int)track.getLength(), vs);
 
     return vs;
 }
