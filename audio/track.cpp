@@ -58,7 +58,6 @@ float Track::getProcessedSample(unsigned int timelineIndex, Direction channel)
             float rawSample = channel == Direction::LEFT ? clips[i].getSource()->getLeftSamples()[sourceIndex] : clips[i].getSource()->getRightSamples()[sourceIndex];
 
             processedSample += clips[i].processSample(rawSample, timelineIndex);
-            //return clips[i].processSample(rawSample, timelineIndex);
         }
     }
 

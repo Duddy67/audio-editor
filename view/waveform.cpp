@@ -75,10 +75,28 @@ void Waveform::prepareForRecording()
 
 float Waveform::getDisplaySample(size_t timelineIndex, Direction channel)
 {
+    // --- 1. If recording → try live recording first ---
     if (track.isRecording()) {
-        return getRecordedSample(timelineIndex, channel);
+        size_t recStart = track.getRecordingStartSample();
+
+        if (timelineIndex >= recStart) {
+            auto snap = track.getRecordingSnapshot();
+
+            if (snap) {
+                size_t localIndex = timelineIndex - recStart;
+                const auto& samples = (channel == Direction::LEFT) ? snap->getLeftSamples() : snap->getRightSamples();
+
+                if (localIndex < samples.size()) {
+                    return samples[localIndex]; // LIVE recording wins
+                }
+            }
+
+            // Recording zone but not yet filled
+            return 0.0f;
+        }
     }
 
+    // --- 2. Fallback to clip system ---
     return track.getProcessedSample(timelineIndex, channel);
 }
 
@@ -425,7 +443,8 @@ void Waveform::draw() {
     int sampleToDraw = -1;
 
     if (track.isRecording()) {
-        sampleToDraw = track.getCaptureWriteIndex();
+        // Add the possible distance before the beginning of the recording.
+        sampleToDraw = startSamplePosition + track.getCaptureWriteIndex();
     }
     // The cursor moves in realtime (isPlaying) or is shown at its last position (isPaused) 
     // or has been manually moved (eg: mouse click, Home key...).
@@ -720,7 +739,8 @@ void Waveform::resetCursor()
 void Waveform::updateCursor(Track& track) 
 {
     // Reads from atomic.
-    int sample = track.getCurrentSample();
+    int sample = track.isRecording() ? startSamplePosition + track.getCaptureWriteIndex() : track.getCurrentSample();
+
     // Synchronize view with audio. 
     setCursorSamplePosition(sample);
 
@@ -779,8 +799,6 @@ void Waveform::stopLiveUpdate()
     Fl::remove_timeout(liveUpdate_cb, this);
 
     // Empty temporary buffers.
-    //recordedLeftSamples.clear();
-    //recordedRightSamples.clear();
     buildWaveformCache(track);
 }
 
